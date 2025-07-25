@@ -242,7 +242,8 @@ const CreatorDashboard = () => {
         status: "pending",
         type: item.contentType.toLowerCase(),
         platform: item.socialChannel,
-        quantity: item.quantity
+        quantity: item.quantity,
+        budget: campaign.budget,
       })) || [];
 
       return {
@@ -264,6 +265,7 @@ const CreatorDashboard = () => {
         maxSubmissions: campaign.content_items?.length || 1,
         // Include original campaign data and tasks for ActiveProjectDetails
         originalCampaign: campaign,
+        budget: campaign.budget,
         tasks
       };
     });
@@ -654,6 +656,7 @@ const CreatorDashboard = () => {
               day: 'numeric',
               year: 'numeric'
             }),
+            budget: selectedCampaign?.budget,
           }}
           onClose={() => setShowApplicationModal(false)}
           onSubmit={handleApplicationSubmit}

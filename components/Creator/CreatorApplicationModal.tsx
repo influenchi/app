@@ -25,6 +25,7 @@ interface Campaign {
   brand: string;
   compensation: string;
   deadline: string;
+  budget?: string;
 }
 
 interface CreatorApplicationModalProps {

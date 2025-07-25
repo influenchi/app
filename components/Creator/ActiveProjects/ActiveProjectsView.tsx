@@ -10,6 +10,7 @@ import {
   CheckCircle,
   AlertCircle
 } from "lucide-react";
+import Image from "next/image";
 
 interface ActiveProject {
   id: number | string;
@@ -22,6 +23,7 @@ interface ActiveProject {
   image: string;
   submissionCount: number;
   maxSubmissions: number;
+  budget?: string;
 }
 
 interface ActiveProjectsViewProps {
@@ -107,10 +109,12 @@ const ActiveProjectsView = ({ onProjectClick, projects }: ActiveProjectsViewProp
             <div className="flex">
               <div className="w-48 flex-shrink-0">
                 <div className="aspect-[4/3] overflow-hidden rounded-l-lg">
-                  <img
+                  <Image
                     src={project.image}
                     alt={project.title}
                     className="w-full h-full object-cover"
+                    width={100}
+                    height={100}
                   />
                 </div>
               </div>
@@ -135,7 +139,7 @@ const ActiveProjectsView = ({ onProjectClick, projects }: ActiveProjectsViewProp
                   <div className="space-y-3">
                     <div className="flex items-center text-sm">
                       <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                      <span className="font-medium">{project.compensation}</span>
+                      <span className="font-medium">{project?.budget ? project?.budget + ' + ' + project?.compensation : project?.compensation}</span>
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4 mr-2" />
