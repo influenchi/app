@@ -23,7 +23,13 @@ export async function GET(
     // Fetch campaign details
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
-      .select('*')
+      .select(`
+        *,
+        users!brand_id (
+          id,
+          company_name
+        )
+      `)
       .eq('id', campaignId)
       .eq('status', 'active')
       .single();
@@ -35,6 +41,12 @@ export async function GET(
       );
     }
 
+    // Get brand name
+    const brandData = campaign.users;
+    const brandName = Array.isArray(brandData) && brandData[0]?.company_name
+      ? brandData[0].company_name
+      : 'Brand Name';
+
     // If the request is from a creator, check if they have applied
     if (session.user.user_type === 'creator') {
       const { data: application } = await supabaseAdmin
@@ -44,16 +56,22 @@ export async function GET(
         .eq('creator_id', session.user.id)
         .single();
 
-      // Add application status to campaign
+      // Add application status and brand name to campaign
       return NextResponse.json({
         campaign: {
           ...campaign,
-          applicationStatus: application?.status || null
+          applicationStatus: application?.status || null,
+          brand_name: brandName
         }
       });
     }
 
-    return NextResponse.json({ campaign });
+    return NextResponse.json({
+      campaign: {
+        ...campaign,
+        brand_name: brandName
+      }
+    });
   } catch (error) {
     console.error('Error fetching campaign:', error);
     return NextResponse.json(

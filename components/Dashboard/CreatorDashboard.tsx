@@ -49,6 +49,7 @@ interface Campaign {
   applicant_count: number;
   created_at: string;
   applicationStatus?: 'pending' | 'accepted' | 'rejected' | null;
+  brand_name?: string;
 }
 
 interface TransformedCampaign {
@@ -87,12 +88,36 @@ interface ActiveCampaign {
   daysLeft: number;
 }
 
+interface ActiveProject {
+  id: number | string;
+  title: string;
+  brand: string;
+  compensation: string;
+  deadline: string;
+  status: 'in-progress' | 'pending-review' | 'revision-requested' | 'completed';
+  progress: number;
+  image: string;
+  submissionCount: number;
+  maxSubmissions: number;
+  originalCampaign?: ActiveCampaign; // Added for ActiveProjectDetails
+  tasks?: {
+    id: number;
+    title: string;
+    description: string;
+    deadline: string;
+    status: string;
+    type: string;
+    platform: string;
+    quantity: string;
+  }[];
+}
+
 const CreatorDashboard = () => {
   const [activeTab, setActiveTab] = useState('campaigns');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedProject, setSelectedProject] = useState<ActiveProject | null>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const { toast } = useToast();
 
@@ -142,8 +167,8 @@ const CreatorDashboard = () => {
       }
       const data = await response.json();
       return data.campaigns as ActiveCampaign[];
-    },
-    enabled: !!currentUser && activeTab === 'active'
+    }
+    // Removed enabled condition - fetch in background for speed
   });
 
   // Create a map of campaign IDs to application status
@@ -180,7 +205,7 @@ const CreatorDashboard = () => {
       return {
         id: campaign.id,
         title: campaign.title,
-        brand: 'Brand Name', // Placeholder
+        brand: campaign.brand_name || 'Brand Name',
         compensation: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
         location: campaign.target_audience?.location?.[0] || 'Remote',
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -198,6 +223,51 @@ const CreatorDashboard = () => {
       };
     });
   }, [campaignsData, applicationStatusMap]);
+
+  // Transform active campaigns to ActiveProject format
+  const transformedActiveProjects: ActiveProject[] = useMemo(() => {
+    if (!activeCampaignsData) return [];
+
+    return activeCampaignsData.map(campaign => {
+      // Transform content_items to tasks format
+      const tasks = campaign.content_items?.map((item: any, index: number) => ({
+        id: index + 1,
+        title: `${item.contentType} on ${item.socialChannel}`,
+        description: item.description || `Create ${item.quantity} ${item.contentType} for ${item.socialChannel}`,
+        deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        status: "pending",
+        type: item.contentType.toLowerCase(),
+        platform: item.socialChannel,
+        quantity: item.quantity
+      })) || [];
+
+      return {
+        id: campaign.id,
+        title: campaign.title,
+        brand: campaign.brand,
+        compensation: campaign.budget_type === 'cash'
+          ? `$${campaign.budget}`
+          : campaign.product_service_description || 'Product/Service',
+        deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        status: 'in-progress' as const, // Since these are accepted campaigns
+        progress: 30, // Default progress - you can calculate this based on submissions
+        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+        submissionCount: 0, // This would come from tracking submissions
+        maxSubmissions: campaign.content_items?.length || 1,
+        // Include original campaign data and tasks for ActiveProjectDetails
+        originalCampaign: campaign,
+        tasks
+      };
+    });
+  }, [activeCampaignsData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -254,8 +324,12 @@ const CreatorDashboard = () => {
     });
   };
 
-  const handleProjectClick = (project: any) => {
-    setSelectedProject(project);
+  const handleProjectClick = (project: ActiveProject) => {
+    // Find the full project data with original campaign
+    const fullProject = transformedActiveProjects.find(p => p.id === project.id);
+    if (fullProject) {
+      setSelectedProject(fullProject);
+    }
   };
 
   const handleBackToDashboard = () => {
@@ -293,7 +367,7 @@ const CreatorDashboard = () => {
       <CampaignDetailsPage
         campaign={{
           ...selectedCampaign,
-          brand: 'Brand Name', // Placeholder until we have brand data
+          brand: selectedCampaign.brand_name || 'Brand Name',
           daysLeft: Math.ceil((new Date(selectedCampaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
           status: selectedCampaign.applicationStatus ? 'applied' : 'active',
         }}
@@ -550,79 +624,8 @@ const CreatorDashboard = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Loading your active campaigns...</p>
               </div>
-            ) : activeCampaignsData && activeCampaignsData.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {activeCampaignsData.map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group" onClick={() => handleCampaignClick({ id: campaign.id } as TransformedCampaign)}>
-                    <div className="relative">
-                      <div className="aspect-[2/1] overflow-hidden rounded-t-lg">
-                        <Image
-                          src={campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop"}
-                          alt={campaign.title}
-                          width={100}
-                          height={100}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <div className="absolute top-3 right-3 flex gap-2">
-                        <Badge className={getStatusColor('accepted')}>
-                          Accepted
-                        </Badge>
-                        {campaign.daysLeft <= 7 && (
-                          <Badge className={`${getUrgencyColor(campaign.daysLeft)} border-0`}>
-                            {campaign.daysLeft}d left
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg mb-1 text-foreground group-hover:text-primary transition-colors">
-                            {campaign.title}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground font-medium">{campaign.brand}</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="pt-0">
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {campaign.description}
-                      </p>
-
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                          <span className="font-medium text-foreground">
-                            {campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 mr-2" />
-                          Deadline: {new Date(campaign.completion_date).toLocaleDateString()}
-                        </div>
-
-                        {campaign.customQuote && (
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Target className="h-4 w-4 mr-2" />
-                            Your Quote: ${campaign.customQuote}
-                          </div>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                      >
-                        View Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            ) : transformedActiveProjects.length > 0 ? (
+              <ActiveProjectsView onProjectClick={handleProjectClick} projects={transformedActiveProjects} />
             ) : (
               <div className="text-center py-12">
                 <div className="text-muted-foreground">
@@ -642,7 +645,7 @@ const CreatorDashboard = () => {
             id: selectedCampaignId,
             title: selectedCampaign?.title || '',
             image: selectedCampaign?.image,
-            brand: 'Brand Name',
+            brand: selectedCampaign?.brand_name || 'Brand Name',
             compensation: selectedCampaign?.budget_type === 'cash'
               ? `$${selectedCampaign.budget}`
               : selectedCampaign?.product_service_description || 'Product/Service',

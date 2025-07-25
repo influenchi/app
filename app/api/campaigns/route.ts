@@ -69,8 +69,14 @@ export async function GET(request: NextRequest) {
       // Fetch campaigns for the current brand user
       query = query.eq('brand_id', session.user.id);
     } else {
-      // Fetch active campaigns for creators (existing behavior)
-      query = query.eq('status', status || 'active');
+      // Fetch active campaigns for creators with brand info
+      query = supabaseAdmin.from('campaigns').select(`
+        *,
+        users!brand_id (
+          id,
+          company_name
+        )
+      `).eq('status', status || 'active');
     }
 
     query = query.order('created_at', { ascending: false });
@@ -99,11 +105,19 @@ export async function GET(request: NextRequest) {
         applicationMap.set(app.campaign_id, app.status);
       });
 
-      // Add application status to each campaign
-      const campaignsWithApplicationStatus = campaigns.map(campaign => ({
-        ...campaign,
-        applicationStatus: applicationMap.get(campaign.id) || null
-      }));
+      // Add application status and brand name to each campaign
+      const campaignsWithApplicationStatus = campaigns.map(campaign => {
+        const brandData = campaign.users;
+        const brandName = Array.isArray(brandData) && brandData[0]?.company_name
+          ? brandData[0].company_name
+          : 'Brand Name';
+
+        return {
+          ...campaign,
+          applicationStatus: applicationMap.get(campaign.id) || null,
+          brand_name: brandName
+        };
+      });
 
       return NextResponse.json({ campaigns: campaignsWithApplicationStatus });
     }

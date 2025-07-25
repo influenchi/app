@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { 
-  ArrowLeft, 
-  MessageSquare, 
-  Upload, 
-  DollarSign, 
-  Calendar, 
+import {
+  ArrowLeft,
+  MessageSquare,
+  Upload,
+  DollarSign,
+  Calendar,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -29,16 +30,56 @@ import {
   Share2
 } from "lucide-react";
 
+interface Task {
+  id: number;
+  title: string;
+  description: string;
+  deadline: string;
+  status: string;
+  type: string;
+  platform: string;
+  quantity?: string | number;
+}
+
+interface Submission {
+  id: number;
+  title?: string;
+  name?: string;
+  description: string;
+  tags: string[];
+  thumbnail?: string;
+  type?: string;
+  uploadedAt: string;
+  file?: File;
+  status?: string;
+}
+
+interface Project {
+  id: string | number;
+  title: string;
+  brand: string;
+  compensation: string;
+  deadline: string;
+  status: string;
+  progress: number;
+  image: string;
+  submissionCount: number;
+  maxSubmissions: number;
+  tasks?: Task[];
+  lastMessage?: string;
+  originalCampaign?: any; // Allow original campaign data
+}
+
 interface ActiveProjectDetailsProps {
-  project: any;
+  project: Project;
   onBack: () => void;
 }
 
 const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [newMessage, setNewMessage] = useState('');
-  const [taskSubmissions, setTaskSubmissions] = useState<{[key: string]: any[]}>({});
-  const [editingSubmission, setEditingSubmission] = useState<{taskId: string, submissionId: number} | null>(null);
+  const [taskSubmissions, setTaskSubmissions] = useState<{ [key: string]: Submission[] }>({});
+  const [editingSubmission, setEditingSubmission] = useState<{ taskId: string, submissionId: number } | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
   const [submittingTask, setSubmittingTask] = useState<string | null>(null);
@@ -93,6 +134,9 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
       platform: "TripAdvisor"
     }
   ];
+
+  // Use provided tasks or fall back to mock data
+  const tasks = project.tasks || mockTasks;
 
   const getTaskIcon = (type: string) => {
     switch (type) {
@@ -155,13 +199,13 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
     const submissions = taskSubmissions[taskId];
     if (submissions && submissions.length > 0) {
       setSubmittingTask(taskId);
-      
+
       // Simulate API call
       setTimeout(() => {
         console.log(`Submitting task ${taskId} with submissions:`, submissions);
         setSubmittedTasks(prev => new Set([...prev, taskId]));
         setSubmittingTask(null);
-        
+
         // Show success message or toast here
         alert('Task submitted successfully! The brand will review your content.');
       }, 2000);
@@ -183,21 +227,21 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
 
   const saveSubmissionEdit = () => {
     if (!editingSubmission) return;
-    
+
     const { taskId, submissionId } = editingSubmission;
     setTaskSubmissions(prev => ({
       ...prev,
-      [taskId]: prev[taskId]?.map(sub => 
-        sub.id === submissionId 
+      [taskId]: prev[taskId]?.map(sub =>
+        sub.id === submissionId
           ? {
-              ...sub,
-              description: editDescription,
-              tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag)
-            }
+            ...sub,
+            description: editDescription,
+            tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+          }
           : sub
       ) || []
     }));
-    
+
     setEditingSubmission(null);
     setEditDescription('');
     setEditTags('');
@@ -224,7 +268,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Active Collabs
           </Button>
-          
+
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{project.title}</h1>
@@ -243,41 +287,37 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
         <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg inline-flex">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'overview' 
-                ? 'bg-background text-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('messages')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'messages' 
-                ? 'bg-background text-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'messages'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Messages
           </button>
           <button
             onClick={() => setActiveTab('submissions')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'submissions' 
-                ? 'bg-background text-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'submissions'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Submissions
           </button>
           <button
             onClick={() => setActiveTab('payment')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'payment' 
-                ? 'bg-background text-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'payment'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             Payment
           </button>
@@ -292,8 +332,8 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                 <Card>
                   <CardContent className="p-0">
                     <div className="aspect-[2/1] overflow-hidden rounded-lg">
-                      <img 
-                        src={project.image} 
+                      <img
+                        src={project.image}
                         alt={project.title}
                         className="w-full h-full object-cover"
                       />
@@ -311,7 +351,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {mockTasks.map((task) => (
+                      {tasks.map((task) => (
                         <div key={task.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
@@ -391,13 +431,12 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
                       {mockMessages.map((message) => (
                         <div key={message.id} className={`flex ${message.sender === 'creator' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[70%] rounded-lg p-3 ${
-                            message.sender === 'creator' 
-                              ? 'bg-primary text-primary-foreground' 
-                              : message.type === 'broadcast'
+                          <div className={`max-w-[70%] rounded-lg p-3 ${message.sender === 'creator'
+                            ? 'bg-primary text-primary-foreground'
+                            : message.type === 'broadcast'
                               ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                               : 'bg-muted'
-                          }`}>
+                            }`}>
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-medium">{message.senderName}</span>
                               {message.type === 'broadcast' && (
@@ -430,7 +469,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
 
             {activeTab === 'submissions' && (
               <div className="space-y-6">
-                {mockTasks.map((task) => {
+                {tasks.map((task) => {
                   const taskStatus = getTaskStatus(task.id.toString());
                   const isSubmitted = taskStatus === 'submitted';
                   const isSubmitting = taskStatus === 'submitting';
@@ -485,7 +524,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                               <p className="text-xs text-muted-foreground mb-4">
                                 Upload your files first, then add descriptions and tags
                               </p>
-                              
+
                               <input
                                 type="file"
                                 multiple
@@ -521,8 +560,8 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                                           </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <Button 
-                                            variant="ghost" 
+                                          <Button
+                                            variant="ghost"
                                             size="sm"
                                             onClick={() => startEditingSubmission(task.id.toString(), submission.id, submission)}
                                           >
@@ -538,8 +577,8 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                                         </div>
                                       </div>
 
-                                      {editingSubmission?.taskId === task.id.toString() && 
-                                       editingSubmission?.submissionId === submission.id ? (
+                                      {editingSubmission?.taskId === task.id.toString() &&
+                                        editingSubmission?.submissionId === submission.id ? (
                                         <div className="space-y-3">
                                           <div>
                                             <label className="text-sm font-medium text-foreground">Description</label>
@@ -601,7 +640,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
 
                                 {/* Submit Task Button */}
                                 <div className="flex justify-end pt-4 border-t">
-                                  <Button 
+                                  <Button
                                     onClick={() => handleSubmitTask(task.id.toString())}
                                     disabled={isSubmitting}
                                     className="min-w-[140px]"
