@@ -262,7 +262,6 @@ const CreatorDashboard = () => {
         image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
         submissionCount: 0, // This would come from tracking submissions
         maxSubmissions: campaign.content_items?.length || 1,
-        // Include original campaign data and tasks for ActiveProjectDetails
         originalCampaign: campaign,
         budget: campaign.budget,
         tasks
