@@ -51,6 +51,10 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
     queryFn: async () => {
       const response = await fetch(`/api/campaigns/${campaignId}/participants`);
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`Participants endpoint not found for campaign ${campaignId}`);
+          return [];
+        }
         throw new Error('Failed to fetch participants');
       }
       const data = await response.json();
@@ -59,7 +63,15 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
         unreadCount: 0 // Will be calculated from messages
       }));
     },
-    enabled: !!campaignId
+    enabled: !!campaignId,
+    retry: (failureCount, error) => {
+      // Retry on 404s up to 3 times with delay
+      if (error instanceof Error && error.message.includes('404')) {
+        return failureCount < 3;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Calculate unread counts

@@ -59,13 +59,25 @@ export function useMessages(campaignId: string) {
     queryFn: async () => {
       const response = await fetch(`/api/messages/campaign/${campaignId}`);
       if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`Messages endpoint not found for campaign ${campaignId}`);
+          return [];
+        }
         throw new Error('Failed to fetch messages');
       }
       const data = await response.json();
       return data.messages as Message[];
     },
     refetchInterval: 5000, // Poll every 5 seconds for new messages
-    enabled: !!campaignId
+    enabled: !!campaignId,
+    retry: (failureCount, error) => {
+      // Retry on 404s up to 3 times with delay
+      if (error instanceof Error && error.message.includes('404')) {
+        return failureCount < 3;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Send message mutation
