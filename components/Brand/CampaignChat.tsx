@@ -17,11 +17,20 @@ import {
   FileText,
   Image,
   X,
-  Loader2
+  Loader2,
+  Eye,
+  Shield,
+  Instagram,
+  Youtube,
+  Twitter,
+  Facebook,
+  MapPin
 } from "lucide-react";
 import { useMessages } from "@/lib/hooks/useMessages";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/hooks/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
 
 interface CampaignChatProps {
   campaignId: string;
@@ -34,9 +43,32 @@ interface Participant {
   unreadCount: number;
 }
 
+interface CreatorProfile {
+  id: string;
+  user_id: string;
+  display_name: string;
+  profile_image?: string;
+  bio?: string;
+  location?: string;
+  instagram_handle?: string;
+  instagram_followers?: number;
+  tiktok_handle?: string;
+  tiktok_followers?: number;
+  youtube_handle?: string;
+  youtube_followers?: number;
+  twitter_handle?: string;
+  twitter_followers?: number;
+  portfolio_urls?: string[];
+  niche?: string[];
+  is_vetted?: boolean;
+}
+
 const CampaignChat = ({ campaignId }: CampaignChatProps) => {
   const { data: session } = useSession();
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
+  const [selectedCreatorProfile, setSelectedCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,6 +155,44 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
 
   const removeAttachment = (index: number) => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleViewProfile = async (creatorId: string) => {
+    setLoadingProfile(true);
+    try {
+      // Fetch creator profile details
+      const { data: creatorData, error } = await supabase
+        .from('creators')
+        .select('*')
+        .eq('user_id', creatorId)
+        .single();
+
+      if (error) throw error;
+
+      setSelectedCreatorProfile(creatorData);
+      setShowCreatorProfile(true);
+    } catch (error) {
+      console.error('Error fetching creator profile:', error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const getSocialIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram': return <Instagram className="h-4 w-4 text-pink-500" />;
+      case 'youtube': return <Youtube className="h-4 w-4 text-red-500" />;
+      case 'tiktok': return <Image className="h-4 w-4 text-black" />;
+      case 'twitter': return <Twitter className="h-4 w-4 text-blue-400" />;
+      default: return <ExternalLink className="h-4 w-4" />;
+    }
+  };
+
+  const formatFollowers = (count: number | null | undefined): string => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
   };
 
   const filteredParticipants = participants.filter((p: Participant) =>
@@ -224,10 +294,15 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/creator/${selectedCreator}`, '_blank')}
+                  onClick={() => handleViewProfile(selectedCreator!)}
+                  disabled={loadingProfile}
                   className="flex items-center gap-2"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  {loadingProfile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                   View Profile
                 </Button>
               )}
@@ -380,6 +455,151 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Creator Profile Dialog */}
+      <Dialog open={showCreatorProfile} onOpenChange={setShowCreatorProfile}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedCreatorProfile && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Creator Profile
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Profile Header */}
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedCreatorProfile.profile_image || undefined} />
+                    <AvatarFallback>
+                      {selectedCreatorProfile.display_name?.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      {selectedCreatorProfile.display_name}
+                      {selectedCreatorProfile.is_vetted && (
+                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                    </h3>
+                    <p className="text-gray-600">{selectedCreatorProfile.niche?.join(', ')}</p>
+                    {selectedCreatorProfile.location && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {selectedCreatorProfile.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Social Channels */}
+                <div>
+                  <h4 className="font-medium mb-3">Social Channels</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedCreatorProfile.instagram_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('instagram')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.instagram_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.instagram_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://instagram.com/${selectedCreatorProfile.instagram_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                    {selectedCreatorProfile.tiktok_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('tiktok')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.tiktok_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.tiktok_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://tiktok.com/@${selectedCreatorProfile.tiktok_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                    {selectedCreatorProfile.youtube_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('youtube')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.youtube_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.youtube_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://youtube.com/@${selectedCreatorProfile.youtube_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bio */}
+                {selectedCreatorProfile.bio && (
+                  <div>
+                    <h4 className="font-medium mb-3">Bio</h4>
+                    <p className="text-gray-700">{selectedCreatorProfile.bio}</p>
+                  </div>
+                )}
+
+                {/* Portfolio */}
+                {selectedCreatorProfile.portfolio_urls && selectedCreatorProfile.portfolio_urls.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3">Portfolio</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {selectedCreatorProfile.portfolio_urls.map((image, index) => (
+                        <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={image}
+                            alt={`Portfolio ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
