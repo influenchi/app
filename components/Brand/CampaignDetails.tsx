@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   FileText,
   UserCheck,
   MessageSquare,
@@ -16,56 +16,129 @@ import CampaignHeader from "./CampaignDetails/CampaignHeader";
 import CampaignOverview from "./CampaignDetails/CampaignOverview";
 import CampaignStats from "./CampaignDetails/CampaignStats";
 
+interface ContentItem {
+  id: string;
+  quantity: number;
+  contentType: string;
+  customTitle?: string;
+  description?: string;
+  socialChannel: string;
+}
+
+interface TargetAudience {
+  gender?: string;
+  ageRange?: string[];
+  location?: string[];
+  ethnicity?: string;
+  interests?: string[];
+  audienceSize?: string[];
+  socialChannel?: string;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  budget: string;
+  budget_type: 'cash' | 'product' | 'service';
+  product_service_description?: string;
+  creator_purchase_required: boolean;
+  product_ship_required: boolean;
+  content_items: ContentItem[];
+  target_audience: TargetAudience;
+  start_date: string;
+  completion_date: string;
+  campaign_goal: string[];
+  applicant_count: number;
+  image?: string;
+}
+
 interface CampaignDetailsProps {
-  campaign: any;
+  campaign: Campaign;
   onBack: () => void;
   onEdit: () => void;
 }
 
 const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => {
+  // Transform campaign data to match component expectations
+  const transformedCampaign = {
+    ...campaign,
+    // Transform field names from snake_case to camelCase
+    budgetType: campaign.budget_type,
+    productServiceDescription: campaign.product_service_description,
+    creatorPurchaseRequired: campaign.creator_purchase_required,
+    productShipRequired: campaign.product_ship_required,
+    contentItems: campaign.content_items,
+    targetAudience: campaign.target_audience,
+    startDate: new Date(campaign.start_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+    completionDate: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+
+    // Format budget based on type
+    budget: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.budget,
+
+    // Add computed fields
+    applications: campaign.applicant_count || 0,
+    assets: campaign.content_items?.length || 0,
+    type: campaign.campaign_goal?.[0] || 'Content Creation',
+    deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <CampaignHeader campaign={campaign} onBack={onBack} onEdit={onEdit} />
+      <CampaignHeader campaign={transformedCampaign} onBack={onBack} onEdit={onEdit} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="details" className="w-full">
           {/* Enhanced Tab Navigation */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-8">
             <TabsList className="grid w-full grid-cols-5 h-auto p-2 bg-gray-50 rounded-lg">
-              <TabsTrigger 
-                value="details" 
+              <TabsTrigger
+                value="details"
                 className="flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-200 rounded-md data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-100"
               >
                 <FileText className="h-5 w-5" />
                 <span className="hidden sm:inline">Campaign Details</span>
                 <span className="sm:hidden">Details</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="applicants" 
+              <TabsTrigger
+                value="applicants"
                 className="flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-200 rounded-md data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-100"
               >
                 <UserCheck className="h-5 w-5" />
                 <span className="hidden sm:inline">Creators</span>
                 <span className="sm:hidden">Creators</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="chat" 
+              <TabsTrigger
+                value="chat"
                 className="flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-200 rounded-md data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-100"
               >
                 <MessageSquare className="h-5 w-5" />
                 <span className="hidden sm:inline">Chat</span>
                 <span className="sm:hidden">Chat</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="submissions" 
+              <TabsTrigger
+                value="submissions"
                 className="flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-200 rounded-md data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-100"
               >
                 <Upload className="h-5 w-5" />
                 <span className="hidden sm:inline">Submissions</span>
                 <span className="sm:hidden">Submissions</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="payment" 
+              <TabsTrigger
+                value="payment"
                 className="flex items-center gap-3 px-6 py-4 text-sm font-medium transition-all duration-200 rounded-md data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-900 data-[state=inactive]:hover:bg-gray-100"
               >
                 <CreditCard className="h-5 w-5" />
@@ -80,12 +153,12 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Main Content */}
               <div className="lg:col-span-2">
-                <CampaignOverview campaign={campaign} />
+                <CampaignOverview campaign={transformedCampaign} />
               </div>
 
               {/* Sidebar */}
               <div>
-                <CampaignStats campaign={campaign} />
+                <CampaignStats campaign={transformedCampaign} />
               </div>
             </div>
           </TabsContent>
@@ -103,7 +176,7 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
           </TabsContent>
 
           <TabsContent value="payment" className="mt-0">
-            <PaymentManagement campaignId={campaign.id} campaign={campaign} />
+            <PaymentManagement campaignId={campaign.id} campaign={transformedCampaign} />
           </TabsContent>
         </Tabs>
       </div>

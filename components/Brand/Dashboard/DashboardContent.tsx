@@ -44,6 +44,7 @@ interface Campaign {
 
 interface PaginatedCampaign {
   id: number;
+  actualId?: string;
   title: string;
   status: string;
   applications: number;
@@ -61,13 +62,7 @@ interface PaginatedCampaign {
 
 interface DashboardContentProps {
   activeView: string;
-  stats: {
-    totalCampaigns: number;
-    activeCampaigns: number;
-    totalApplications: number;
-    completedCampaigns: number;
-    totalSpent: number;
-  };
+  stats: any;
   campaigns: Campaign[];
   transformedCampaigns: any[];
   onCampaignClick: (campaign: any) => void;
@@ -109,6 +104,7 @@ const DashboardContent = ({
   // Transform for PaginatedCampaignList (needs numeric IDs)
   const campaignsForPaginated: PaginatedCampaign[] = transformedCampaigns.map((campaign, index) => ({
     id: index + 1, // Use index as numeric ID for compatibility
+    actualId: campaign.id, // Keep the actual campaign ID for finding the original
     title: campaign.title,
     status: campaign.status,
     applications: campaign.applications,

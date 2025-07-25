@@ -83,12 +83,24 @@ const BrandDashboard = () => {
 
   const handleViewCampaign = (campaign: any) => {
     console.log('View campaign clicked:', campaign);
-    setSelectedCampaign(campaign);
+    // Find the original campaign data by ID (use actualId if available)
+    const campaignId = campaign.actualId || campaign.id;
+    const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
+    console.log('Looking for campaign with ID:', campaignId);
+    console.log('Original campaign found:', originalCampaign);
+    if (originalCampaign) {
+      setSelectedCampaign(originalCampaign);
+    }
   };
 
   const handleEditCampaign = (campaign: any) => {
     console.log('Edit campaign clicked:', campaign);
-    setSelectedCampaign(campaign);
+    // Find the original campaign data by ID (use actualId if available)
+    const campaignId = campaign.actualId || campaign.id;
+    const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
+    if (originalCampaign) {
+      setSelectedCampaign(originalCampaign);
+    }
   };
 
   if (isLoading) {
@@ -142,7 +154,15 @@ const BrandDashboard = () => {
           stats={stats}
           campaigns={campaigns}
           transformedCampaigns={transformedCampaigns}
-          onCampaignClick={setSelectedCampaign}
+          onCampaignClick={(campaign: any) => {
+            console.log('Campaign clicked:', campaign);
+            const campaignId = campaign.actualId || campaign.id;
+            const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
+            console.log('Original campaign found:', originalCampaign);
+            if (originalCampaign) {
+              setSelectedCampaign(originalCampaign);
+            }
+          }}
           onViewCampaign={handleViewCampaign}
           onEditCampaign={handleEditCampaign}
           getStatusColor={() => ''}

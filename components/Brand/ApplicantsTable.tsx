@@ -64,7 +64,9 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
   const { data: applicants, isLoading, refetch } = useQuery({
     queryKey: ['campaign-applicants', campaignId],
     queryFn: async () => {
-      const response = await fetch(`/api/campaigns/${campaignId}/applicants`);
+      const response = await fetch(`/api/campaigns/${campaignId}/applicants`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch applicants');
       }
@@ -103,6 +105,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ status: newStatus })
       });
 
