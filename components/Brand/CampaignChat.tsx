@@ -1,118 +1,214 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Send, 
-  Paperclip, 
-  Users, 
+import { Badge } from "@/components/ui/badge";
+import {
+  Send,
+  Paperclip,
+  Users,
   MessageCircle,
-  Plus,
   Search,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  Image,
+  X,
+  Loader2,
+  Eye,
+  Shield,
+  Instagram,
+  Youtube,
+  Twitter,
+  Facebook,
+  MapPin
 } from "lucide-react";
+import { useMessages } from "@/lib/hooks/useMessages";
+import { useQuery } from "@tanstack/react-query";
+import { useSession } from "@/lib/hooks/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
 
 interface CampaignChatProps {
   campaignId: string;
 }
 
-// Mock data for approved creators
-const approvedCreators = [
-  { id: '1', name: 'Sarah Johnson', avatar: '', unreadCount: 2, profileUrl: '/creator/sarah-johnson' },
-  { id: '2', name: 'Mike Chen', avatar: '', unreadCount: 0, profileUrl: '/creator/mike-chen' },
-  { id: '3', name: 'Emily Rodriguez', avatar: '', unreadCount: 1, profileUrl: '/creator/emily-rodriguez' },
-  { id: '4', name: 'David Kim', avatar: '', unreadCount: 0, profileUrl: '/creator/david-kim' },
-];
+interface Participant {
+  id: string;
+  name: string;
+  avatar?: string;
+  unreadCount: number;
+}
 
-// Mock messages
-const mockMessages = {
-  announcements: [
-    {
-      id: '1',
-      sender: 'Brand',
-      message: 'Welcome to the campaign! Please review the guidelines and let us know if you have any questions.',
-      timestamp: '2024-01-15 10:30',
-      type: 'announcement'
-    },
-    {
-      id: '2',
-      sender: 'Brand',
-      message: 'Reminder: Content submissions are due by Friday. Make sure to follow the brand guidelines.',
-      timestamp: '2024-01-16 14:15',
-      type: 'announcement'
-    }
-  ],
-  individual: {
-    '1': [
-      {
-        id: '1',
-        sender: 'Sarah Johnson',
-        message: 'Hi! I have a question about the product shots. Should they be on a white background?',
-        timestamp: '2024-01-16 09:30',
-        type: 'received'
-      },
-      {
-        id: '2',
-        sender: 'Brand',
-        message: 'Yes, white background would be perfect! Make sure the lighting is even.',
-        timestamp: '2024-01-16 09:45',
-        type: 'sent'
-      }
-    ]
-  }
-};
+interface CreatorProfile {
+  id: string;
+  user_id: string;
+  display_name: string;
+  profile_image?: string;
+  bio?: string;
+  location?: string;
+  instagram_handle?: string;
+  instagram_followers?: number;
+  tiktok_handle?: string;
+  tiktok_followers?: number;
+  youtube_handle?: string;
+  youtube_followers?: number;
+  twitter_handle?: string;
+  twitter_followers?: number;
+  portfolio_urls?: string[];
+  niche?: string[];
+  is_vetted?: boolean;
+}
 
 const CampaignChat = ({ campaignId }: CampaignChatProps) => {
+  const { data: session } = useSession();
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [showCreatorProfile, setShowCreatorProfile] = useState(false);
+  const [selectedCreatorProfile, setSelectedCreatorProfile] = useState<CreatorProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      console.log('Sending message:', newMessage);
-      setNewMessage('');
-    }
-  };
+  const { messages, isLoading, sendMessage, uploadingFiles, isSending } = useMessages(campaignId);
 
-  const handleSendAnnouncement = () => {
-    if (announcementMessage.trim()) {
-      console.log('Sending announcement:', announcementMessage);
-      setAnnouncementMessage('');
-    }
-  };
-
-  const handleFileUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*,application/pdf,.doc,.docx';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        console.log('File selected:', file.name);
-        // Handle file upload logic here
+  // Fetch campaign participants (accepted creators)
+  const { data: participants = [] } = useQuery({
+    queryKey: ['campaign-participants', campaignId],
+    queryFn: async () => {
+      const response = await fetch(`/api/campaigns/${campaignId}/participants`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.warn(`Participants endpoint not found for campaign ${campaignId}`);
+          return [];
+        }
+        throw new Error('Failed to fetch participants');
       }
-    };
-    input.click();
+      const data = await response.json();
+      return data.participants.map((p: Participant) => ({
+        ...p,
+        unreadCount: 0 // Will be calculated from messages
+      }));
+    },
+    enabled: !!campaignId,
+    retry: (failureCount, error) => {
+      // Retry on 404s up to 3 times with delay
+      if (error instanceof Error && error.message.includes('404')) {
+        return failureCount < 3;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  // Calculate unread counts
+  useEffect(() => {
+    if (messages && participants) {
+      const unreadCounts: Record<string, number> = {};
+
+      messages.forEach(msg => {
+        if (!msg.is_read && msg.sender_id !== session?.user?.id) {
+          unreadCounts[msg.sender_id] = (unreadCounts[msg.sender_id] || 0) + 1;
+        }
+      });
+
+      // Update participants with unread counts
+      participants.forEach((p: Participant) => {
+        p.unreadCount = unreadCounts[p.id] || 0;
+      });
+    }
+  }, [messages, participants, session]);
+
+  const handleSendMessage = async () => {
+    if (newMessage.trim() || attachedFiles.length > 0) {
+      await sendMessage(newMessage, attachedFiles, selectedCreator || undefined, false);
+      setNewMessage('');
+      setAttachedFiles([]);
+    }
   };
 
-  const handleViewProfile = (profileUrl: string) => {
-    console.log('Viewing profile:', profileUrl);
-    // In a real app, this would navigate to the creator's profile
-    window.open(profileUrl, '_blank');
+  const handleSendAnnouncement = async () => {
+    if (announcementMessage.trim() || attachedFiles.length > 0) {
+      await sendMessage(announcementMessage, attachedFiles, undefined, true);
+      setAnnouncementMessage('');
+      setAttachedFiles([]);
+    }
   };
 
-  const filteredCreators = approvedCreators.filter(creator =>
-    creator.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const validFiles = Array.from(files).filter(file => {
+        const isValidType = file.type.startsWith('image/') || file.type === 'application/pdf';
+        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
+        return isValidType && isValidSize;
+      });
+
+      setAttachedFiles(prev => [...prev, ...validFiles]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleViewProfile = async (creatorId: string) => {
+    setLoadingProfile(true);
+    try {
+      // Fetch creator profile details
+      const { data: creatorData, error } = await supabase
+        .from('creators')
+        .select('*')
+        .eq('user_id', creatorId)
+        .single();
+
+      if (error) throw error;
+
+      setSelectedCreatorProfile(creatorData);
+      setShowCreatorProfile(true);
+    } catch (error) {
+      console.error('Error fetching creator profile:', error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const getSocialIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram': return <Instagram className="h-4 w-4 text-pink-500" />;
+      case 'youtube': return <Youtube className="h-4 w-4 text-red-500" />;
+      case 'tiktok': return <Image className="h-4 w-4 text-black" />;
+      case 'twitter': return <Twitter className="h-4 w-4 text-blue-400" />;
+      default: return <ExternalLink className="h-4 w-4" />;
+    }
+  };
+
+  const formatFollowers = (count: number | null | undefined): string => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const filteredParticipants = participants.filter((p: Participant) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedCreatorData = selectedCreator ? 
-    approvedCreators.find(c => c.id === selectedCreator) : null;
+  const selectedCreatorData = selectedCreator ?
+    participants.find((p: Participant) => p.id === selectedCreator) : null;
+
+  // Filter messages based on selection
+  const displayMessages = selectedCreator === null
+    ? messages.filter(m => m.is_broadcast)
+    : messages.filter(m =>
+      (m.sender_id === selectedCreator && m.recipient_id === session?.user?.id) ||
+      (m.sender_id === session?.user?.id && m.recipient_id === selectedCreator)
+    );
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
@@ -136,9 +232,8 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
               {/* Announcements option */}
               <button
                 onClick={() => setSelectedCreator(null)}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
-                  selectedCreator === null ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${selectedCreator === null ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                  }`}
               >
                 <div className="p-2 bg-blue-100 rounded-full">
                   <Users className="h-4 w-4 text-blue-600" />
@@ -150,13 +245,12 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
               </button>
 
               {/* Individual creators */}
-              {filteredCreators.map((creator) => (
+              {filteredParticipants.map((creator: Participant) => (
                 <button
                   key={creator.id}
                   onClick={() => setSelectedCreator(creator.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${
-                    selectedCreator === creator.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors ${selectedCreator === creator.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                    }`}
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={creator.avatar} />
@@ -200,10 +294,15 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleViewProfile(selectedCreatorData.profileUrl)}
+                  onClick={() => handleViewProfile(selectedCreator!)}
+                  disabled={loadingProfile}
                   className="flex items-center gap-2"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  {loadingProfile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                   View Profile
                 </Button>
               )}
@@ -215,70 +314,122 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
           <CardContent className="flex-1 flex flex-col p-0">
             <ScrollArea className="flex-1 px-6">
               <div className="space-y-4 py-4">
-                {selectedCreator === null ? (
-                  // Show announcements
-                  mockMessages.announcements.map((message) => (
-                    <div key={message.id} className="flex justify-end">
-                      <div className="max-w-xs lg:max-w-md">
-                        <div className="bg-blue-500 text-white rounded-lg px-4 py-2">
-                          <p>{message.message}</p>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 text-right">
-                          {message.timestamp}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : displayMessages.length === 0 ? (
+                  <div className="text-center text-gray-500">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                    <p>No messages yet. Start the conversation!</p>
+                  </div>
                 ) : (
-                  // Show individual conversation
-                  mockMessages.individual[selectedCreator]?.map((message) => (
-                    <div key={message.id} className={`flex ${message.type === 'sent' ? 'justify-end' : 'justify-start'}`}>
-                      <div className="max-w-xs lg:max-w-md">
-                        <div className={`rounded-lg px-4 py-2 ${
-                          message.type === 'sent' 
-                            ? 'bg-blue-500 text-white' 
+                  displayMessages.map((message) => {
+                    const isSent = message.sender_id === session?.user?.id;
+                    return (
+                      <div key={message.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+                        <div className="max-w-xs lg:max-w-md">
+                          <div className={`rounded-lg px-4 py-2 ${isSent
+                            ? 'bg-blue-500 text-white'
                             : 'bg-gray-100 text-gray-900'
-                        }`}>
-                          <p>{message.message}</p>
+                            }`}>
+                            <p className="whitespace-pre-wrap">{message.message}</p>
+
+                            {/* Attachments */}
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                {message.attachments.map((attachment, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`flex items-center gap-2 p-2 rounded ${isSent ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-200 hover:bg-gray-300'
+                                      } transition-colors`}
+                                  >
+                                    {attachment.type.startsWith('image/') ? (
+                                      <Image className="h-4 w-4" />
+                                    ) : (
+                                      <FileText className="h-4 w-4" />
+                                    )}
+                                    <span className="text-sm truncate">{attachment.name}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <p className={`text-xs text-gray-500 mt-1 ${isSent ? 'text-right' : 'text-left'
+                            }`}>
+                            {message.sender?.name || 'Unknown'} • {new Date(message.created_at).toLocaleString()}
+                          </p>
                         </div>
-                        <p className={`text-xs text-gray-500 mt-1 ${
-                          message.type === 'sent' ? 'text-right' : 'text-left'
-                        }`}>
-                          {message.sender} • {message.timestamp}
-                        </p>
                       </div>
-                    </div>
-                  )) || []
+                    );
+                  })
                 )}
               </div>
             </ScrollArea>
 
             <Separator />
 
+            {/* Attached Files Preview */}
+            {attachedFiles.length > 0 && (
+              <div className="px-4 py-2 border-t">
+                <div className="flex gap-2 flex-wrap">
+                  {attachedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-gray-100 rounded px-3 py-1">
+                      {file.type.startsWith('image/') ? (
+                        <Image className="h-4 w-4" />
+                      ) : (
+                        <FileText className="h-4 w-4" />
+                      )}
+                      <span className="text-sm truncate max-w-[150px]">{file.name}</span>
+                      <button
+                        onClick={() => removeAttachment(index)}
+                        className="text-gray-500 hover:text-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Message Input */}
             <div className="p-4">
               <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleFileUpload}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFiles || isSending}
                   title="Upload file"
                 >
                   <Paperclip className="h-4 w-4" />
                 </Button>
                 <Textarea
                   placeholder={
-                    selectedCreator === null 
+                    selectedCreator === null
                       ? "Write an announcement to all approved creators..."
                       : "Type your message..."
                   }
                   value={selectedCreator === null ? announcementMessage : newMessage}
-                  onChange={(e) => 
-                    selectedCreator === null 
+                  onChange={(e) =>
+                    selectedCreator === null
                       ? setAnnouncementMessage(e.target.value)
                       : setNewMessage(e.target.value)
                   }
                   className="flex-1 min-h-[60px] resize-none"
+                  disabled={uploadingFiles || isSending}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -288,18 +439,167 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
                 />
                 <Button
                   onClick={selectedCreator === null ? handleSendAnnouncement : handleSendMessage}
-                  disabled={selectedCreator === null ? !announcementMessage.trim() : !newMessage.trim()}
+                  disabled={(selectedCreator === null ? !announcementMessage.trim() : !newMessage.trim()) && attachedFiles.length === 0 || uploadingFiles || isSending}
                 >
-                  <Send className="h-4 w-4" />
+                  {uploadingFiles || isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Press Enter to send, Shift+Enter for new line
+                Press Enter to send, Shift+Enter for new line. Images and PDFs only (max 10MB).
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Creator Profile Dialog */}
+      <Dialog open={showCreatorProfile} onOpenChange={setShowCreatorProfile}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedCreatorProfile && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Creator Profile
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Profile Header */}
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={selectedCreatorProfile.profile_image || undefined} />
+                    <AvatarFallback>
+                      {selectedCreatorProfile.display_name?.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      {selectedCreatorProfile.display_name}
+                      {selectedCreatorProfile.is_vetted && (
+                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                          <Shield className="h-3 w-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
+                    </h3>
+                    <p className="text-gray-600">{selectedCreatorProfile.niche?.join(', ')}</p>
+                    {selectedCreatorProfile.location && (
+                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {selectedCreatorProfile.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Social Channels */}
+                <div>
+                  <h4 className="font-medium mb-3">Social Channels</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedCreatorProfile.instagram_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('instagram')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.instagram_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.instagram_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://instagram.com/${selectedCreatorProfile.instagram_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                    {selectedCreatorProfile.tiktok_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('tiktok')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.tiktok_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.tiktok_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://tiktok.com/@${selectedCreatorProfile.tiktok_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                    {selectedCreatorProfile.youtube_handle && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          {getSocialIcon('youtube')}
+                          <div>
+                            <p className="font-medium">@{selectedCreatorProfile.youtube_handle}</p>
+                            <p className="text-sm text-gray-600">
+                              {formatFollowers(selectedCreatorProfile.youtube_followers)} followers
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={`https://youtube.com/@${selectedCreatorProfile.youtube_handle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bio */}
+                {selectedCreatorProfile.bio && (
+                  <div>
+                    <h4 className="font-medium mb-3">Bio</h4>
+                    <p className="text-gray-700">{selectedCreatorProfile.bio}</p>
+                  </div>
+                )}
+
+                {/* Portfolio */}
+                {selectedCreatorProfile.portfolio_urls && selectedCreatorProfile.portfolio_urls.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3">Portfolio</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {selectedCreatorProfile.portfolio_urls.map((image, index) => (
+                        <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={image}
+                            alt={`Portfolio ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

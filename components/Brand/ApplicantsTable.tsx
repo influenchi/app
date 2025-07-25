@@ -26,6 +26,7 @@ import { Star, MessageCircle, MapPin, TrendingUp, Users, CheckCircle, X, Instagr
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
+import Image from 'next/image';
 
 interface Creator {
   id: string;
@@ -244,10 +245,12 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedCreator.portfolioImages.map((image, index) => (
                   <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                    <img
+                    <Image
                       src={image}
                       alt={`Portfolio ${index + 1}`}
                       className="w-full h-full object-cover"
+                      width={100}
+                      height={100}
                     />
                   </div>
                 ))}

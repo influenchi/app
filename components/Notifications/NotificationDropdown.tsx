@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,89 +7,68 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, MessageSquare, Upload, CheckCircle, Clock, X } from "lucide-react";
-
-interface Notification {
-  id: string;
-  type: 'message' | 'submission' | 'review' | 'payment';
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  campaignId?: string;
-  actionType?: 'messages' | 'submissions' | 'payment';
-}
+import { Bell, MessageSquare, Upload, CheckCircle, Clock, X, Loader2 } from "lucide-react";
+import { useNotifications, type Notification } from "@/lib/hooks/useNotifications";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import { useSession } from "@/lib/hooks/useAuth";
 
 interface NotificationDropdownProps {
-  onNavigate: (view: string, campaignId?: string, tab?: string) => void;
+  onNavigate?: (view: string, campaignId?: string, tab?: string) => void;
 }
 
 const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'message',
-      title: 'New Message',
-      message: 'You have a new message on Luxury Beach Resort campaign',
-      timestamp: '5 minutes ago',
-      read: false,
-      campaignId: 'luxury-beach-resort',
-      actionType: 'messages'
-    },
-    {
-      id: '2',
-      type: 'review',
-      title: 'Content Review',
-      message: 'Your Instagram post for Adventure Gear Testing has been approved',
-      timestamp: '2 hours ago',
-      read: false,
-      campaignId: 'adventure-gear',
-      actionType: 'submissions'
-    },
-    {
-      id: '3',
-      type: 'submission',
-      title: 'Submission Due',
-      message: 'City Food Tour submissions are due in 2 days',
-      timestamp: '1 day ago',
-      read: true,
-      campaignId: 'city-food-tour',
-      actionType: 'submissions'
-    }
-  ]);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'message': return <MessageSquare className="h-4 w-4 text-blue-600" />;
-      case 'submission': return <Upload className="h-4 w-4 text-orange-600" />;
-      case 'review': return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'payment': return <Clock className="h-4 w-4 text-purple-600" />;
-      default: return <Bell className="h-4 w-4 text-gray-600" />;
+      case 'message_direct':
+      case 'message_broadcast':
+        return <MessageSquare className="h-4 w-4 text-blue-600" />;
+      case 'submission':
+        return <Upload className="h-4 w-4 text-orange-600" />;
+      case 'review':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'payment':
+        return <Clock className="h-4 w-4 text-purple-600" />;
+      default:
+        return <Bell className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const handleNotificationClick = (notification: Notification) => {
     // Mark as read
-    setNotifications(prev => 
-      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
-    );
+    markAsRead([notification.id]);
 
-    // Navigate to specific screen
-    if (notification.campaignId && notification.actionType) {
-      // For this example, we'll navigate to the active project details with the specific tab
-      onNavigate('active-project-details', notification.campaignId, notification.actionType);
+    // Navigate based on notification type and user type
+    const campaignId = notification.data?.campaign_id;
+
+    if (campaignId) {
+      if (session?.user?.user_type === 'brand') {
+        // For brands, navigate to campaign details with messages tab
+        if (notification.type === 'message_direct' || notification.type === 'message_broadcast') {
+          router.push(`/brand/dashboard?campaign=${campaignId}&tab=chat`);
+        } else {
+          router.push(`/brand/dashboard?campaign=${campaignId}`);
+        }
+      } else if (session?.user?.user_type === 'creator') {
+        // For creators, navigate to active project details with messages tab
+        if (onNavigate && notification.type.includes('message')) {
+          onNavigate('active-project-details', campaignId, 'messages');
+        } else {
+          router.push(`/creator/dashboard?project=${campaignId}&tab=messages`);
+        }
+      }
     }
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const removeNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    // In a real implementation, you might want to add a delete endpoint
+    // For now, just mark as read
+    markAsRead([id]);
   };
 
   return (
@@ -99,8 +77,8 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
         <Button variant="ghost" size="sm" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs p-0 min-w-5"
             >
               {unreadCount}
@@ -119,20 +97,23 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
             )}
           </div>
         </div>
-        
+
         <div className="max-h-96 overflow-y-auto">
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No notifications</p>
             </div>
           ) : (
             notifications.map((notification) => (
-              <Card 
-                key={notification.id} 
-                className={`m-2 cursor-pointer hover:bg-accent transition-colors border-0 shadow-none ${
-                  !notification.read ? 'bg-blue-50/50' : ''
-                }`}
+              <Card
+                key={notification.id}
+                className={`m-2 cursor-pointer hover:bg-accent transition-colors border-0 shadow-none ${!notification.is_read ? 'bg-blue-50/50' : ''
+                  }`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <CardContent className="p-3">
@@ -146,15 +127,15 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
                           <p className="text-sm font-medium text-foreground">
                             {notification.title}
                           </p>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                             {notification.message}
                           </p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            {notification.timestamp}
+                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                           </p>
                         </div>
                         <div className="flex items-center gap-1 ml-2">
-                          {!notification.read && (
+                          {!notification.is_read && (
                             <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                           )}
                           <Button
