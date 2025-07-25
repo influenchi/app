@@ -15,15 +15,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch campaigns where the creator has applied and status is not rejected
+    // Fetch campaigns where the creator has been accepted
     const { data: applications, error: applicationsError } = await supabaseAdmin
       .from('campaign_applications')
       .select(`
         id,
+        message,
+        custom_quote,
         status,
         created_at,
-        custom_quote,
-        campaign:campaign_id (
+        campaign_id,
+        campaigns (
           id,
           title,
           description,
@@ -38,8 +40,7 @@ export async function GET(req: NextRequest) {
         )
       `)
       .eq('creator_id', session.user.id)
-      .neq('status', 'rejected')
-      .order('created_at', { ascending: false });
+      .eq('status', 'accepted'); // Only fetch accepted applications
 
     if (applicationsError) {
       console.error('Error fetching active campaigns:', applicationsError);
@@ -50,36 +51,38 @@ export async function GET(req: NextRequest) {
     }
 
     // Transform the data to match the expected format
-    const activeCampaigns = applications?.map(app => {
-      const campaign = Array.isArray(app.campaign) ? app.campaign[0] : app.campaign;
+    const campaigns = applications?.map(app => {
+      const campaign = app.campaigns;
+      if (!campaign || !Array.isArray(campaign)) {
+        return null;
+      }
 
-      if (!campaign) return null;
+      const campaignData = campaign[0];
 
       return {
-        id: campaign.id,
-        title: campaign.title,
-        description: campaign.description,
-        image: campaign.image,
-        budget: campaign.budget,
-        budget_type: campaign.budget_type,
-        product_service_description: campaign.product_service_description,
-        completion_date: campaign.completion_date,
-        content_items: campaign.content_items,
-        target_audience: campaign.target_audience,
-        status: campaign.status,
-        // Application specific data
+        id: campaignData.id,
+        title: campaignData.title,
+        description: campaignData.description,
+        image: campaignData.image,
+        budget: campaignData.budget,
+        budget_type: campaignData.budget_type,
+        product_service_description: campaignData.product_service_description,
+        completion_date: campaignData.completion_date,
+        content_items: campaignData.content_items,
+        target_audience: campaignData.target_audience,
+        status: campaignData.status,
         applicationId: app.id,
         applicationStatus: app.status,
         appliedAt: app.created_at,
         customQuote: app.custom_quote,
-        brand: 'Brand Name', // TODO: Fetch actual brand name
-        daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+        brand: 'Brand Name', // Placeholder until we have brand data
+        daysLeft: Math.ceil((new Date(campaignData.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
       };
-    }).filter(Boolean) || [];
+    }).filter(Boolean);
 
-    return NextResponse.json({ campaigns: activeCampaigns });
+    return NextResponse.json({ campaigns });
   } catch (error) {
-    console.error('Error in get active campaigns:', error);
+    console.error('Error in active campaigns:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -156,6 +156,17 @@ const CreatorDashboard = () => {
     return map;
   }, [creatorApplications]);
 
+  // Calculate real stats
+  const activeApplicationsCount = useMemo(() => {
+    if (!creatorApplications) return 0;
+    return creatorApplications.filter((app: any) => app.status === 'pending').length;
+  }, [creatorApplications]);
+
+  const acceptedApplicationsCount = useMemo(() => {
+    if (!creatorApplications) return 0;
+    return creatorApplications.filter((app: any) => app.status === 'accepted').length;
+  }, [creatorApplications]);
+
   const transformedCampaigns: TransformedCampaign[] = useMemo(() => {
     if (!campaignsData) return [];
 
@@ -322,8 +333,8 @@ const CreatorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Active Applications</p>
-                  <p className="text-2xl font-bold text-foreground">3</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+2 this week</p>
+                  <p className="text-2xl font-bold text-foreground">{activeApplicationsCount}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Pending review</p>
                 </div>
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                   <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -336,9 +347,9 @@ const CreatorDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completed Collabs</p>
-                  <p className="text-2xl font-bold text-foreground">12</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+3 this month</p>
+                  <p className="text-sm font-medium text-muted-foreground">Accepted Collabs</p>
+                  <p className="text-2xl font-bold text-foreground">{acceptedApplicationsCount}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Ready to work on</p>
                 </div>
                 <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
                   <Award className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -374,8 +385,8 @@ const CreatorDashboard = () => {
                         <Star
                           key={star}
                           className={`h-4 w-4 ${star <= 4.8
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
                             }`}
                         />
                       ))}
@@ -408,7 +419,7 @@ const CreatorDashboard = () => {
               : 'text-muted-foreground hover:text-foreground'
               }`}
           >
-            Active Collabs ({activeCampaignsData?.length || 0})
+            Active Collabs ({acceptedApplicationsCount})
           </button>
         </div>
 
@@ -542,7 +553,7 @@ const CreatorDashboard = () => {
             ) : activeCampaignsData && activeCampaignsData.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {activeCampaignsData.map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group">
+                  <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group" onClick={() => handleCampaignClick({ id: campaign.id } as TransformedCampaign)}>
                     <div className="relative">
                       <div className="aspect-[2/1] overflow-hidden rounded-t-lg">
                         <Image
@@ -554,8 +565,8 @@ const CreatorDashboard = () => {
                         />
                       </div>
                       <div className="absolute top-3 right-3 flex gap-2">
-                        <Badge className={getStatusColor(campaign.applicationStatus)}>
-                          {campaign.applicationStatus}
+                        <Badge className={getStatusColor('accepted')}>
+                          Accepted
                         </Badge>
                         {campaign.daysLeft <= 7 && (
                           <Badge className={`${getUrgencyColor(campaign.daysLeft)} border-0`}>
@@ -591,7 +602,7 @@ const CreatorDashboard = () => {
 
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Clock className="h-4 w-4 mr-2" />
-                          Applied: {new Date(campaign.appliedAt).toLocaleDateString()}
+                          Deadline: {new Date(campaign.completion_date).toLocaleDateString()}
                         </div>
 
                         {campaign.customQuote && (
@@ -606,7 +617,7 @@ const CreatorDashboard = () => {
                         variant="outline"
                         className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                       >
-                        View Campaign
+                        View Details
                       </Button>
                     </CardContent>
                   </Card>
@@ -616,8 +627,8 @@ const CreatorDashboard = () => {
               <div className="text-center py-12">
                 <div className="text-muted-foreground">
                   <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">No active campaigns</p>
-                  <p className="text-sm">Apply to campaigns to see them here</p>
+                  <p className="text-lg">No active collaborations</p>
+                  <p className="text-sm">You&apos;ll see accepted campaigns here</p>
                 </div>
               </div>
             )}
