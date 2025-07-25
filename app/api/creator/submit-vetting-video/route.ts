@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { z } from "zod";
 
 const vettingVideoSchema = z.object({
@@ -23,11 +23,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = vettingVideoSchema.parse(body);
 
-    const { data: existingProfile, error: fetchError } = await supabase
+    console.log('Looking for creator profile with user_id:', session.user.id);
+
+    const { data: existingProfile, error: fetchError } = await supabaseAdmin
       .from('creators')
-      .select('is_vetted, vetting_video_url')
+      .select('id, user_id, is_vetted, vetting_video_url, is_onboarding_complete')
       .eq('user_id', session.user.id)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       console.error('Error fetching creator profile:', fetchError);
@@ -37,14 +39,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (existingProfile?.is_vetted) {
+    console.log('Creator profile found:', existingProfile);
+
+    // If no profile exists, they need to complete onboarding first
+    if (!existingProfile) {
+      return NextResponse.json(
+        { error: "Please complete your creator profile before applying for verification" },
+        { status: 400 }
+      );
+    }
+
+    if (existingProfile.is_vetted) {
       return NextResponse.json(
         { error: "You are already verified" },
         { status: 400 }
       );
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('creators')
       .update({
         vetting_video_url: validatedData.videoUrl,
@@ -60,6 +72,8 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log('Vetting video submitted successfully for user:', session.user.id);
 
     return NextResponse.json({
       success: true,

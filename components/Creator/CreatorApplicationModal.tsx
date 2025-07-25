@@ -61,7 +61,7 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-md border-border/50 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Apply to Campaign</DialogTitle>
           <DialogDescription>

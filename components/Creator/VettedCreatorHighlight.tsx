@@ -26,9 +26,10 @@ const VettedCreatorHighlight = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { currentUser } = useCurrentUser();
+  const { currentUser, isLoading } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | undefined;
   const isVetted = creatorProfile?.is_vetted || false;
+  const hasCompletedProfile = creatorProfile?.is_onboarding_complete || false;
 
   const handleSubmit = async () => {
     if (!postLink.trim()) {
@@ -50,9 +51,10 @@ const VettedCreatorHighlight = () => {
         body: JSON.stringify({ videoUrl: postLink }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to submit video');
+        throw new Error(data.error || 'Failed to submit video');
       }
 
       setIsSubmitted(true);
@@ -70,6 +72,52 @@ const VettedCreatorHighlight = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="animate-pulse">
+              <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+            </div>
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If not a creator or no user, don't show anything
+  if (!currentUser || currentUser.user.user_type !== 'creator') {
+    return null;
+  }
+
+  // If profile not completed, show a different message
+  if (!hasCompletedProfile) {
+    return (
+      <Card className="border-2 border-yellow-500/20 bg-gradient-to-r from-yellow-500/5 to-yellow-400/5">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
+              <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-foreground">Complete Your Profile First</h3>
+              <p className="text-sm text-muted-foreground">You need to complete your creator profile before applying for verification.</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/creator/settings">Complete Profile</a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // If already vetted, show a different message
   if (isVetted) {
