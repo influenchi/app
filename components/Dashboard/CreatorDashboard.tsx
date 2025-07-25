@@ -1,22 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  User,
   Search,
-  Calendar,
-  DollarSign,
   Camera,
+  DollarSign,
   MapPin,
   Clock,
   Star,
   Filter,
-  TrendingUp,
-  Award,
+  Bell,
   Target,
-  Bell
+  Award,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CampaignDetailsPage from "@/components/Creator/CampaignDetailsPage";
@@ -24,91 +22,89 @@ import ActiveProjectsView from "@/components/Creator/ActiveProjects/ActiveProjec
 import ActiveProjectDetails from "@/components/Creator/ActiveProjects/ActiveProjectDetails";
 import VettedCreatorHighlight from "@/components/Creator/VettedCreatorHighlight";
 import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
+import CreatorApplicationModal from "../Creator/CreatorApplicationModal";
+import { useToast } from "@/hooks/use-toast";
+import { showConfetti } from "@/components/Brand/CreateCampaign/confetti";
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  brand_id: string;
+  campaign_goal: string[];
+  budget: string;
+  budget_type: 'cash' | 'product' | 'service';
+  product_service_description?: string;
+  creator_count: string;
+  start_date: string;
+  completion_date: string;
+  content_items: any[];
+  target_audience: any;
+  requirements?: string;
+  creator_purchase_required: boolean;
+  product_ship_required: boolean;
+  status: string;
+  applicant_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TransformedCampaign {
+  id: string;
+  title: string;
+  brand: string;
+  compensation: string;
+  location: any;
+  deadline: string;
+  type: any;
+  status: string;
+  image: string;
+  daysLeft: number;
+  description: string;
+}
 
 const CreatorDashboard = () => {
   const [activeTab, setActiveTab] = useState('campaigns');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<TransformedCampaign | null>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [hasSeenVettedHighlight, setHasSeenVettedHighlight] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const { toast } = useToast();
 
-  const { currentUser, isLoading } = useCurrentUser();
+  const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | null;
 
-  // Check if user has seen the vetted highlight before
-  useEffect(() => {
-    const hasSeenKey = `hasSeenVettedHighlight_${currentUser?.user.id}`;
-    const hasSeen = localStorage.getItem(hasSeenKey) === 'true';
-    setHasSeenVettedHighlight(hasSeen);
-  }, [currentUser?.user.id]);
-
-  // Mark vetted highlight as seen
-  const markVettedHighlightAsSeen = () => {
-    if (currentUser?.user.id) {
-      const hasSeenKey = `hasSeenVettedHighlight_${currentUser.user.id}`;
-      localStorage.setItem(hasSeenKey, 'true');
-      setHasSeenVettedHighlight(true);
+  const { data: campaignsData, isLoading: campaignsLoading } = useQuery({
+    queryKey: ['campaigns', 'active'],
+    queryFn: async () => {
+      const response = await fetch('/api/campaigns?status=active');
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns');
+      }
+      const data = await response.json();
+      return data.campaigns as Campaign[];
     }
-  };
+  });
 
-  // Determine if vetted highlight should be expanded
-  const shouldExpandVettedHighlight = !creatorProfile?.is_vetted || !hasSeenVettedHighlight;
-
-  const mockCampaigns = [
-    {
-      id: 1,
-      title: "Luxury Beach Resort Content",
-      brand: "Paradise Hotels",
-      compensation: "$500 + 3 night stay",
-      location: "Maldives",
-      deadline: "Jan 15, 2025",
-      type: "Instagram Reel + Stories",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
-      daysLeft: 5,
-      description: "Create stunning content showcasing our luxury beachfront resort with crystal clear waters..."
-    },
-    {
-      id: 2,
-      title: "Adventure Gear Testing",
-      brand: "Mountain Explorer",
-      compensation: "Premium hiking gear package",
-      location: "Colorado, USA",
-      deadline: "Jan 20, 2025",
-      type: "TikTok + Blog Post",
-      status: "applied",
-      image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&h=200&fit=crop",
-      daysLeft: 10,
-      description: "Test our latest hiking gear in challenging mountain conditions and share your experience..."
-    },
-    {
-      id: 3,
-      title: "City Food Tour",
-      brand: "Local Eats",
-      compensation: "$200",
-      location: "Tokyo, Japan",
-      deadline: "Feb 1, 2025",
-      type: "Instagram Posts",
-      status: "in-progress",
-      image: "https://images.unsplash.com/photo-1551218808-94e220e084d2?w=400&h=200&fit=crop",
-      daysLeft: 22,
-      description: "Explore Tokyo's hidden culinary gems and create mouth-watering content for food lovers..."
-    },
-    {
-      id: 4,
-      title: "Sustainable Fashion Campaign",
-      brand: "EcoWear",
-      compensation: "Complete sustainable wardrobe collection",
-      location: "Remote",
-      deadline: "Jan 12, 2025",
-      type: "Instagram Posts + Stories",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop",
-      daysLeft: 2,
-      description: "Showcase our sustainable fashion line and promote eco-conscious lifestyle choices..."
-    }
-  ];
+  const transformedCampaigns: TransformedCampaign[] = campaignsData?.map((campaign: Campaign) => ({
+    id: campaign.id,
+    title: campaign.title,
+    brand: 'Brand Name',
+    compensation: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
+    location: campaign.target_audience?.location?.[0] || 'Remote',
+    deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+    type: campaign.content_items?.[0]?.contentType || 'Content Creation',
+    status: 'active',
+    image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+    daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+    description: campaign.description
+  })) || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,17 +122,33 @@ const CreatorDashboard = () => {
     return 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400';
   };
 
-  const filteredCampaigns = mockCampaigns.filter(campaign => {
+  const filteredCampaigns = transformedCampaigns.filter(campaign => {
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
     const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.brand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
-  const newCampaignsCount = mockCampaigns.filter(c => c.status === 'active').length;
+  const newCampaignsCount = transformedCampaigns.filter(c => c.status === 'active').length;
 
-  const handleCampaignClick = (campaign: any) => {
+  const handleCampaignClick = (campaign: TransformedCampaign) => {
     setSelectedCampaign(campaign);
+  };
+
+  const handleApplyClick = (campaign: TransformedCampaign) => {
+    setSelectedCampaign(campaign);
+    setShowApplicationModal(true);
+  };
+
+  const handleApplicationSubmit = () => {
+    setShowApplicationModal(false);
+
+    showConfetti();
+
+    toast({
+      title: "Application Submitted!",
+      description: "Your application has been successfully submitted to the brand.",
+    });
   };
 
   const handleProjectClick = (project: any) => {
@@ -148,11 +160,17 @@ const CreatorDashboard = () => {
     setSelectedProject(null);
   };
 
-  const handleApply = () => {
-    console.log('Apply to campaign');
-  };
+  if (campaignsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading campaigns...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Show project details when a project is selected
   if (selectedProject) {
     return (
       <ActiveProjectDetails
@@ -162,13 +180,12 @@ const CreatorDashboard = () => {
     );
   }
 
-  // Show campaign details page when a campaign is selected
-  if (selectedCampaign) {
+  if (selectedCampaign && !showApplicationModal) {
     return (
       <CampaignDetailsPage
         campaign={selectedCampaign}
-        onBack={handleBackToDashboard}
-        onApply={handleApply}
+        onBack={() => setSelectedCampaign(null)}
+        onApply={() => handleApplyClick(selectedCampaign)}
       />
     );
   }
@@ -176,7 +193,6 @@ const CreatorDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h1 className="text-3xl font-bold text-foreground">Creator Dashboard</h1>
@@ -190,88 +206,14 @@ const CreatorDashboard = () => {
           <p className="text-muted-foreground">Discover amazing brand partnerships and grow your influence</p>
         </div>
 
-        {/* Vetted Creator Highlight */}
         <div className="mb-8">
           <VettedCreatorHighlight />
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Active Applications</p>
-                  <p className="text-2xl font-bold text-foreground">3</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+2 this week</p>
-                </div>
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completed Collabs</p>
-                  <p className="text-2xl font-bold text-foreground">12</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+3 this month</p>
-                </div>
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <Award className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Earned</p>
-                  <p className="text-2xl font-bold text-foreground">$2,400</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+$500 this month</p>
-                </div>
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Star Rating</p>
-                  <div className="flex items-center">
-                    <p className="text-2xl font-bold text-foreground">4.8</p>
-                    <div className="flex ml-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${star <= 4.8
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                            }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Excellent rating</p>
-                </div>
-                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
-                  <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Stats Cards */}
         </div>
 
-        {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg inline-flex">
           <button
             onClick={() => setActiveTab('campaigns')}
@@ -293,10 +235,8 @@ const CreatorDashboard = () => {
           </button>
         </div>
 
-        {/* Content based on active tab */}
         {activeTab === 'campaigns' && (
           <>
-            {/* Search and Filters */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -324,7 +264,6 @@ const CreatorDashboard = () => {
               </Select>
             </div>
 
-            {/* Campaign Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {filteredCampaigns.map((campaign) => (
                 <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group" onClick={() => handleCampaignClick(campaign)}>
@@ -389,8 +328,9 @@ const CreatorDashboard = () => {
                     <Button
                       variant="outline"
                       className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                      onClick={() => handleApplyClick(campaign)}
                     >
-                      View Details
+                      View Details & Apply
                     </Button>
                   </CardContent>
                 </Card>
@@ -413,6 +353,14 @@ const CreatorDashboard = () => {
           <ActiveProjectsView onProjectClick={handleProjectClick} />
         )}
       </div>
+
+      {showApplicationModal && selectedCampaign && (
+        <CreatorApplicationModal
+          campaign={selectedCampaign}
+          onClose={() => setShowApplicationModal(false)}
+          onSubmit={handleApplicationSubmit}
+        />
+      )}
     </div>
   );
 };

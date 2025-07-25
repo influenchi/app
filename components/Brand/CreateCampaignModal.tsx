@@ -15,11 +15,12 @@ import TargetAudienceStep from "./CreateCampaign/TargetAudienceStep";
 import CampaignStepNavigation from "./CreateCampaign/CampaignStepNavigation";
 import CampaignActionButtons from "./CreateCampaign/CampaignActionButtons";
 import { useCampaignForm } from "./CreateCampaign/useCampaignForm";
+import { CampaignData } from "./CreateCampaign/types";
 
 interface CreateCampaignModalProps {
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: any;
+  initialData?: Partial<CampaignData>;
 }
 
 const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaignModalProps) => {
@@ -42,17 +43,17 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
       case 1:
         return (
           <CampaignBasicsStep
-            campaignData={campaignData}
+            campaignData={campaignData as CampaignData}
             onUpdate={handleUpdate}
             onToggleCampaignGoal={toggleCampaignGoal}
           />
         );
       case 2:
-        return <ContentRequirementsStep campaignData={campaignData} onUpdate={handleUpdate} />;
+        return <ContentRequirementsStep campaignData={campaignData as CampaignData} onUpdate={handleUpdate} />;
       case 3:
         return (
           <BudgetTimelineStep
-            campaignData={campaignData}
+            campaignData={campaignData as CampaignData}
             onUpdate={handleUpdate}
             onUpdateBudgetType={handleUpdateBudgetType}
           />
@@ -60,7 +61,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
       case 4:
         return (
           <TargetAudienceStep
-            campaignData={campaignData}
+            campaignData={campaignData as CampaignData}
             onUpdateTargetAudience={handleUpdateTargetAudience}
             onToggleInterest={toggleInterest}
             onUpdate={handleUpdate}
@@ -73,7 +74,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-md border-border/50 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-md border-border/50 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
             {initialData ? 'Edit Campaign' : 'Create New Campaign'}
@@ -93,7 +94,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
 
           <CampaignActionButtons
             currentStep={currentStep}
-            campaignData={campaignData}
+            campaignData={campaignData as CampaignData}
             isEditing={!!initialData}
             onClose={onClose}
             onBack={handleBack}

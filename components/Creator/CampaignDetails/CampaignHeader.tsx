@@ -1,10 +1,15 @@
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Share2 } from "lucide-react";
+import { Share2, ArrowLeft } from "lucide-react";
+
+interface Campaign {
+  title: string;
+  brand: string;
+  daysLeft: number;
+}
 
 interface CampaignHeaderProps {
-  campaign: any;
+  campaign: Campaign;
   currentStatus: string;
   onBack: () => void;
   onShare: () => void;
@@ -12,39 +17,31 @@ interface CampaignHeaderProps {
   getUrgencyColor: (daysLeft: number) => string;
 }
 
-const CampaignHeader = ({ 
-  campaign, 
-  currentStatus, 
-  onBack, 
-  onShare, 
-  getStatusColor, 
-  getUrgencyColor 
-}: CampaignHeaderProps) => {
+const CampaignHeader = ({ campaign, currentStatus, onBack, onShare, getStatusColor, getUrgencyColor }: CampaignHeaderProps) => {
   return (
     <div className="mb-8">
-      <Button variant="outline" onClick={onBack} className="mb-4">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Button>
-      
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="outline" size="sm" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Campaigns
+        </Button>
+        <Button variant="outline" size="sm" onClick={onShare}>
+          <Share2 className="h-4 w-4 mr-2" />
+          Share
+        </Button>
+      </div>
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">{campaign.title}</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-1">{campaign.title}</h1>
           <p className="text-lg text-muted-foreground">{campaign.brand}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={onShare}>
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
-          <Badge className={getStatusColor(currentStatus)}>
+        <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end">
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentStatus)}`}>
             {currentStatus.replace('-', ' ')}
-          </Badge>
-          {campaign.daysLeft <= 7 && (
-            <Badge variant="outline" className={getUrgencyColor(campaign.daysLeft)}>
-              {campaign.daysLeft}d left
-            </Badge>
-          )}
+          </div>
+          <p className={`text-sm mt-2 font-medium ${getUrgencyColor(campaign.daysLeft)}`}>
+            {campaign.daysLeft} days left to apply
+          </p>
         </div>
       </div>
     </div>

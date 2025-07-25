@@ -16,16 +16,15 @@ const DashboardNavigation = ({ activeView, onViewChange }: DashboardNavigationPr
   return (
     <nav className="flex space-x-1 bg-muted/30 p-1 rounded-lg">
       {navItems.map((item) => (
-        <Button 
+        <Button
           key={item.id}
           variant={activeView === item.id ? "default" : "ghost"}
           onClick={() => onViewChange(item.id)}
           size="sm"
-          className={`transition-all ${
-            activeView === item.id 
-              ? "shadow-sm" 
+          className={`transition-all text-black ${activeView === item.id
+              ? "shadow-sm"
               : "hover:bg-background/80"
-          }`}
+            }`}
         >
           {item.label}
         </Button>

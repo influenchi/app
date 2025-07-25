@@ -347,4 +347,73 @@ export async function uploadPortfolioImages(
     console.error('❌ Unexpected portfolio upload error:', err);
     throw new Error(`Portfolio upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
+}
+
+export async function uploadCampaignImage(
+  file: File,
+  userId: string,
+  onProgress?: (progress: number) => void
+): Promise<string> {
+  try {
+    console.log('🔄 Campaign image upload attempt:', {
+      betterAuthUserId: userId,
+      fileDetails: {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      }
+    });
+
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+
+    let processedFile = file;
+    if (file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+      processedFile = await compressImage(file);
+    }
+
+    const formData = new FormData();
+    formData.append('file', processedFile);
+
+    console.log('📤 Uploading via secure API endpoint...');
+
+    const response = await fetch('/api/upload/campaign-image', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      console.error('❌ Upload API error:', errorData);
+
+      if (response.status === 401) {
+        throw new Error('Please log in to upload files');
+      }
+      if (response.status === 413) {
+        throw new Error('File too large. Maximum size is 5MB');
+      }
+      if (errorData.error?.includes('Invalid file type')) {
+        throw new Error(`File type not supported. Please use: ${getFileTypeDisplay()}`);
+      }
+
+      throw new Error(errorData.error || 'Upload failed. Please try again.');
+    }
+
+    const result = await response.json();
+
+    console.log('✅ Campaign image upload successful:', {
+      publicUrl: result.url,
+      path: result.path,
+      userId
+    });
+
+    return result.url;
+
+  } catch (err) {
+    console.error('❌ Unexpected campaign image upload error:', err);
+    throw new Error(`Campaign image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
 } 

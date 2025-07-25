@@ -7,8 +7,28 @@ import CampaignHeader from "./CampaignDetails/CampaignHeader";
 import CampaignContent from "./CampaignDetails/CampaignContent";
 import CampaignSidebar from "./CampaignDetails/CampaignSidebar";
 
+interface ContentItem {
+  quantity: number;
+  contentType: string;
+  socialChannel: string;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  brand: string;
+  compensation: string;
+  deadline: string;
+  status: string;
+  daysLeft: number;
+  content_items: ContentItem[];
+  budget_type: string;
+}
+
 interface CampaignDetailsPageProps {
-  campaign: any;
+  campaign: Campaign;
   onBack: () => void;
   onApply: () => void;
 }
@@ -35,20 +55,20 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
   };
 
   const handleApplyClick = () => {
-    setShowApplicationModal(true);
+    onApply();
   };
 
   const handleApplicationSubmit = () => {
     setShowApplicationModal(false);
     setIsApplied(true);
-    
+
     showConfetti();
-    
+
     toast({
       title: "Application Submitted!",
       description: "Your application has been successfully submitted to the brand.",
     });
-    
+
     onApply();
   };
 

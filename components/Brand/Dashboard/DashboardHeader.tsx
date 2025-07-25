@@ -19,16 +19,16 @@ const DashboardHeader = ({ activeView, onViewChange, onCreateCampaign }: Dashboa
               <h1 className="text-3xl font-bold text-foreground">Brand Dashboard</h1>
               <p className="text-muted-foreground mt-1">Manage your campaigns and creator relationships</p>
             </div>
-            
-            <DashboardNavigation 
-              activeView={activeView} 
+
+            <DashboardNavigation
+              activeView={activeView}
               onViewChange={onViewChange}
             />
           </div>
-          
-          <Button 
+
+          <Button
             onClick={onCreateCampaign}
-            className="shadow-md hover:shadow-lg transition-shadow"
+            className="shadow-md hover:shadow-lg transition-shadow text-black"
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Campaign

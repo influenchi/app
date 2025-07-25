@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { BrandOnboardingFormData, CampaignFormData } from '@/lib/validations/brand';
-import { uploadBrandLogo } from '@/lib/utils/storageUtils';
+import { uploadBrandLogo, uploadCampaignImage } from '@/lib/utils/storageUtils';
 import { useSession } from '@/lib/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -154,17 +154,68 @@ export function useBrandOnboarding() {
   });
 }
 
+export function useBrandCampaigns() {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['brand-campaigns', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const response = await fetch('/api/campaigns?for_brand=true', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns');
+      }
+
+      const data = await response.json();
+      return data.campaigns;
+    },
+    enabled: !!session?.user?.id,
+  });
+}
+
 export function useCreateCampaign() {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
 
   return useMutation({
-    mutationFn: async (data: CampaignFormData) => {
+    mutationFn: async (data: CampaignFormData & { image?: File }) => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found. Please log in again.');
+      }
+
+      let imageUrl: string | null = null;
+
+      // Handle image upload if present
+      if (data.image && data.image instanceof File) {
+        try {
+          imageUrl = await uploadCampaignImage(data.image, session.user.id);
+        } catch (uploadError) {
+          const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
+          throw new Error(`Image upload failed: ${errorMessage}`);
+        }
+      }
+
+      // Prepare campaign data (exclude File object)
+      const { image, ...campaignDataWithoutImage } = data;
+      const campaignData = {
+        ...campaignDataWithoutImage,
+      };
+
       const response = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...campaignData,
+          imageUrl // Send image URL separately
+        }),
       });
 
       if (!response.ok) {
@@ -175,7 +226,9 @@ export function useCreateCampaign() {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate both campaign queries
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
       toast.success('Campaign created successfully!');
     },
     onError: (error: Error) => {

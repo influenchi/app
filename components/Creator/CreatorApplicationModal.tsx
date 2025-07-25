@@ -15,8 +15,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Send } from "lucide-react";
 
+interface Campaign {
+  id: string;
+  title: string;
+  image?: string;
+  brand: string;
+  compensation: string;
+  deadline: string;
+}
+
 interface CreatorApplicationModalProps {
-  campaign: any;
+  campaign: Campaign;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -28,10 +37,9 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
-    
+
     setIsSubmitting(true);
-    
-    // Simulate API call
+
     setTimeout(() => {
       setIsSubmitting(false);
       onSubmit();
@@ -54,8 +62,8 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 {campaign.image && (
-                  <img 
-                    src={campaign.image} 
+                  <img
+                    src={campaign.image}
                     alt={campaign.title}
                     className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                   />

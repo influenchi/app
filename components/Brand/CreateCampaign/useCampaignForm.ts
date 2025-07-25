@@ -16,11 +16,12 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
   const [currentStep, setCurrentStep] = useState(1);
   const createCampaign = useCreateCampaign();
 
-  const form = useForm<CampaignFormData>({
+  const form = useForm<CampaignFormData & { image?: File }>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
       title: '',
       description: '',
+      image: undefined,
       campaignGoal: [],
       budget: '',
       budgetType: 'cash',
@@ -53,6 +54,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
       form.reset({
         title: initialData.title || '',
         description: initialData.description || '',
+        image: initialData.image || undefined,
         campaignGoal: initialData.campaignGoal || [],
         budget: initialData.budget?.replace('$', '') || '',
         budgetType: initialData.budgetType || 'cash',
@@ -113,7 +115,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
   };
 
   const handleUpdate = (field: string, value: unknown) => {
-    form.setValue(field as keyof CampaignFormData, value as any);
+    form.setValue(field as keyof (CampaignFormData & { image?: File }), value as never);
   };
 
   const handleUpdateBudgetType = (budgetType: 'cash' | 'product' | 'service') => {
@@ -121,7 +123,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
   };
 
   const handleUpdateTargetAudience = (field: string, value: string | string[]) => {
-    form.setValue(`targetAudience.${field}` as keyof CampaignFormData, value);
+    form.setValue(`targetAudience.${field}` as keyof (CampaignFormData & { image?: File }), value);
   };
 
   const toggleInterest = (interest: string) => {
