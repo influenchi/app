@@ -64,6 +64,27 @@ interface TransformedCampaign {
   daysLeft: number;
   description: string;
   budget: string;
+  applicationStatus?: 'pending' | 'accepted' | 'rejected' | null;
+}
+
+interface ActiveCampaign {
+  id: string;
+  title: string;
+  description: string;
+  image?: string;
+  budget: string;
+  budget_type: 'cash' | 'product' | 'service';
+  product_service_description?: string;
+  completion_date: string;
+  content_items: any[];
+  target_audience: any;
+  status: string;
+  applicationId: string;
+  applicationStatus: 'pending' | 'accepted' | 'rejected';
+  appliedAt: string;
+  customQuote?: string;
+  brand: string;
+  daysLeft: number;
 }
 
 const CreatorDashboard = () => {
@@ -78,10 +99,13 @@ const CreatorDashboard = () => {
   const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | null;
 
+  // Fetch all active campaigns
   const { data: campaignsData, isLoading: campaignsLoading } = useQuery({
     queryKey: ['campaigns', 'active'],
     queryFn: async () => {
-      const response = await fetch('/api/campaigns?status=active');
+      const response = await fetch('/api/campaigns?status=active', {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch campaigns');
       }
@@ -89,6 +113,48 @@ const CreatorDashboard = () => {
       return data.campaigns as Campaign[];
     }
   });
+
+  // Fetch creator's applications to know which campaigns they've applied to
+  const { data: creatorApplications } = useQuery({
+    queryKey: ['creator-applications'],
+    queryFn: async () => {
+      const response = await fetch('/api/creator/applications', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch applications');
+      }
+      const data = await response.json();
+      return data.applications || [];
+    },
+    enabled: !!currentUser
+  });
+
+  // Fetch active campaigns (campaigns the creator has applied to and not rejected)
+  const { data: activeCampaignsData, isLoading: activeCampaignsLoading } = useQuery({
+    queryKey: ['creator-active-campaigns'],
+    queryFn: async () => {
+      const response = await fetch('/api/creator/active-campaigns', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch active campaigns');
+      }
+      const data = await response.json();
+      return data.campaigns as ActiveCampaign[];
+    },
+    enabled: !!currentUser && activeTab === 'active'
+  });
+
+  // Create a map of campaign IDs to application status
+  const applicationStatusMap = useMemo(() => {
+    if (!creatorApplications) return {};
+    const map: Record<string, 'pending' | 'accepted' | 'rejected'> = {};
+    creatorApplications.forEach((app: any) => {
+      map[app.campaign_id] = app.status;
+    });
+    return map;
+  }, [creatorApplications]);
 
   const transformedCampaigns: TransformedCampaign[] = useMemo(() => {
     if (!campaignsData) return [];
@@ -117,14 +183,17 @@ const CreatorDashboard = () => {
         daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
         description: campaign.description,
         budget: campaign.budget,
+        applicationStatus: applicationStatusMap[campaign.id] || null,
       };
     });
-  }, [campaignsData]);
+  }, [campaignsData, applicationStatusMap]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'applied': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'applied':
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'accepted':
       case 'in-progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
       case 'completed': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
       default: return 'bg-gray-100 text-gray-800';
@@ -138,13 +207,21 @@ const CreatorDashboard = () => {
   };
 
   const filteredCampaigns = transformedCampaigns.filter(campaign => {
-    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'applied' && campaign.applicationStatus) ||
+      (statusFilter === 'active' && !campaign.applicationStatus);
     const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       campaign.brand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
-  const newCampaignsCount = transformedCampaigns.filter(c => c.status === 'active').length;
+  const newCampaignsCount = transformedCampaigns.filter(c => !c.applicationStatus).length;
+
+  // Check if creator should see vetting highlight
+  const shouldShowVettingHighlight = creatorProfile &&
+    !creatorProfile.is_vetted &&
+    creatorProfile.vetting_status !== 'pending' &&
+    creatorProfile.is_onboarding_complete;
 
   const handleCampaignClick = (campaign: TransformedCampaign) => {
     setSelectedCampaignId(campaign.id);
@@ -230,9 +307,12 @@ const CreatorDashboard = () => {
           <p className="text-muted-foreground">Discover amazing brand partnerships and grow your influence</p>
         </div>
 
-        <div className="mb-8">
-          <VettedCreatorHighlight />
-        </div>
+        {/* Only show vetting highlight if conditions are met */}
+        {shouldShowVettingHighlight && (
+          <div className="mb-8">
+            <VettedCreatorHighlight />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {/* Stats Cards */}
@@ -255,7 +335,7 @@ const CreatorDashboard = () => {
               : 'text-muted-foreground hover:text-foreground'
               }`}
           >
-            Active Collabs
+            Active Collabs ({activeCampaignsData?.length || 0})
           </button>
         </div>
 
@@ -280,10 +360,8 @@ const CreatorDashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Collabs</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="active">Available</SelectItem>
                   <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -302,9 +380,15 @@ const CreatorDashboard = () => {
                       />
                     </div>
                     <div className="absolute top-3 right-3 flex gap-2">
-                      <Badge className={getStatusColor(campaign.status)}>
-                        {campaign.status.replace('-', ' ')}
-                      </Badge>
+                      {campaign.applicationStatus ? (
+                        <Badge className={getStatusColor(campaign.applicationStatus)}>
+                          {campaign.applicationStatus}
+                        </Badge>
+                      ) : (
+                        <Badge className={getStatusColor('active')}>
+                          Available
+                        </Badge>
+                      )}
                       {campaign.daysLeft <= 7 && (
                         <Badge className={`${getUrgencyColor(campaign.daysLeft)} border-0`}>
                           {campaign.daysLeft}d left
@@ -354,8 +438,9 @@ const CreatorDashboard = () => {
                     <Button
                       variant="outline"
                       className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                      disabled={!!campaign.applicationStatus}
                     >
-                      View Details
+                      {campaign.applicationStatus ? `${campaign.applicationStatus}` : 'View Details'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -375,7 +460,95 @@ const CreatorDashboard = () => {
         )}
 
         {activeTab === 'active' && (
-          <ActiveProjectsView onProjectClick={handleProjectClick} />
+          <div>
+            {activeCampaignsLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading your active campaigns...</p>
+              </div>
+            ) : activeCampaignsData && activeCampaignsData.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {activeCampaignsData.map((campaign) => (
+                  <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group">
+                    <div className="relative">
+                      <div className="aspect-[2/1] overflow-hidden rounded-t-lg">
+                        <Image
+                          src={campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop"}
+                          alt={campaign.title}
+                          width={100}
+                          height={100}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        <Badge className={getStatusColor(campaign.applicationStatus)}>
+                          {campaign.applicationStatus}
+                        </Badge>
+                        {campaign.daysLeft <= 7 && (
+                          <Badge className={`${getUrgencyColor(campaign.daysLeft)} border-0`}>
+                            {campaign.daysLeft}d left
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-1 text-foreground group-hover:text-primary transition-colors">
+                            {campaign.title}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground font-medium">{campaign.brand}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="pt-0">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        {campaign.description}
+                      </p>
+
+                      <div className="space-y-3 mb-4">
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                          <span className="font-medium text-foreground">
+                            {campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 mr-2" />
+                          Applied: {new Date(campaign.appliedAt).toLocaleDateString()}
+                        </div>
+
+                        {campaign.customQuote && (
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Target className="h-4 w-4 mr-2" />
+                            Your Quote: ${campaign.customQuote}
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                      >
+                        View Campaign
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-muted-foreground">
+                  <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">No active campaigns</p>
+                  <p className="text-sm">Apply to campaigns to see them here</p>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

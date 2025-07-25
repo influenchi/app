@@ -79,7 +79,9 @@ export function useCurrentUser() {
     queryFn: async (): Promise<CurrentUserData | null> => {
       if (!session?.user || !session.user.user_type) return null;
 
-      const response = await fetch('/api/user/profile');
+      const response = await fetch('/api/user/profile', {
+        credentials: 'include'
+      });
 
       if (!response.ok) {
         if (response.status === 401) {

@@ -5,6 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useSignIn } from "@/lib/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { getSession } from "@/lib/auth-client";
 
 interface LoginFormProps {
   onBack: () => void;
@@ -17,13 +21,40 @@ const LoginForm = ({ onBack, onLoginComplete }: LoginFormProps) => {
     email: '',
     password: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const signIn = useSignIn();
+  const { toast } = useToast();
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login data:', formData);
-    // Here you would typically authenticate with your backend
-    // For demo purposes, we'll simulate a creator login
-    onLoginComplete('creator');
+    setIsLoading(true);
+
+    try {
+      await signIn.mutateAsync(formData);
+
+      // Wait a bit for session to be set
+      setTimeout(async () => {
+        const sessionResult = await getSession();
+
+        if ('data' in sessionResult && sessionResult.data) {
+          const sessionData = sessionResult.data as any;
+          const userType = sessionData.user?.user_type as 'brand' | 'creator';
+
+          if (userType === 'brand') {
+            router.push('/brand/dashboard');
+          } else {
+            router.push('/creator/dashboard');
+          }
+        } else {
+          router.push('/');
+        }
+      }, 500);
+    } catch (error) {
+      // Error is already handled by useSignIn hook
+      console.error('Login error:', error);
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -95,8 +126,9 @@ const LoginForm = ({ onBack, onLoginComplete }: LoginFormProps) => {
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={isLoading}
             >
-              Sign In
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
 
             <p className="text-sm text-gray-600 text-center">

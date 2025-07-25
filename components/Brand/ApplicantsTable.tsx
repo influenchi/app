@@ -20,21 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import {
-  Eye,
-  Check,
-  X,
-  ExternalLink,
-  Instagram,
-  Youtube,
-  Facebook,
-  Twitter,
-  Search,
-  Shield,
-} from "lucide-react";
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Star, MessageCircle, MapPin, TrendingUp, Users, CheckCircle, X, Instagram, Youtube, Twitter, Facebook, ExternalLink, Eye, Check, Search, Shield } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Creator {
@@ -74,108 +64,64 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
   const { data: applicants, isLoading, refetch } = useQuery({
     queryKey: ['campaign-applicants', campaignId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('campaign_applications')
-        .select(`
-          id,
-          message,
-          custom_quote,
-          status,
-          created_at,
-          creator:creator_id (
-            id,
-            display_name,
-            bio,
-            city,
-            state,
-            country,
-            profile_photo,
-            instagram,
-            tiktok,
-            youtube,
-            twitter,
-            primary_niche,
-            total_followers,
-            portfolio_images,
-            is_vetted
-          )
-        `)
-        .eq('campaign_id', campaignId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching applicants:', error);
-        throw error;
+      const response = await fetch(`/api/campaigns/${campaignId}/applicants`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch applicants');
       }
-
-      return data?.map(app => {
-        const creator = Array.isArray(app.creator) ? app.creator[0] : app.creator;
-        return {
-          id: app.id,
-          name: creator?.display_name || 'Unknown Creator',
-          profileImage: creator?.profile_photo || '/placeholder.svg',
-          socialChannels: [
-            creator?.instagram && { platform: 'instagram' as const, handle: creator.instagram, url: `https://instagram.com/${creator.instagram.replace('@', '')}`, followers: 0 },
-            creator?.youtube && { platform: 'youtube' as const, handle: creator.youtube, url: `https://youtube.com/${creator.youtube}`, followers: 0 },
-            creator?.twitter && { platform: 'twitter' as const, handle: creator.twitter, url: `https://twitter.com/${creator.twitter.replace('@', '')}`, followers: 0 },
-          ].filter(Boolean) as { platform: 'instagram' | 'youtube' | 'facebook' | 'twitter'; handle: string; url: string; followers: number; }[],
-          quote: app.custom_quote ? parseFloat(app.custom_quote) : 0,
-          status: app.status,
-          viewed: false,
-          appliedDate: new Date(app.created_at).toLocaleDateString(),
-          specialty: creator?.primary_niche || 'Not specified',
-          location: [creator?.city, creator?.state, creator?.country].filter(Boolean).join(', ') || 'Not specified',
-          bio: creator?.bio || '',
-          portfolioImages: creator?.portfolio_images || [],
-          applicationMessage: app.message,
-          isVetted: creator?.is_vetted || false,
-        };
-      }) || [];
+      const data = await response.json();
+      return data.applicants || [];
     }
   });
 
-  const filteredAndSortedCreators = useMemo(() => {
+  // Sort applicants to show vetted creators first
+  const sortedApplicants = useMemo(() => {
     if (!applicants) return [];
 
-    const filtered = applicants.filter(creator => {
+    return [...applicants].sort((a: Creator, b: Creator) => {
+      // First sort by vetted status (vetted first)
+      if (a.isVetted !== b.isVetted) {
+        return b.isVetted ? 1 : -1;
+      }
+      // Then by application date (newest first)
+      return new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime();
+    });
+  }, [applicants]);
+
+  const filteredCreators = useMemo(() => {
+    return sortedApplicants.filter((creator: Creator) => {
       const matchesSearch = creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        creator.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        creator.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        creator.bio.toLowerCase().includes(searchTerm.toLowerCase());
-
+        creator.specialty.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || creator.status === statusFilter;
-
       return matchesSearch && matchesStatus;
     });
-
-    // Sort to show vetted creators first
-    return filtered.sort((a, b) => {
-      if (a.isVetted && !b.isVetted) return -1;
-      if (!a.isVetted && b.isVetted) return 1;
-      return 0;
-    });
-  }, [applicants, searchTerm, statusFilter]);
+  }, [sortedApplicants, searchTerm, statusFilter]);
 
   const handleStatusChange = async (applicationId: string, newStatus: 'accepted' | 'rejected') => {
     try {
-      const { error } = await supabase
-        .from('campaign_applications')
-        .update({ status: newStatus })
-        .eq('id', applicationId);
+      const response = await fetch(`/api/campaigns/${campaignId}/applicants/${applicationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to update application status');
+      }
 
       toast({
-        title: "Status updated",
-        description: `Application has been ${newStatus}.`,
+        title: "Success",
+        description: `Application ${newStatus} successfully`,
       });
 
       refetch();
     } catch (error) {
+      console.error('Error updating application:', error);
       toast({
         title: "Error",
-        description: "Failed to update application status.",
-        variant: "destructive",
+        description: "Failed to update application status",
+        variant: "destructive"
       });
     }
   };
@@ -227,9 +173,9 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
   }
 
   if (selectedCreator) {
-    const currentIndex = filteredAndSortedCreators.findIndex(c => c.id === selectedCreator.id);
-    const nextCreator = filteredAndSortedCreators[currentIndex + 1];
-    const prevCreator = filteredAndSortedCreators[currentIndex - 1];
+    const currentIndex = filteredCreators.findIndex(c => c.id === selectedCreator.id);
+    const nextCreator = filteredCreators[currentIndex + 1];
+    const prevCreator = filteredCreators[currentIndex - 1];
 
     return (
       <Card>
@@ -360,7 +306,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Campaign Creators ({filteredAndSortedCreators.length})</span>
+          <span>Campaign Creators ({filteredCreators.length})</span>
         </CardTitle>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -401,7 +347,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredAndSortedCreators.map((creator) => (
+            {filteredCreators.map((creator) => (
               <TableRow key={creator.id} className={!creator.viewed ? 'bg-blue-50' : ''}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
@@ -430,7 +376,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col space-y-1">
-                    {creator.socialChannels.map((channel, index) => (
+                    {creator.socialChannels.map((channel: Creator['socialChannels'][0], index: number) => (
                       <div key={index} className="flex items-center space-x-2">
                         {getSocialIcon(channel.platform)}
                         <span className="text-sm">{formatFollowers(channel.followers)}</span>
@@ -492,7 +438,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
           </TableBody>
         </Table>
 
-        {filteredAndSortedCreators.length === 0 && (
+        {filteredCreators.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-600">No creators found matching your criteria</p>
           </div>

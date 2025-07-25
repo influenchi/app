@@ -138,6 +138,7 @@ export function useCreatorOnboarding() {
 
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
+          credentials: 'include',
           body: formData,
         });
       } else {
@@ -157,6 +158,7 @@ export function useCreatorOnboarding() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(payload),
         });
       }
@@ -190,6 +192,7 @@ export function useSubmitApplication() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(data.application),
       });
 

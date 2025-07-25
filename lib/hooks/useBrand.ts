@@ -121,6 +121,7 @@ export function useBrandOnboarding() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: jsonString,
       });
 
@@ -212,6 +213,7 @@ export function useCreateCampaign() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...campaignData,
           imageUrl // Send image URL separately

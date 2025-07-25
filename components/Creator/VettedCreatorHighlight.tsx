@@ -49,6 +49,7 @@ const VettedCreatorHighlight = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ videoUrl: postLink }),
       });
 
