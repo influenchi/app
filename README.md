@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Influenchi Platform
 
-## Getting Started
+## File Upload System
 
-First, run the development server:
+### Supported Logo Formats
+- **PNG** - Recommended for logos with transparency
+- **JPEG/JPG** - Good for photographic logos  
+- **GIF** - Supports animation
+- **WebP** - Modern format with excellent compression
+- **SVG** - Vector format, perfect for scalable logos
+
+### File Size Limits
+- **Maximum**: 5MB per file
+- **Recommended**: Under 1MB for optimal performance
+- **Auto-compression**: Applied to large raster images (PNG, JPEG, etc.)
+- **SVG handling**: No compression applied, preserves vector quality
+
+### Validation Features
+- Real-time file type validation
+- File size checking with detailed feedback
+- Clear error messages with specific requirements
+- Visual success/error indicators
+- Automatic image optimization for large files
+
+### Storage Architecture
+- **Supabase Storage**: Dedicated object storage for files
+- **CDN Delivery**: Global edge caching for fast loading
+- **URL-based References**: Database stores URLs, not file data
+- **Cost Optimization**: ~85% cheaper than database blob storage
+
+## Development Scripts
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Set up storage bucket with proper configuration
+node scripts/setup-storage.js
+
+# Update existing bucket to include SVG support  
+node scripts/update-storage-bucket.js
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
