@@ -173,6 +173,7 @@ export function useCreatorOnboarding() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creator-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['session'] });
       toast.success('Creator profile created successfully!');
     },
     onError: (error: Error) => {

@@ -152,7 +152,10 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     creatorOnboarding.mutate(formData, {
       onSuccess: () => {
         setIsSubmitting(false);
-        onComplete();
+        // Small delay to ensure session is refreshed before navigation
+        setTimeout(() => {
+          onComplete();
+        }, 500);
       },
       onError: () => {
         setIsSubmitting(false);
