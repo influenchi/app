@@ -118,7 +118,10 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
       onSuccess: () => {
         console.log('✅ Brand onboarding successful, cleaning up...');
         resetStore();
-        onComplete();
+        // Small delay to ensure session is refreshed before navigation
+        setTimeout(() => {
+          onComplete();
+        }, 500);
       },
       onError: (error) => {
         console.error('❌ Brand onboarding failed:', error);

@@ -146,6 +146,7 @@ export function useBrandOnboarding() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brand-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['session'] });
       toast.success('Brand profile created successfully!');
     },
     onError: (error: Error) => {
