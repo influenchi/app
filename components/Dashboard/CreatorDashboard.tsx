@@ -48,7 +48,7 @@ interface Campaign {
   status: string;
   applicant_count: number;
   created_at: string;
-  updated_at: string;
+  applicationStatus?: 'pending' | 'accepted' | 'rejected' | null;
 }
 
 interface TransformedCampaign {
@@ -178,12 +178,12 @@ const CreatorDashboard = () => {
           year: 'numeric'
         }),
         deliverables,
-        status: 'active',
+        status: campaign.applicationStatus ? 'applied' : 'active',
         image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
         daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
         description: campaign.description,
         budget: campaign.budget,
-        applicationStatus: applicationStatusMap[campaign.id] || null,
+        applicationStatus: campaign.applicationStatus || applicationStatusMap[campaign.id] || null,
       };
     });
   }, [campaignsData, applicationStatusMap]);
@@ -284,6 +284,7 @@ const CreatorDashboard = () => {
           ...selectedCampaign,
           brand: 'Brand Name', // Placeholder until we have brand data
           daysLeft: Math.ceil((new Date(selectedCampaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+          status: selectedCampaign.applicationStatus ? 'applied' : 'active',
         }}
         onBack={() => setSelectedCampaignId(null)}
         onApply={() => handleApplyClick(transformedCampaigns.find(tc => tc.id === selectedCampaignId)!)}
@@ -314,8 +315,80 @@ const CreatorDashboard = () => {
           </div>
         )}
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Stats Cards */}
+          <Card className="border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Active Applications</p>
+                  <p className="text-2xl font-bold text-foreground">3</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+2 this week</p>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <Target className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Completed Collabs</p>
+                  <p className="text-2xl font-bold text-foreground">12</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+3 this month</p>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Award className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Earned</p>
+                  <p className="text-2xl font-bold text-foreground">$2,400</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+$500 this month</p>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Star Rating</p>
+                  <div className="flex items-center">
+                    <p className="text-2xl font-bold text-foreground">4.8</p>
+                    <div className="flex ml-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${star <= 4.8
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-gray-300'
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Excellent rating</p>
+                </div>
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
+                  <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg inline-flex">

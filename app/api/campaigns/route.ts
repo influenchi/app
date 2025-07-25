@@ -82,6 +82,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
     }
 
+    // If the request is from a creator, check application status for each campaign
+    if (!forBrand && session.user.user_type === 'creator' && campaigns) {
+      // Get all application statuses for this creator
+      const campaignIds = campaigns.map(c => c.id);
+
+      const { data: applications } = await supabaseAdmin
+        .from('campaign_applications')
+        .select('campaign_id, status')
+        .eq('creator_id', session.user.id)
+        .in('campaign_id', campaignIds);
+
+      // Create a map of campaign_id to application status
+      const applicationMap = new Map();
+      applications?.forEach(app => {
+        applicationMap.set(app.campaign_id, app.status);
+      });
+
+      // Add application status to each campaign
+      const campaignsWithApplicationStatus = campaigns.map(campaign => ({
+        ...campaign,
+        applicationStatus: applicationMap.get(campaign.id) || null
+      }));
+
+      return NextResponse.json({ campaigns: campaignsWithApplicationStatus });
+    }
+
     return NextResponse.json({ campaigns });
   } catch (error) {
     console.error('Campaigns fetch error:', error);
