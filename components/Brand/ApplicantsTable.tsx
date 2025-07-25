@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,12 @@ import {
   Facebook,
   Twitter,
   Search,
+  Shield,
 } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Creator {
   id: string;
@@ -43,96 +48,137 @@ interface Creator {
     followers: number;
   }[];
   quote: number;
-  status: 'pending' | 'approved' | 'denied';
+  status: 'pending' | 'accepted' | 'rejected';
   viewed: boolean;
   appliedDate: string;
   specialty: string;
   location: string;
   bio: string;
   portfolioImages: string[];
+  applicationMessage: string;
+  isVetted: boolean;
 }
 
 interface CreatorsTableProps {
   campaignId: string;
 }
 
-// Mock data for demonstration
-const mockCreators: Creator[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    profileImage: '/placeholder.svg',
-    socialChannels: [
-      { platform: 'instagram', handle: '@sarahtravels', url: 'https://instagram.com/sarahtravels', followers: 45000 },
-      { platform: 'youtube', handle: 'Sarah\'s Adventures', url: 'https://youtube.com/sarahsadventures', followers: 23000 }
-    ],
-    quote: 1200,
-    status: 'pending',
-    viewed: true,
-    appliedDate: '2024-01-15',
-    specialty: 'Adventure Travel',
-    location: 'California, USA',
-    bio: 'Adventure travel photographer and storyteller with a passion for capturing authentic moments in remote destinations. I specialize in outdoor adventures, cultural immersion, and sustainable travel practices.',
-    portfolioImages: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg']
-  },
-  {
-    id: '2',
-    name: 'Marcus Chen',
-    profileImage: '/placeholder.svg',
-    socialChannels: [
-      { platform: 'instagram', handle: '@wanderlustmarcus', url: 'https://instagram.com/wanderlustmarcus', followers: 67000 },
-      { platform: 'twitter', handle: '@marcustravels', url: 'https://twitter.com/marcustravels', followers: 12000 }
-    ],
-    quote: 0,
-    status: 'approved',
-    viewed: true,
-    appliedDate: '2024-01-14',
-    specialty: 'Luxury Travel',
-    location: 'New York, USA',
-    bio: 'Luxury travel curator focusing on high-end experiences and premium destinations. I create content that showcases the finest hotels, restaurants, and exclusive travel experiences around the world.',
-    portfolioImages: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg']
-  },
-  {
-    id: '3',
-    name: 'Emma Rodriguez',
-    profileImage: '/placeholder.svg',
-    socialChannels: [
-      { platform: 'instagram', handle: '@emmaexplores', url: 'https://instagram.com/emmaexplores', followers: 32000 },
-      { platform: 'youtube', handle: 'Emma Explores', url: 'https://youtube.com/emmaexplores', followers: 18000 }
-    ],
-    quote: 800,
-    status: 'pending',
-    viewed: false,
-    appliedDate: '2024-01-16',
-    specialty: 'Budget Travel',
-    location: 'Barcelona, Spain',
-    bio: 'Budget travel expert helping fellow travelers explore the world without breaking the bank. I share practical tips, hidden gems, and affordable alternatives for amazing travel experiences.',
-    portfolioImages: ['/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg', '/placeholder.svg']
-  },
-  {
-    id: '4',
-    name: 'David Kim',
-    profileImage: '/placeholder.svg',
-    socialChannels: [
-      { platform: 'instagram', handle: '@davidwanders', url: 'https://instagram.com/davidwanders', followers: 89000 },
-      { platform: 'facebook', handle: 'David\'s Travel Journal', url: 'https://facebook.com/davidstraveljournal', followers: 25000 }
-    ],
-    quote: 0,
-    status: 'denied',
-    viewed: true,
-    appliedDate: '2024-01-13',
-    specialty: 'Cultural Travel',
-    location: 'Seoul, South Korea',
-    bio: 'Cultural travel photographer documenting traditions, festivals, and local life around the world. I believe in respectful travel that celebrates and preserves cultural heritage.',
-    portfolioImages: ['/placeholder.svg', '/placeholder.svg']
-  }
-];
+
 
 const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
-  const [creators, setCreators] = useState<Creator[]>(mockCreators);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const { toast } = useToast();
+
+  const { data: applicants, isLoading, refetch } = useQuery({
+    queryKey: ['campaign-applicants', campaignId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaign_applications')
+        .select(`
+          id,
+          message,
+          custom_quote,
+          status,
+          created_at,
+          creator:creator_id (
+            id,
+            display_name,
+            bio,
+            city,
+            state,
+            country,
+            profile_photo,
+            instagram,
+            tiktok,
+            youtube,
+            twitter,
+            primary_niche,
+            total_followers,
+            portfolio_images,
+            is_vetted
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching applicants:', error);
+        throw error;
+      }
+
+      return data?.map(app => {
+        const creator = Array.isArray(app.creator) ? app.creator[0] : app.creator;
+        return {
+          id: app.id,
+          name: creator?.display_name || 'Unknown Creator',
+          profileImage: creator?.profile_photo || '/placeholder.svg',
+          socialChannels: [
+            creator?.instagram && { platform: 'instagram' as const, handle: creator.instagram, url: `https://instagram.com/${creator.instagram.replace('@', '')}`, followers: 0 },
+            creator?.youtube && { platform: 'youtube' as const, handle: creator.youtube, url: `https://youtube.com/${creator.youtube}`, followers: 0 },
+            creator?.twitter && { platform: 'twitter' as const, handle: creator.twitter, url: `https://twitter.com/${creator.twitter.replace('@', '')}`, followers: 0 },
+          ].filter(Boolean) as { platform: 'instagram' | 'youtube' | 'facebook' | 'twitter'; handle: string; url: string; followers: number; }[],
+          quote: app.custom_quote ? parseFloat(app.custom_quote) : 0,
+          status: app.status,
+          viewed: false,
+          appliedDate: new Date(app.created_at).toLocaleDateString(),
+          specialty: creator?.primary_niche || 'Not specified',
+          location: [creator?.city, creator?.state, creator?.country].filter(Boolean).join(', ') || 'Not specified',
+          bio: creator?.bio || '',
+          portfolioImages: creator?.portfolio_images || [],
+          applicationMessage: app.message,
+          isVetted: creator?.is_vetted || false,
+        };
+      }) || [];
+    }
+  });
+
+  const filteredAndSortedCreators = useMemo(() => {
+    if (!applicants) return [];
+
+    const filtered = applicants.filter(creator => {
+      const matchesSearch = creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        creator.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        creator.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        creator.bio.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' || creator.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    // Sort to show vetted creators first
+    return filtered.sort((a, b) => {
+      if (a.isVetted && !b.isVetted) return -1;
+      if (!a.isVetted && b.isVetted) return 1;
+      return 0;
+    });
+  }, [applicants, searchTerm, statusFilter]);
+
+  const handleStatusChange = async (applicationId: string, newStatus: 'accepted' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('campaign_applications')
+        .update({ status: newStatus })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status updated",
+        description: `Application has been ${newStatus}.`,
+      });
+
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update application status.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getSocialIcon = (platform: string) => {
     switch (platform) {
@@ -152,50 +198,38 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'denied': return 'bg-red-100 text-red-800';
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
       default: return 'bg-yellow-100 text-yellow-800';
     }
   };
 
-  const handleStatusChange = (creatorId: string, newStatus: 'approved' | 'denied') => {
-    setCreators(prev => 
-      prev.map(creator => 
-        creator.id === creatorId 
-          ? { ...creator, status: newStatus }
-          : creator
-      )
-    );
-  };
-
   const handleViewCreator = (creator: Creator) => {
     setSelectedCreator(creator);
-    setCreators(prev => 
-      prev.map(c => 
-        c.id === creator.id 
-          ? { ...c, viewed: true }
-          : c
-      )
-    );
+    // No need to update 'viewed' here, as it's handled by the backend
   };
 
-  const filteredCreators = useMemo(() => {
-    return creators.filter(creator => {
-      const matchesSearch = creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           creator.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           creator.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           creator.bio.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || creator.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [creators, searchTerm, statusFilter]);
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Loading Applicants...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (selectedCreator) {
-    const currentIndex = filteredCreators.findIndex(c => c.id === selectedCreator.id);
-    const nextCreator = filteredCreators[currentIndex + 1];
-    const prevCreator = filteredCreators[currentIndex - 1];
+    const currentIndex = filteredAndSortedCreators.findIndex(c => c.id === selectedCreator.id);
+    const nextCreator = filteredAndSortedCreators[currentIndex + 1];
+    const prevCreator = filteredAndSortedCreators[currentIndex - 1];
 
     return (
       <Card>
@@ -215,7 +249,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage src={selectedCreator.profileImage} />
-                <AvatarFallback>{selectedCreator.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                <AvatarFallback>{selectedCreator.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="text-xl font-semibold">{selectedCreator.name}</h3>
@@ -252,12 +286,17 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
             </div>
 
             <div>
+              <h4 className="font-medium mb-3">Application Message</h4>
+              <p className="text-gray-700 bg-gray-50 p-3 rounded">{selectedCreator.applicationMessage}</p>
+            </div>
+
+            <div>
               <h4 className="font-medium mb-3">Portfolio</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedCreator.portfolioImages.map((image, index) => (
                   <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                    <img 
-                      src={image} 
+                    <img
+                      src={image}
                       alt={`Portfolio ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -274,37 +313,37 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
                 </p>
               </div>
             </div>
-              
+
             {selectedCreator.status === 'pending' && (
               <div className="flex space-x-2 justify-center">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="text-red-600 border-red-200 hover:bg-red-50"
-                  onClick={() => handleStatusChange(selectedCreator.id, 'denied')}
+                  onClick={() => handleStatusChange(selectedCreator.id, 'rejected')}
                 >
                   <X className="h-4 w-4 mr-1" />
-                  Deny Creator
+                  Reject Creator
                 </Button>
-                <Button 
+                <Button
                   className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleStatusChange(selectedCreator.id, 'approved')}
+                  onClick={() => handleStatusChange(selectedCreator.id, 'accepted')}
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  Approve Creator
+                  Accept Creator
                 </Button>
               </div>
             )}
 
             <div className="flex justify-between">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => prevCreator && setSelectedCreator(prevCreator)}
                 disabled={!prevCreator}
               >
                 Previous
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => nextCreator && setSelectedCreator(nextCreator)}
                 disabled={!nextCreator}
               >
@@ -321,9 +360,9 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Campaign Creators ({filteredCreators.length})</span>
+          <span>Campaign Creators ({filteredAndSortedCreators.length})</span>
         </CardTitle>
-        
+
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -334,7 +373,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
               className="pl-10"
             />
           </div>
-          
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="All Status" />
@@ -342,13 +381,13 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="denied">Denied</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <Table>
           <TableHeader>
@@ -362,17 +401,23 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCreators.map((creator) => (
+            {filteredAndSortedCreators.map((creator) => (
               <TableRow key={creator.id} className={!creator.viewed ? 'bg-blue-50' : ''}>
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar>
                       <AvatarImage src={creator.profileImage} />
-                      <AvatarFallback>{creator.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback>{creator.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">{creator.name}</p>
+                        {creator.isVetted && (
+                          <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">
+                            <Shield className="h-3 w-3 mr-1" />
+                            Verified
+                          </Badge>
+                        )}
                         {!creator.viewed && (
                           <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800">
                             New
@@ -413,8 +458,8 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleViewCreator(creator)}
                     >
@@ -422,19 +467,19 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
                     </Button>
                     {creator.status === 'pending' && (
                       <>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-green-600 border-green-200 hover:bg-green-50"
-                          onClick={() => handleStatusChange(creator.id, 'approved')}
+                          onClick={() => handleStatusChange(creator.id, 'accepted')}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => handleStatusChange(creator.id, 'denied')}
+                          onClick={() => handleStatusChange(creator.id, 'rejected')}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -447,7 +492,7 @@ const CreatorsTable = ({ campaignId }: CreatorsTableProps) => {
           </TableBody>
         </Table>
 
-        {filteredCreators.length === 0 && (
+        {filteredAndSortedCreators.length === 0 && (
           <div className="text-center py-8">
             <p className="text-gray-600">No creators found matching your criteria</p>
           </div>

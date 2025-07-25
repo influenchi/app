@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Send } from "lucide-react";
+import { useSubmitApplication } from "@/lib/hooks/useCreator";
+import { useToast } from "@/hooks/use-toast";
 
 interface Campaign {
   id: string;
@@ -33,17 +35,28 @@ interface CreatorApplicationModalProps {
 const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplicationModalProps) => {
   const [message, setMessage] = useState("");
   const [customQuote, setCustomQuote] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitApplication = useSubmitApplication();
+  const { toast } = useToast();
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
 
-    setIsSubmitting(true);
-
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await submitApplication.mutateAsync({
+        campaignId: campaign.id,
+        application: {
+          message,
+          customQuote: customQuote || undefined
+        }
+      });
       onSubmit();
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Application failed",
+        description: error instanceof Error ? error.message : "Failed to submit application",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -121,7 +134,7 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              If you'd like to propose a different compensation amount, enter it here. Leave blank to accept the original offer.
+              If you&apos;d like to propose a different compensation amount, enter it here. Leave blank to accept the original offer.
             </p>
           </div>
 
@@ -132,7 +145,7 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
               variant="outline"
               onClick={onClose}
               className="flex-1"
-              disabled={isSubmitting}
+              disabled={submitApplication.isPending}
             >
               Cancel
             </Button>
@@ -140,9 +153,9 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
               type="button"
               onClick={handleSubmit}
               className="flex-1"
-              disabled={!message.trim() || isSubmitting}
+              disabled={!message.trim() || submitApplication.isPending}
             >
-              {isSubmitting ? (
+              {submitApplication.isPending ? (
                 "Submitting..."
               ) : (
                 <>

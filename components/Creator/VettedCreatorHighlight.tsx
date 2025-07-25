@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Star, 
-  Video, 
-  Clock, 
-  CheckCircle, 
+import {
+  Star,
+  Video,
+  Clock,
+  CheckCircle,
   Upload,
   Users,
   TrendingUp,
@@ -17,18 +17,82 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
 
 const VettedCreatorHighlight = () => {
   const [postLink, setPostLink] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { currentUser } = useCurrentUser();
+  const creatorProfile = currentUser?.profile as CreatorProfileData | undefined;
+  const isVetted = creatorProfile?.is_vetted || false;
 
-  const handleSubmit = () => {
-    if (postLink.trim()) {
+  const handleSubmit = async () => {
+    if (!postLink.trim()) {
+      toast({
+        title: "Video URL required",
+        description: "Please enter a valid post URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/creator/submit-vetting-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl: postLink }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit video');
+      }
+
       setIsSubmitted(true);
-      console.log("Vetted creator application submitted:", postLink);
+      toast({
+        title: "Application submitted!",
+        description: "Your verification video has been submitted for review. We'll notify you within 72 hours.",
+      });
+    } catch (error) {
+      toast({
+        title: "Submission failed",
+        description: error instanceof Error ? error.message : "Failed to submit your verification video. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // If already vetted, show a different message
+  if (isVetted) {
+    return (
+      <Card className="border-2 border-green-500/20 bg-gradient-to-r from-green-500/5 to-green-400/5">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-foreground">You&apos;re a Vetted Creator!</h3>
+              <p className="text-sm text-muted-foreground">Your profile has been verified and you appear first in brand searches</p>
+            </div>
+            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Verified
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isSubmitted) {
     return (
@@ -40,12 +104,12 @@ const VettedCreatorHighlight = () => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground">Application Submitted!</h3>
-              <p className="text-sm text-muted-foreground">We'll review your content within 72 hours</p>
+              <p className="text-sm text-muted-foreground">We&apos;ll review your content within 72 hours</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
-            <span>Review in progress - you'll receive an email notification</span>
+            <span>Review in progress - you&apos;ll receive an email notification</span>
           </div>
         </CardContent>
       </Card>
@@ -83,7 +147,7 @@ const VettedCreatorHighlight = () => {
   return (
     <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/10 to-transparent rounded-full -translate-y-16 translate-x-16" />
-      
+
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -148,7 +212,7 @@ const VettedCreatorHighlight = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs font-medium text-primary">
                 2
@@ -160,7 +224,7 @@ const VettedCreatorHighlight = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs font-medium text-primary">
                 3
@@ -189,17 +253,21 @@ const VettedCreatorHighlight = () => {
                 onChange={(e) => setPostLink(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleSubmit} disabled={!postLink.trim()}>
+              <Button
+                onClick={handleSubmit}
+                disabled={!postLink.trim() || isSubmitting}
+                className="text-white bg-purple-600 hover:bg-purple-700"
+              >
                 <Upload className="h-4 w-4 mr-2" />
-                Submit
+                {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>
-              <strong>72-hour review process</strong> - You'll receive an email notification once approved
+              <strong>72-hour review process</strong> - You&apos;ll receive an email notification once approved
             </span>
           </div>
         </div>
