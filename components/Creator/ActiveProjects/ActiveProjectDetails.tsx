@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { useMessages } from "@/lib/hooks/useMessages";
+import { useSession } from "@/lib/hooks/useAuth";
 import {
   ArrowLeft,
   MessageSquare,
@@ -76,14 +78,21 @@ interface ActiveProjectDetailsProps {
 }
 
 const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) => {
+  const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState('overview');
   const [newMessage, setNewMessage] = useState('');
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [taskSubmissions, setTaskSubmissions] = useState<{ [key: string]: Submission[] }>({});
   const [editingSubmission, setEditingSubmission] = useState<{ taskId: string, submissionId: number } | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
   const [submittingTask, setSubmittingTask] = useState<string | null>(null);
   const [submittedTasks, setSubmittedTasks] = useState<Set<string>>(new Set());
+
+  // Get campaign ID from original campaign data if available
+  const campaignId = project.originalCampaign?.id || (typeof project.id === 'string' ? project.id : '');
+  const { messages, isLoading: messagesLoading, sendMessage, uploadingFiles, isSending } = useMessages(campaignId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -149,30 +158,29 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
     }
   };
 
-  const mockMessages = [
-    {
-      id: 1,
-      sender: "brand",
-      senderName: "Paradise Hotels",
-      message: "Welcome to the campaign! We're excited to work with you. Please check the requirements and let us know if you have any questions.",
-      timestamp: "2 hours ago",
-      type: "message"
-    },
-    {
-      id: 2,
-      sender: "system",
-      senderName: "System",
-      message: "Campaign started - Looking forward to your draft submissions!",
-      timestamp: "1 day ago",
-      type: "broadcast"
-    }
-  ];
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      // Add message logic here
+  const handleSendMessage = async () => {
+    if (newMessage.trim() || attachedFiles.length > 0) {
+      await sendMessage(newMessage, attachedFiles);
       setNewMessage('');
+      setAttachedFiles([]);
     }
+  };
+
+  const handleMessageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const validFiles = Array.from(files).filter(file => {
+        const isValidType = file.type.startsWith('image/') || file.type === 'application/pdf';
+        const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
+        return isValidType && isValidSize;
+      });
+
+      setAttachedFiles(prev => [...prev, ...validFiles]);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleFileUpload = (taskId: string, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,39 +437,136 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                   <div className="space-y-4">
                     {/* Messages List */}
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {mockMessages.map((message) => (
-                        <div key={message.id} className={`flex ${message.sender === 'creator' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[70%] rounded-lg p-3 ${message.sender === 'creator'
-                            ? 'bg-primary text-primary-foreground'
-                            : message.type === 'broadcast'
-                              ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                              : 'bg-muted'
-                            }`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-medium">{message.senderName}</span>
-                              {message.type === 'broadcast' && (
-                                <Badge variant="outline" className="text-xs">Broadcast</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm">{message.message}</p>
-                            <p className="text-xs opacity-70 mt-1">{message.timestamp}</p>
-                          </div>
+                      {messagesLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                          <Loader2 className="h-6 w-6 animate-spin" />
                         </div>
-                      ))}
+                      ) : messages.length === 0 ? (
+                        <div className="text-center text-gray-500">
+                          <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                          <p>No messages yet. Start the conversation!</p>
+                        </div>
+                      ) : (
+                        messages.map((message: any) => {
+                          const isSent = message.sender_id === session?.user?.id;
+                          return (
+                            <div key={message.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[70%] rounded-lg p-3 ${isSent
+                                ? 'bg-primary text-primary-foreground'
+                                : message.is_broadcast
+                                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                  : 'bg-muted'
+                                }`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-medium">{message.sender?.name || 'Unknown'}</span>
+                                  {message.is_broadcast && (
+                                    <Badge variant="outline" className="text-xs">Broadcast</Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+
+                                {/* Attachments */}
+                                {message.attachments && message.attachments.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {message.attachments.map((attachment: any, idx: number) => (
+                                      <a
+                                        key={idx}
+                                        href={attachment.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`inline-flex items-center gap-2 p-1 rounded text-xs ${isSent ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30' : 'bg-gray-200 hover:bg-gray-300'
+                                          } transition-colors`}
+                                      >
+                                        {attachment.type.startsWith('image/') ? (
+                                          <FileText className="h-3 w-3" />
+                                        ) : (
+                                          <FileText className="h-3 w-3" />
+                                        )}
+                                        <span className="truncate">{attachment.name}</span>
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <p className="text-xs opacity-70 mt-1">{new Date(message.created_at).toLocaleString()}</p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
+
+                    {/* Attached Files Preview */}
+                    {attachedFiles.length > 0 && (
+                      <div className="px-4 py-2 border-t">
+                        <div className="flex gap-2 flex-wrap">
+                          {attachedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center gap-2 bg-gray-100 rounded px-3 py-1">
+                              {file.type.startsWith('image/') ? (
+                                <Camera className="h-3 w-3" />
+                              ) : (
+                                <FileText className="h-3 w-3" />
+                              )}
+                              <span className="text-xs truncate max-w-[150px]">{file.name}</span>
+                              <button
+                                onClick={() => removeAttachment(index)}
+                                className="text-gray-500 hover:text-red-500"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Message Input */}
                     <div className="flex gap-2 pt-4 border-t">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,application/pdf"
+                        onChange={handleMessageFileUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingFiles || isSending}
+                        title="Upload file"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
                       <Textarea
                         placeholder="Type your message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        className="min-h-[60px]"
+                        className="min-h-[60px] flex-1"
+                        disabled={uploadingFiles || isSending}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
                       />
-                      <Button onClick={handleSendMessage} size="sm">
-                        <Send className="h-4 w-4" />
+                      <Button
+                        onClick={handleSendMessage}
+                        size="sm"
+                        disabled={(!newMessage.trim() && attachedFiles.length === 0) || uploadingFiles || isSending}
+                      >
+                        {uploadingFiles || isSending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
+                    <p className="text-xs text-gray-500 mt-2 px-4">
+                      Press Enter to send, Shift+Enter for new line. Images and PDFs only (max 10MB).
+                    </p>
                   </div>
                 </CardContent>
               </Card>
