@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { creatorApplicationSchema } from "@/lib/validations/creator";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({
@@ -19,22 +19,23 @@ export async function POST(
       );
     }
 
-    const campaignId = params.id;
+    const { id: campaignId } = await params;
 
-    const campaign = await supabase
+    const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('id, status, applicant_count')
       .eq('id', campaignId)
       .single();
 
-    if (campaign.error || !campaign.data) {
+    if (campaignError || !campaign) {
+      console.error('Campaign fetch error:', campaignError);
       return NextResponse.json(
         { error: "Campaign not found" },
         { status: 404 }
       );
     }
 
-    if (campaign.data.status !== 'active') {
+    if (campaign.status !== 'active') {
       return NextResponse.json(
         { error: "Campaign is not accepting applications" },
         { status: 400 }
@@ -44,21 +45,23 @@ export async function POST(
     const body = await req.json();
     const validatedData = creatorApplicationSchema.parse(body);
 
-    const existingApplication = await supabase
+    // Check for existing application
+    const { data: existingApplication } = await supabaseAdmin
       .from('campaign_applications')
       .select('id')
       .eq('campaign_id', campaignId)
       .eq('creator_id', session.user.id)
       .single();
 
-    if (existingApplication.data) {
+    if (existingApplication) {
       return NextResponse.json(
         { error: "You have already applied to this campaign" },
         { status: 400 }
       );
     }
 
-    const { data, error } = await supabase
+    // Insert new application
+    const { data: newApplication, error: insertError } = await supabaseAdmin
       .from('campaign_applications')
       .insert({
         campaign_id: campaignId,
@@ -70,22 +73,23 @@ export async function POST(
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating application:', error);
+    if (insertError) {
+      console.error('Error creating application:', insertError);
       return NextResponse.json(
         { error: "Failed to submit application" },
         { status: 500 }
       );
     }
 
-    await supabase
+    // Update campaign applicant count
+    await supabaseAdmin
       .from('campaigns')
-      .update({ applicant_count: campaign.data.applicant_count + 1 })
+      .update({ applicant_count: (campaign.applicant_count || 0) + 1 })
       .eq('id', campaignId);
 
     return NextResponse.json({
       success: true,
-      application: data
+      application: newApplication
     });
   } catch (error) {
     console.error('Error in campaign application:', error);

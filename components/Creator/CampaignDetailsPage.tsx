@@ -70,7 +70,7 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
   };
 
   const handleApplyClick = () => {
-    onApply();
+    setShowApplicationModal(true);
   };
 
   const handleApplicationSubmit = () => {

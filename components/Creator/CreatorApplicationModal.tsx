@@ -155,7 +155,7 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
             <Button
               type="button"
               onClick={handleSubmit}
-              className="flex-1"
+              className="flex-1 text-white bg-purple-600 hover:bg-purple-700"
               disabled={!message.trim() || submitApplication.isPending}
             >
               {submitApplication.isPending ? (
