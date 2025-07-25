@@ -23,8 +23,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = vettingVideoSchema.parse(body);
 
-    console.log('Looking for creator profile with user_id:', session.user.id);
-
     const { data: existingProfile, error: fetchError } = await supabaseAdmin
       .from('creators')
       .select('id, user_id, is_vetted, vetting_video_url, is_onboarding_complete')
@@ -38,8 +36,6 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('Creator profile found:', existingProfile);
 
     // If no profile exists, they need to complete onboarding first
     if (!existingProfile) {
@@ -72,8 +68,6 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('Vetting video submitted successfully for user:', session.user.id);
 
     return NextResponse.json({
       success: true,

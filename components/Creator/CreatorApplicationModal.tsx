@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, Send } from "lucide-react";
 import { useSubmitApplication } from "@/lib/hooks/useCreator";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 interface Campaign {
   id: string;
@@ -75,10 +76,12 @@ const CreatorApplicationModal = ({ campaign, onClose, onSubmit }: CreatorApplica
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 {campaign.image && (
-                  <img
+                  <Image
                     src={campaign.image}
                     alt={campaign.title}
                     className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                    width={64}
+                    height={64}
                   />
                 )}
                 <div className="flex-1 min-w-0">

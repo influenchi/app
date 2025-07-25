@@ -22,14 +22,15 @@ import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
 
 const VettedCreatorHighlight = () => {
   const [postLink, setPostLink] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { currentUser, isLoading } = useCurrentUser();
+  const { currentUser, isLoading, refetch: refetchUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | undefined;
+
   const isVetted = creatorProfile?.is_vetted || false;
   const hasCompletedProfile = creatorProfile?.is_onboarding_complete || false;
+  const vettingStatus = creatorProfile?.vetting_status;
 
   const handleSubmit = async () => {
     if (!postLink.trim()) {
@@ -57,11 +58,14 @@ const VettedCreatorHighlight = () => {
         throw new Error(data.error || 'Failed to submit video');
       }
 
-      setIsSubmitted(true);
       toast({
         title: "Application submitted!",
         description: "Your verification video has been submitted for review. We'll notify you within 72 hours.",
       });
+
+      // Refetch user data to update the UI
+      refetchUser();
+
     } catch (error) {
       toast({
         title: "Submission failed",
@@ -142,7 +146,7 @@ const VettedCreatorHighlight = () => {
     );
   }
 
-  if (isSubmitted) {
+  if (vettingStatus === 'pending') {
     return (
       <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
         <CardContent className="p-6">

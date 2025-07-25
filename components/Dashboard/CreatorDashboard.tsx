@@ -137,7 +137,7 @@ const CreatorDashboard = () => {
 
   const handleApplyClick = (campaign: TransformedCampaign) => {
     setSelectedCampaign(campaign);
-    setShowApplicationModal(true);
+    setShowApplicationModal(false);
   };
 
   const handleApplicationSubmit = () => {
@@ -183,7 +183,11 @@ const CreatorDashboard = () => {
   if (selectedCampaign && !showApplicationModal) {
     return (
       <CampaignDetailsPage
-        campaign={selectedCampaign}
+        campaign={{
+          ...selectedCampaign,
+          content_items: (selectedCampaign as any).content_items || [],
+          budget_type: (selectedCampaign as any).budget_type || 'cash',
+        }}
         onBack={() => setSelectedCampaign(null)}
         onApply={() => handleApplyClick(selectedCampaign)}
       />

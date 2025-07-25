@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PaginatedCampaignList } from "../PaginatedCampaignList";
 import AssetLibrary from "../AssetLibrary";

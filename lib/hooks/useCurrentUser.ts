@@ -39,6 +39,11 @@ export interface CreatorProfileData {
   is_onboarding_complete: boolean;
   created_at: string;
   updated_at: string;
+  vetting_video_url?: string | null;
+  vetting_status?: 'pending' | 'approved' | 'rejected' | null;
+  vetting_submitted_at?: string | null;
+  vetting_reviewed_at?: string | null;
+  vetting_reviewer_notes?: string | null;
 }
 
 export interface BrandProfileData {
@@ -69,7 +74,7 @@ export interface CurrentUserData {
 export function useCurrentUser() {
   const { data: session, isPending } = useSession();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['currentUser', session?.user?.id],
     queryFn: async (): Promise<CurrentUserData | null> => {
       if (!session?.user || !session.user.user_type) return null;
@@ -78,23 +83,23 @@ export function useCurrentUser() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          return null; // User not authenticated
+          // Not logged in, handled by session
+          return null;
         }
         throw new Error('Failed to fetch user profile');
       }
-
-      const data = await response.json();
-      return data;
+      return response.json();
     },
     enabled: !isPending && !!session?.user,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
   });
 
   return {
     currentUser: data,
-    isLoading: isPending || isLoading,
-    isAuthenticated: !isPending && !!session,
+    isLoading: isLoading || isPending,
+    isAuthenticated: !!session?.user,
     error,
+    refetch,
   };
 } 
