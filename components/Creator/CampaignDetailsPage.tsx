@@ -8,8 +8,11 @@ import CampaignContent from "./CampaignDetails/CampaignContent";
 import CampaignSidebar from "./CampaignDetails/CampaignSidebar";
 
 interface ContentItem {
+  id: string;
   quantity: number;
   contentType: string;
+  customTitle: string;
+  description: string;
   socialChannel: string;
 }
 
@@ -19,12 +22,24 @@ interface Campaign {
   description: string;
   image?: string;
   brand: string;
-  compensation: string;
-  deadline: string;
+  budget: string;
+  budget_type: 'cash' | 'product' | 'service';
+  product_service_description?: string;
+  completion_date: string;
   status: string;
   daysLeft: number;
   content_items: ContentItem[];
-  budget_type: string;
+  target_audience: {
+    location: string[];
+    gender?: string;
+    ageRange?: string[];
+    ethnicity?: string;
+    interests?: string[];
+    audienceSize?: string[];
+    socialChannel?: string;
+  };
+  creator_purchase_required: boolean;
+  product_ship_required: boolean;
 }
 
 interface CampaignDetailsPageProps {
@@ -100,6 +115,41 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
 
   const currentStatus = isApplied ? 'applied' : campaign.status;
 
+  // Transform campaign data for sidebar
+  const sidebarCampaign = {
+    compensation: campaign.budget_type === 'cash'
+      ? `$${campaign.budget}`
+      : campaign.product_service_description || 'Product/Service',
+    budget: campaign.budget,
+    budget_type: campaign.budget_type,
+    brand: campaign.brand,
+    content_items: campaign.content_items,
+    location: campaign.target_audience?.location?.[0] || 'Remote',
+    deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+    creator_purchase_required: campaign.creator_purchase_required,
+    product_ship_required: campaign.product_ship_required,
+  };
+
+  // Transform campaign data for application modal
+  const modalCampaign = {
+    id: campaign.id,
+    title: campaign.title,
+    image: campaign.image,
+    brand: campaign.brand,
+    compensation: campaign.budget_type === 'cash'
+      ? `$${campaign.budget}`
+      : campaign.product_service_description || 'Product/Service',
+    deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -115,7 +165,7 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <CampaignContent campaign={campaign} />
           <CampaignSidebar
-            campaign={campaign}
+            campaign={sidebarCampaign}
             currentStatus={currentStatus}
             onApplyClick={handleApplyClick}
           />
@@ -124,7 +174,7 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
 
       {showApplicationModal && (
         <CreatorApplicationModal
-          campaign={campaign}
+          campaign={modalCampaign}
           onClose={() => setShowApplicationModal(false)}
           onSubmit={handleApplicationSubmit}
         />

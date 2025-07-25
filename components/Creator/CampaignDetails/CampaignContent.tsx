@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Target } from "lucide-react";
+import Image from "next/image";
 
 interface CampaignContentProps {
   campaign: any;
 }
 
 const CampaignContent = ({ campaign }: CampaignContentProps) => {
+
+  console.log(campaign);
   return (
     <div className="lg:col-span-2 space-y-6">
       {/* Campaign Image */}
@@ -15,10 +19,12 @@ const CampaignContent = ({ campaign }: CampaignContentProps) => {
         <Card>
           <CardContent className="p-0">
             <div className="aspect-[2/1] overflow-hidden rounded-lg">
-              <img 
-                src={campaign.image} 
+              <Image
+                src={campaign.image}
                 alt={campaign.title}
                 className="w-full h-full object-cover"
+                width={100}
+                height={100}
               />
             </div>
           </CardContent>
@@ -61,14 +67,14 @@ const CampaignContent = ({ campaign }: CampaignContentProps) => {
                 </div>
               </div>
             )) || (
-              <div className="border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold text-lg">{campaign.type}</span>
-                  <Badge variant="outline">Instagram</Badge>
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold text-lg">{campaign.type}</span>
+                    <Badge variant="outline">Instagram</Badge>
+                  </div>
+                  <p className="text-muted-foreground text-sm">High-quality content showcasing the brand/product</p>
                 </div>
-                <p className="text-muted-foreground text-sm">High-quality content showcasing the brand/product</p>
-              </div>
-            )}
+              )}
           </div>
         </CardContent>
       </Card>

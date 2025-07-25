@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
 import CreatorApplicationModal from "../Creator/CreatorApplicationModal";
 import { useToast } from "@/hooks/use-toast";
 import { showConfetti } from "@/components/Brand/CreateCampaign/confetti";
+import Image from "next/image";
 
 interface Campaign {
   id: string;
@@ -57,18 +58,19 @@ interface TransformedCampaign {
   compensation: string;
   location: any;
   deadline: string;
-  type: any;
+  deliverables: string;
   status: string;
   image: string;
   daysLeft: number;
   description: string;
+  budget: string;
 }
 
 const CreatorDashboard = () => {
   const [activeTab, setActiveTab] = useState('campaigns');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<TransformedCampaign | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const { toast } = useToast();
@@ -88,23 +90,36 @@ const CreatorDashboard = () => {
     }
   });
 
-  const transformedCampaigns: TransformedCampaign[] = campaignsData?.map((campaign: Campaign) => ({
-    id: campaign.id,
-    title: campaign.title,
-    brand: 'Brand Name',
-    compensation: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
-    location: campaign.target_audience?.location?.[0] || 'Remote',
-    deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }),
-    type: campaign.content_items?.[0]?.contentType || 'Content Creation',
-    status: 'active',
-    image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
-    daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
-    description: campaign.description
-  })) || [];
+  const transformedCampaigns: TransformedCampaign[] = useMemo(() => {
+    if (!campaignsData) return [];
+
+    return campaignsData.map((campaign: Campaign) => {
+      const deliverables = campaign.content_items && campaign.content_items.length > 0
+        ? campaign.content_items
+          .map(item => `${item.quantity} x ${item.contentType} on ${item.socialChannel}`)
+          .join(', ')
+        : 'Not specified';
+
+      return {
+        id: campaign.id,
+        title: campaign.title,
+        brand: 'Brand Name', // Placeholder
+        compensation: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
+        location: campaign.target_audience?.location?.[0] || 'Remote',
+        deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        deliverables,
+        status: 'active',
+        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+        daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+        description: campaign.description,
+        budget: campaign.budget,
+      };
+    });
+  }, [campaignsData]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -132,11 +147,11 @@ const CreatorDashboard = () => {
   const newCampaignsCount = transformedCampaigns.filter(c => c.status === 'active').length;
 
   const handleCampaignClick = (campaign: TransformedCampaign) => {
-    setSelectedCampaign(campaign);
+    setSelectedCampaignId(campaign.id);
   };
 
   const handleApplyClick = (campaign: TransformedCampaign) => {
-    setSelectedCampaign(campaign);
+    setSelectedCampaignId(campaign.id);
     setShowApplicationModal(false);
   };
 
@@ -156,9 +171,14 @@ const CreatorDashboard = () => {
   };
 
   const handleBackToDashboard = () => {
-    setSelectedCampaign(null);
+    setSelectedCampaignId(null);
     setSelectedProject(null);
   };
+
+  // Find the original campaign data when one is selected
+  const selectedCampaign = selectedCampaignId
+    ? campaignsData?.find(campaign => campaign.id === selectedCampaignId)
+    : null;
 
   if (campaignsLoading) {
     return (
@@ -185,11 +205,11 @@ const CreatorDashboard = () => {
       <CampaignDetailsPage
         campaign={{
           ...selectedCampaign,
-          content_items: (selectedCampaign as any).content_items || [],
-          budget_type: (selectedCampaign as any).budget_type || 'cash',
+          brand: 'Brand Name', // Placeholder until we have brand data
+          daysLeft: Math.ceil((new Date(selectedCampaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
         }}
-        onBack={() => setSelectedCampaign(null)}
-        onApply={() => handleApplyClick(selectedCampaign)}
+        onBack={() => setSelectedCampaignId(null)}
+        onApply={() => handleApplyClick(transformedCampaigns.find(tc => tc.id === selectedCampaignId)!)}
       />
     );
   }
@@ -273,9 +293,11 @@ const CreatorDashboard = () => {
                 <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group" onClick={() => handleCampaignClick(campaign)}>
                   <div className="relative">
                     <div className="aspect-[2/1] overflow-hidden rounded-t-lg">
-                      <img
+                      <Image
                         src={campaign.image}
                         alt={campaign.title}
+                        width={100}
+                        height={100}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
@@ -310,7 +332,7 @@ const CreatorDashboard = () => {
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center text-sm text-muted-foreground">
                         <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                        <span className="font-medium text-foreground">{campaign.compensation}</span>
+                        <span className="font-medium text-foreground">${campaign.budget} &bull; {campaign.compensation}</span>
                       </div>
 
                       <div className="flex items-center text-sm text-muted-foreground">
@@ -325,16 +347,15 @@ const CreatorDashboard = () => {
 
                       <div className="flex items-center text-sm text-muted-foreground">
                         <Camera className="h-4 w-4 mr-2" />
-                        {campaign.type}
+                        {campaign.deliverables}
                       </div>
                     </div>
 
                     <Button
                       variant="outline"
                       className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                      onClick={() => handleApplyClick(campaign)}
                     >
-                      View Details & Apply
+                      View Details
                     </Button>
                   </CardContent>
                 </Card>
@@ -358,9 +379,22 @@ const CreatorDashboard = () => {
         )}
       </div>
 
-      {showApplicationModal && selectedCampaign && (
+      {showApplicationModal && selectedCampaignId && (
         <CreatorApplicationModal
-          campaign={selectedCampaign}
+          campaign={{
+            id: selectedCampaignId,
+            title: selectedCampaign?.title || '',
+            image: selectedCampaign?.image,
+            brand: 'Brand Name',
+            compensation: selectedCampaign?.budget_type === 'cash'
+              ? `$${selectedCampaign.budget}`
+              : selectedCampaign?.product_service_description || 'Product/Service',
+            deadline: new Date(selectedCampaign?.completion_date || '').toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+          }}
           onClose={() => setShowApplicationModal(false)}
           onSubmit={handleApplicationSubmit}
         />
