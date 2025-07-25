@@ -242,8 +242,7 @@ const CreatorDashboard = () => {
         status: "pending",
         type: item.contentType.toLowerCase(),
         platform: item.socialChannel,
-        quantity: item.quantity,
-        budget: campaign.budget,
+        quantity: item.quantity
       })) || [];
 
       return {
