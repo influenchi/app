@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, Info } from "lucide-react";
+import { DollarSign, Info, Check } from "lucide-react";
 import { CampaignData } from "./types";
 import { useEffect } from "react";
 
@@ -20,7 +20,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
       const startDate = new Date(campaignData.startDate);
       const recommendedDate = new Date(startDate);
       recommendedDate.setMonth(startDate.getMonth() + 1);
-      
+
       const formattedDate = recommendedDate.toISOString().split('T')[0];
       onUpdate('completionDate', formattedDate);
     }
@@ -50,42 +50,53 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
         <DollarSign className="h-5 w-5 mr-2" />
         Budget & Timeline
       </h3>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Budget Type</Label>
           <div className="flex space-x-2 mt-2">
-            {['paid', 'gifted', 'affiliate'].map((type) => (
-              <Badge
-                key={type}
-                variant={campaignData.budgetType === type ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => onUpdateBudgetType(type as any)}
-              >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </Badge>
-            ))}
+            {['paid', 'gifted', 'affiliate'].map((type) => {
+              const isSelected = campaignData.budgetType.includes(type);
+              return (
+                <Badge
+                  key={type}
+                  variant={isSelected ? "default" : "outline"}
+                  className={`cursor-pointer transition-all duration-200 ${isSelected
+                      ? 'ring-2 ring-primary ring-offset-2'
+                      : 'hover:border-primary/50'
+                    }`}
+                  onClick={() => onUpdateBudgetType(type as any)}
+                >
+                  <span className="flex items-center gap-1">
+                    {isSelected && <Check className="h-3 w-3" />}
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </span>
+                </Badge>
+              );
+            })}
           </div>
         </div>
 
         <div>
           <Label htmlFor="budget">
-            {campaignData.budgetType === 'paid' ? 'Budget Amount' : 
-             campaignData.budgetType === 'gifted' ? 'Product Value' : 
-             'Commission Rate'}
+            {campaignData.budgetType.includes('paid') ? 'Budget Amount' :
+              campaignData.budgetType.includes('gifted') ? 'Product Value' :
+                campaignData.budgetType.includes('affiliate') ? 'Commission Rate' :
+                  'Budget'}
           </Label>
           <Input
             id="budget"
             value={campaignData.budget}
             onChange={(e) => onUpdate('budget', e.target.value)}
-            placeholder={campaignData.budgetType === 'paid' ? '$500' : 
-                        campaignData.budgetType === 'gifted' ? '$200' : 
-                        '10%'}
+            placeholder={campaignData.budgetType.includes('paid') ? '$500' :
+              campaignData.budgetType.includes('gifted') ? '$200' :
+                campaignData.budgetType.includes('affiliate') ? '10%' :
+                  'Enter budget'}
           />
         </div>
       </div>
 
-      {campaignData.budgetType === 'gifted' && (
+      {campaignData.budgetType.includes('gifted') && (
         <div className="space-y-4">
           <div>
             <Label htmlFor="productServiceDescription">Product Description</Label>
@@ -107,7 +118,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
               />
               <Label htmlFor="creatorPurchase">Creator must purchase product and get refunded</Label>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="productShip"
@@ -120,7 +131,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
         </div>
       )}
 
-      {campaignData.budgetType === 'affiliate' && (
+      {campaignData.budgetType.includes('affiliate') && (
         <div className="space-y-4">
           <div>
             <Label htmlFor="affiliateProgram">Affiliate Program Link</Label>

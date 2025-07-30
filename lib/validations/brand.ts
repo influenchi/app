@@ -32,7 +32,7 @@ export const campaignSchema = z.object({
   image: z.any().optional(),
   campaignGoal: z.array(z.string()).min(1, "Please select at least one campaign goal"),
   budget: z.string().min(1, "Budget is required"),
-  budgetType: z.enum(["paid", "gifted", "affiliate"]),
+  budgetType: z.array(z.enum(["paid", "gifted", "affiliate"])).min(1, "Please select at least one budget type"),
   productServiceDescription: z.string().optional(),
   creatorCount: z.string().min(1, "Number of creators is required"),
   startDate: z.string().min(1, "Start date is required"),

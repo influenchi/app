@@ -24,7 +24,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
       image: undefined,
       campaignGoal: [],
       budget: '',
-      budgetType: 'paid',
+      budgetType: ['paid'],
       productServiceDescription: '',
       creatorCount: '',
       startDate: '',
@@ -57,7 +57,9 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
         image: initialData.image || undefined,
         campaignGoal: initialData.campaignGoal || [],
         budget: initialData.budget?.replace('$', '') || '',
-        budgetType: initialData.budgetType || 'paid',
+        budgetType: Array.isArray(initialData.budgetType)
+          ? initialData.budgetType
+          : initialData.budgetType ? [initialData.budgetType] : ['paid'],
         productServiceDescription: initialData.productServiceDescription || '',
         creatorCount: initialData.creatorCount || '',
         startDate: initialData.startDate || '',
@@ -119,7 +121,11 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
   };
 
   const handleUpdateBudgetType = (budgetType: 'paid' | 'gifted' | 'affiliate') => {
-    form.setValue('budgetType', budgetType);
+    const currentTypes = form.getValues('budgetType');
+    const newTypes = currentTypes.includes(budgetType)
+      ? currentTypes.filter(t => t !== budgetType)
+      : [...currentTypes, budgetType];
+    form.setValue('budgetType', newTypes);
   };
 
   const handleUpdateTargetAudience = (field: string, value: string | string[]) => {

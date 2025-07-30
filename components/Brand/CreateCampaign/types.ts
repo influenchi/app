@@ -14,7 +14,7 @@ export interface CampaignData {
   image: File | null;
   campaignGoal: string[];
   budget: string;
-  budgetType: 'paid' | 'gifted' | 'affiliate';
+  budgetType: ('paid' | 'gifted' | 'affiliate')[];
   productServiceDescription: string;
   creatorCount: string;
   startDate: string;
