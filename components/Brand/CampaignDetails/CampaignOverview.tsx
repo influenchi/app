@@ -21,7 +21,7 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
       </Card>
 
       {/* Budget Details */}
-      {campaign.budgetType && campaign.budgetType !== 'cash' && (
+      {campaign.budgetType && !campaign.budgetType.includes('paid') && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -32,17 +32,17 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <span className="text-sm font-medium text-gray-600">Type:</span>
-                <p className="font-medium capitalize">{campaign.budgetType}</p>
+                <span className="text-sm font-medium text-gray-600">Types:</span>
+                <p className="font-medium capitalize">{Array.isArray(campaign.budgetType) ? campaign.budgetType.join(', ') : campaign.budgetType}</p>
               </div>
-              
+
               <div>
                 <span className="text-sm font-medium text-gray-600">Description:</span>
                 <p className="text-gray-700">{campaign.productServiceDescription}</p>
               </div>
 
               {/* Product Requirements */}
-              {campaign.budgetType === 'product' && (campaign.creatorPurchaseRequired || campaign.productShipRequired) && (
+              {(Array.isArray(campaign.budgetType) ? campaign.budgetType.includes('gifted') : campaign.budgetType === 'gifted') && (campaign.creatorPurchaseRequired || campaign.productShipRequired) && (
                 <div className="pt-3 border-t">
                   <span className="text-sm font-medium text-gray-600 block mb-3">Product Requirements:</span>
                   <div className="space-y-2">
@@ -52,7 +52,7 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
                         <span className="text-sm text-gray-700">Creator must purchase product and get refunded</span>
                       </div>
                     )}
-                    
+
                     {campaign.productShipRequired && (
                       <div className="flex items-center space-x-2">
                         <Package className="h-4 w-4 text-blue-600" />
@@ -89,8 +89,8 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
                 <Badge variant="outline">{item.socialChannel}</Badge>
               </div>
             )) || (
-              <p className="text-gray-600">{campaign.type}</p>
-            )}
+                <p className="text-gray-600">{campaign.type}</p>
+              )}
           </div>
         </CardContent>
       </Card>
@@ -111,14 +111,14 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-600">Audience Size:</span>
-              <p>{Array.isArray(campaign.targetAudience?.audienceSize) 
-                ? campaign.targetAudience.audienceSize.join(', ') 
+              <p>{Array.isArray(campaign.targetAudience?.audienceSize)
+                ? campaign.targetAudience.audienceSize.join(', ')
                 : campaign.targetAudience?.audienceSize || '10K-50K followers'}</p>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-600">Age Range:</span>
-              <p>{Array.isArray(campaign.targetAudience?.ageRange) 
-                ? campaign.targetAudience.ageRange.join(', ') 
+              <p>{Array.isArray(campaign.targetAudience?.ageRange)
+                ? campaign.targetAudience.ageRange.join(', ')
                 : campaign.targetAudience?.ageRange || '25-35'}</p>
             </div>
             <div>
@@ -127,8 +127,8 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-600">Location:</span>
-              <p>{Array.isArray(campaign.targetAudience?.location) 
-                ? campaign.targetAudience.location.join(', ') 
+              <p>{Array.isArray(campaign.targetAudience?.location)
+                ? campaign.targetAudience.location.join(', ')
                 : campaign.targetAudience?.location || 'Worldwide'}</p>
             </div>
             <div>

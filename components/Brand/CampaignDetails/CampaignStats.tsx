@@ -31,7 +31,13 @@ const CampaignStats = ({ campaign }: CampaignStatsProps) => {
           <div>
             <span className="text-sm font-medium text-gray-600">Budget:</span>
             <p className="font-semibold">{campaign.budget}</p>
-            {campaign.budgetType && campaign.budgetType !== 'cash' && (
+            {campaign.budgetType && !campaign.budgetType.includes('paid') && (
+              <p className="text-sm text-gray-600 mt-1">
+                <span className="font-medium">Types: </span>
+                {Array.isArray(campaign.budgetType) ? campaign.budgetType.join(', ') : campaign.budgetType}
+              </p>
+            )}
+            {campaign.productServiceDescription && (
               <p className="text-sm text-gray-600 mt-1">
                 {campaign.productServiceDescription}
               </p>
@@ -39,24 +45,24 @@ const CampaignStats = ({ campaign }: CampaignStatsProps) => {
           </div>
 
           {/* Product Options */}
-          {campaign.budgetType === 'product' && (
+          {(Array.isArray(campaign.budgetType) ? campaign.budgetType.includes('gifted') : campaign.budgetType === 'gifted') && (
             <div className="space-y-3 pt-3 border-t">
               <h4 className="text-sm font-medium text-gray-700">Product Requirements:</h4>
-              
+
               {campaign.creatorPurchaseRequired && (
                 <div className="flex items-center space-x-2 text-sm">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <span className="text-gray-700">Creator must purchase and get refunded</span>
                 </div>
               )}
-              
+
               {campaign.productShipRequired && (
                 <div className="flex items-center space-x-2 text-sm">
                   <Package className="h-4 w-4 text-blue-600" />
                   <span className="text-gray-700">Product shipping required</span>
                 </div>
               )}
-              
+
               {!campaign.creatorPurchaseRequired && !campaign.productShipRequired && (
                 <p className="text-sm text-gray-500">No special product requirements</p>
               )}
@@ -81,9 +87,9 @@ const CampaignStats = ({ campaign }: CampaignStatsProps) => {
             <CardTitle>Campaign Image</CardTitle>
           </CardHeader>
           <CardContent>
-            <img 
-              src={campaign.image} 
-              alt="Campaign" 
+            <img
+              src={campaign.image}
+              alt="Campaign"
               className="w-full h-48 object-cover rounded-lg"
             />
           </CardContent>

@@ -84,7 +84,10 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <div className="flex items-center space-x-2 mr-8">
+            <Link 
+              href={isAuthenticated ? (isBrand ? "/brand/dashboard" : "/creator/dashboard") : "/"} 
+              className="flex items-center space-x-2 mr-8 hover:opacity-80 transition-opacity"
+            >
               <Image
                 src="/lovable-uploads/9208da4e-c82f-4d70-9563-87a55fe2857f.png"
                 alt="Influenchi Logo"
@@ -93,90 +96,37 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
                 height={32}
               />
               <span className="text-2xl font-bold text-foreground">Influenchi</span>
-            </div>
+            </Link>
 
             <NavigationMenu>
               <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href={isAuthenticated ? (isBrand ? "/brand/dashboard" : "/creator/dashboard") : "/"} passHref>
-                    <Button
-                      variant={pathname === '/' || pathname === '/brand/dashboard' || pathname === '/creator/dashboard' ? "default" : "ghost"}
-                      className="flex items-center"
-                    >
-                      <Home className="h-4 w-4 mr-2" />
-                      {isAuthenticated ? (isBrand ? "Dashboard" : "Dashboard") : "Home"}
-                    </Button>
-                  </Link>
-                </NavigationMenuItem>
-
-                {/* Show only brand navigation for brand users */}
-                {isBrand && (
+                {/* Show complete profile for incomplete onboarding */}
+                {isBrand && !currentUser?.profile?.is_onboarding_complete && (
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger className="flex items-center">
-                      <Briefcase className="h-4 w-4 mr-2" />
-                      Brand
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <div className="grid gap-3 p-4 w-[200px] bg-background backdrop-blur-md">
-                        {!currentUser?.profile?.is_onboarding_complete && (
-                          <Link href="/brand/onboarding" passHref>
-                            <Button
-                              variant="ghost"
-                              className="justify-start w-full"
-                            >
-                              Setup Profile
-                            </Button>
-                          </Link>
-                        )}
-                        <Link href="/brand/dashboard" passHref>
-                          <Button
-                            variant="ghost"
-                            className="justify-start w-full"
-                          >
-                            Dashboard
-                          </Button>
-                        </Link>
-                        <Link href="/brand/settings" passHref>
-                          <Button
-                            variant="ghost"
-                            className="justify-start w-full"
-                          >
-                            Settings
-                          </Button>
-                        </Link>
-                      </div>
-                    </NavigationMenuContent>
+                    <Link href="/brand/onboarding" passHref>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center"
+                      >
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Setup Profile
+                      </Button>
+                    </Link>
                   </NavigationMenuItem>
                 )}
 
-                {/* Show only creator navigation for creator users */}
-                {isCreator && (
-                  <>
-                    <NavigationMenuItem>
-                      <Link href="/creator/dashboard" passHref>
-                        <Button
-                          variant={pathname === '/creator/dashboard' ? "default" : "ghost"}
-                          className="flex items-center"
-                        >
-                          <Camera className="h-4 w-4 mr-2" />
-                          Dashboard
-                        </Button>
-                      </Link>
-                    </NavigationMenuItem>
-                    {!currentUser?.profile?.is_onboarding_complete && (
-                      <NavigationMenuItem>
-                        <Link href="/creator/onboarding" passHref>
-                          <Button
-                            variant="ghost"
-                            className="flex items-center"
-                          >
-                            <User className="h-4 w-4 mr-2" />
-                            Complete Profile
-                          </Button>
-                        </Link>
-                      </NavigationMenuItem>
-                    )}
-                  </>
+                {isCreator && !currentUser?.profile?.is_onboarding_complete && (
+                  <NavigationMenuItem>
+                    <Link href="/creator/onboarding" passHref>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        Complete Profile
+                      </Button>
+                    </Link>
+                  </NavigationMenuItem>
                 )}
               </NavigationMenuList>
             </NavigationMenu>

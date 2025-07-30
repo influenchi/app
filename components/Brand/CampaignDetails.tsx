@@ -65,7 +65,7 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
   const transformedCampaign = {
     ...campaign,
     // Transform field names from snake_case to camelCase
-    budgetType: campaign.budget_type,
+    budgetType: (campaign as any).budgetType || [campaign.budget_type || 'paid'], // Handle both formats
     productServiceDescription: campaign.product_service_description,
     creatorPurchaseRequired: campaign.creator_purchase_required,
     productShipRequired: campaign.product_ship_required,
@@ -82,8 +82,10 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
       year: 'numeric'
     }),
 
-    // Format budget based on type
-    budget: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.budget,
+    // Format budget based on type - check if array contains 'paid' or if single value is 'cash'
+    budget: (Array.isArray((campaign as any).budgetType) ? (campaign as any).budgetType.includes('paid') : campaign.budget_type === 'cash')
+      ? `$${campaign.budget}`
+      : campaign.budget,
 
     // Add computed fields
     applications: campaign.applicant_count || 0,

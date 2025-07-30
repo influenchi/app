@@ -3,14 +3,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, Info } from "lucide-react";
+import { DollarSign, Info, Check } from "lucide-react";
 import { CampaignData } from "./types";
 import { useEffect } from "react";
 
 interface BudgetTimelineStepProps {
   campaignData: CampaignData;
   onUpdate: (field: string, value: string | boolean) => void;
-  onUpdateBudgetType: (budgetType: 'cash' | 'product' | 'service') => void;
+  onUpdateBudgetType: (budgetType: 'paid' | 'gifted' | 'affiliate') => void;
 }
 
 const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: BudgetTimelineStepProps) => {
@@ -20,7 +20,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
       const startDate = new Date(campaignData.startDate);
       const recommendedDate = new Date(startDate);
       recommendedDate.setMonth(startDate.getMonth() + 1);
-      
+
       const formattedDate = recommendedDate.toISOString().split('T')[0];
       onUpdate('completionDate', formattedDate);
     }
@@ -50,73 +50,108 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
         <DollarSign className="h-5 w-5 mr-2" />
         Budget & Timeline
       </h3>
-      
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Budget Type</Label>
           <div className="flex space-x-2 mt-2">
-            {['cash', 'product', 'service'].map((type) => (
-              <Badge
-                key={type}
-                variant={campaignData.budgetType === type ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => onUpdateBudgetType(type as any)}
-              >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </Badge>
-            ))}
+            {['paid', 'gifted', 'affiliate'].map((type) => {
+              const isSelected = campaignData.budgetType.includes(type);
+              return (
+                <Badge
+                  key={type}
+                  variant={isSelected ? "default" : "outline"}
+                  className={`cursor-pointer transition-all duration-200 ${isSelected
+                      ? 'ring-2 ring-primary ring-offset-2'
+                      : 'hover:border-primary/50'
+                    }`}
+                  onClick={() => onUpdateBudgetType(type as any)}
+                >
+                  <span className="flex items-center gap-1">
+                    {isSelected && <Check className="h-3 w-3" />}
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </span>
+                </Badge>
+              );
+            })}
           </div>
         </div>
 
         <div>
           <Label htmlFor="budget">
-            {campaignData.budgetType === 'cash' ? 'Budget Amount' : 'Budget Value'}
+            {campaignData.budgetType.includes('paid') ? 'Budget Amount' :
+              campaignData.budgetType.includes('gifted') ? 'Product Value' :
+                campaignData.budgetType.includes('affiliate') ? 'Commission Rate' :
+                  'Budget'}
           </Label>
           <Input
             id="budget"
             value={campaignData.budget}
             onChange={(e) => onUpdate('budget', e.target.value)}
-            placeholder={campaignData.budgetType === 'cash' ? '$500' : 'Estimated value $500'}
+            placeholder={campaignData.budgetType.includes('paid') ? '$500' :
+              campaignData.budgetType.includes('gifted') ? '$200' :
+                campaignData.budgetType.includes('affiliate') ? '10%' :
+                  'Enter budget'}
           />
         </div>
       </div>
 
-      {(campaignData.budgetType === 'product' || campaignData.budgetType === 'service') && (
+      {campaignData.budgetType.includes('gifted') && (
         <div className="space-y-4">
           <div>
-            <Label htmlFor="productServiceDescription">
-              {campaignData.budgetType === 'product' ? 'Product Description' : 'Service Description'}
-            </Label>
+            <Label htmlFor="productServiceDescription">Product Description</Label>
             <Textarea
               id="productServiceDescription"
               value={campaignData.productServiceDescription}
               onChange={(e) => onUpdate('productServiceDescription', e.target.value)}
-              placeholder={`Describe the ${campaignData.budgetType} you're offering in exchange...`}
+              placeholder="Describe the product you're offering in exchange..."
               rows={4}
             />
           </div>
 
-          {campaignData.budgetType === 'product' && (
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="creatorPurchase"
-                  checked={campaignData.creatorPurchaseRequired || false}
-                  onCheckedChange={(checked) => onUpdate('creatorPurchaseRequired', !!checked)}
-                />
-                <Label htmlFor="creatorPurchase">Creator must purchase product and get refunded</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="productShip"
-                  checked={campaignData.productShipRequired || false}
-                  onCheckedChange={(checked) => onUpdate('productShipRequired', !!checked)}
-                />
-                <Label htmlFor="productShip">Product needs to be shipped to creator</Label>
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="creatorPurchase"
+                checked={campaignData.creatorPurchaseRequired || false}
+                onCheckedChange={(checked) => onUpdate('creatorPurchaseRequired', !!checked)}
+              />
+              <Label htmlFor="creatorPurchase">Creator must purchase product and get refunded</Label>
             </div>
-          )}
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="productShip"
+                checked={campaignData.productShipRequired || false}
+                onCheckedChange={(checked) => onUpdate('productShipRequired', !!checked)}
+              />
+              <Label htmlFor="productShip">Product needs to be shipped to creator</Label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {campaignData.budgetType.includes('affiliate') && (
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="affiliateProgram">Affiliate Program Link</Label>
+            <Input
+              id="affiliateProgram"
+              value={campaignData.affiliateProgram || ''}
+              onChange={(e) => onUpdate('affiliateProgram', e.target.value)}
+              placeholder="https://example.com/affiliate-signup"
+            />
+          </div>
+          <div>
+            <Label htmlFor="productServiceDescription">Program Description</Label>
+            <Textarea
+              id="productServiceDescription"
+              value={campaignData.productServiceDescription}
+              onChange={(e) => onUpdate('productServiceDescription', e.target.value)}
+              placeholder="Describe your affiliate program details..."
+              rows={4}
+            />
+          </div>
         </div>
       )}
 
