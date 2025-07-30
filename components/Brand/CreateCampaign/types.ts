@@ -14,7 +14,7 @@ export interface CampaignData {
   image: File | null;
   campaignGoal: string[];
   budget: string;
-  budgetType: 'cash' | 'product' | 'service';
+  budgetType: 'paid' | 'gifted' | 'affiliate';
   productServiceDescription: string;
   creatorCount: string;
   startDate: string;
@@ -32,6 +32,7 @@ export interface CampaignData {
   requirements: string;
   creatorPurchaseRequired?: boolean;
   productShipRequired?: boolean;
+  affiliateProgram?: string;
 }
 
 export interface CreateCampaignModalProps {

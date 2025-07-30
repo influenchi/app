@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         requirements: validatedData.requirements || '',
         creator_purchase_required: validatedData.creatorPurchaseRequired || false,
         product_ship_required: validatedData.productShipRequired || false,
+        affiliate_program: validatedData.affiliateProgram || null,
         status: 'active',
         applicant_count: 0,
       })

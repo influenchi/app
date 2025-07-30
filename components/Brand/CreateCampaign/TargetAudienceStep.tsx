@@ -30,9 +30,11 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
         <Label htmlFor="creatorCount">Number of Creators Needed</Label>
         <Input
           id="creatorCount"
+          type="number"
+          min="1"
           value={campaignData.creatorCount}
           onChange={(e) => onUpdate('creatorCount', e.target.value)}
-          placeholder="e.g., 5-10 creators"
+          placeholder="5"
         />
       </div>
 

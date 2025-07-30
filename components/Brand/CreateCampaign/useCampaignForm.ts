@@ -24,7 +24,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
       image: undefined,
       campaignGoal: [],
       budget: '',
-      budgetType: 'cash',
+      budgetType: 'paid',
       productServiceDescription: '',
       creatorCount: '',
       startDate: '',
@@ -57,7 +57,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
         image: initialData.image || undefined,
         campaignGoal: initialData.campaignGoal || [],
         budget: initialData.budget?.replace('$', '') || '',
-        budgetType: initialData.budgetType || 'cash',
+        budgetType: initialData.budgetType || 'paid',
         productServiceDescription: initialData.productServiceDescription || '',
         creatorCount: initialData.creatorCount || '',
         startDate: initialData.startDate || '',
@@ -118,7 +118,7 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
     form.setValue(field as keyof (CampaignFormData & { image?: File }), value as never);
   };
 
-  const handleUpdateBudgetType = (budgetType: 'cash' | 'product' | 'service') => {
+  const handleUpdateBudgetType = (budgetType: 'paid' | 'gifted' | 'affiliate') => {
     form.setValue('budgetType', budgetType);
   };
 

@@ -132,9 +132,8 @@ const AssetLibrary = ({
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [newTags, setNewTags] = useState('');
 
-  // Calculate remaining downloads
-  const remainingDownloads = monthlyDownloadLimit - monthlyDownloadsUsed;
-  const canDownload = remainingDownloads > 0;
+  // Downloads are unlimited now
+  const canDownload = true;
 
   // Filter assets
   const filteredAssets = useMemo(() => {
@@ -201,39 +200,7 @@ const AssetLibrary = ({
           <p className="text-muted-foreground">Manage and download your approved campaign assets</p>
         </div>
         
-        {/* Download Usage */}
-        <Card className="w-80">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Monthly Downloads</span>
-              <Badge variant={canDownload ? "default" : "destructive"}>
-                {subscriptionInfo.name}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold">{monthlyDownloadsUsed}</span>
-              <span className="text-muted-foreground">/ {monthlyDownloadLimit}</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2 mt-2">
-              <div 
-                className={`h-2 rounded-full transition-all ${
-                  monthlyDownloadsUsed >= monthlyDownloadLimit ? 'bg-destructive' : 'bg-primary'
-                }`}
-                style={{ width: `${Math.min((monthlyDownloadsUsed / monthlyDownloadLimit) * 100, 100)}%` }}
-              />
-            </div>
-            {!canDownload && (
-              <Button 
-                size="sm" 
-                className="w-full mt-2"
-                onClick={() => setShowUpgradeDialog(true)}
-              >
-                <Crown className="h-4 w-4 mr-1" />
-                Upgrade Plan
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Filters */}
@@ -284,7 +251,7 @@ const AssetLibrary = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAssets.map((asset, index) => {
-            const isLocked = !canDownload && index >= remainingDownloads;
+            const isLocked = false; // No limits anymore
             
             return (
               <Card key={asset.id} className={`overflow-hidden ${isLocked ? 'opacity-75' : ''}`}>

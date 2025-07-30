@@ -2,9 +2,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Edit, Search } from "lucide-react";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import { usePagination } from "@/hooks/usePagination";
+import { useState, useMemo } from "react";
 
 interface Campaign {
   id: number;
@@ -36,6 +39,20 @@ export function PaginatedCampaignList({
   onEditCampaign,
   getStatusColor,
 }: PaginatedCampaignListProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Filter campaigns based on search and status
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(campaign => {
+      const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.type.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [campaigns, searchTerm, statusFilter]);
   const {
     currentPage,
     totalPages,
@@ -43,7 +60,7 @@ export function PaginatedCampaignList({
     goToPage,
     itemsPerPage,
   } = usePagination({
-    data: campaigns,
+    data: filteredCampaigns,
     itemsPerPage: 6, // Show 6 campaigns per page
     initialPage: 1,
   });
@@ -83,6 +100,31 @@ export function PaginatedCampaignList({
 
   return (
     <div className="space-y-6">
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search campaigns by title, description, or type..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {paginatedData.map((campaign) => (
           <Card 
@@ -164,7 +206,7 @@ export function PaginatedCampaignList({
         totalPages={totalPages}
         onPageChange={goToPage}
         itemsPerPage={itemsPerPage}
-        totalItems={campaigns.length}
+        totalItems={filteredCampaigns.length}
       />
     </div>
   );
