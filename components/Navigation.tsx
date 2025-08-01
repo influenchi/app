@@ -84,8 +84,8 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link 
-              href={isAuthenticated ? (isBrand ? "/brand/dashboard" : "/creator/dashboard") : "/"} 
+            <Link
+              href={isAuthenticated ? (isBrand ? "/brand/dashboard" : "/creator/dashboard") : "/"}
               className="flex items-center space-x-2 mr-8 hover:opacity-80 transition-opacity"
             >
               <Image
@@ -98,9 +98,8 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
               <span className="text-2xl font-bold text-foreground">Influenchi</span>
             </Link>
 
-            <NavigationMenu>
+            {/* <NavigationMenu>
               <NavigationMenuList>
-                {/* Show complete profile for incomplete onboarding */}
                 {isBrand && !currentUser?.profile?.is_onboarding_complete && (
                   <NavigationMenuItem>
                     <Link href="/brand/onboarding" passHref>
@@ -129,7 +128,7 @@ const Navigation = ({ currentView, onNavigate }: NavigationProps) => {
                   </NavigationMenuItem>
                 )}
               </NavigationMenuList>
-            </NavigationMenu>
+            </NavigationMenu> */}
           </div>
 
           <div className="flex items-center space-x-4">
