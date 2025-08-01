@@ -6,27 +6,27 @@ import { brandOnboardingSchema } from '@/lib/validations/brand';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Brand onboarding request received');
+    console.log('Brand onboarding request received');
 
     const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session) {
-      console.log('❌ No session found');
+      console.log('No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ Session found for user:', session.user.id);
+    console.log('Session found for user:', session.user.id);
 
     // Debug request details
     const contentType = request.headers.get('content-type');
-    console.log('📄 Content-Type:', contentType);
+    console.log(' Content-Type:', contentType);
 
     let body: Record<string, unknown> = {};
     let logoUrl: string | null = null;
 
     // Handle both FormData and JSON requests
     if (contentType?.includes('multipart/form-data')) {
-      console.log('📋 Processing FormData request...');
+      console.log(' Processing FormData request...');
 
       try {
         const formData = await request.formData();
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         const socialMediaStr = formData.get('socialMedia') as string;
         const logoFile = formData.get('logo') as File | null;
 
-        console.log('📊 FormData fields extracted:', {
+        console.log(' FormData fields extracted:', {
           brandName,
           website: website || 'empty',
           description: description?.substring(0, 50) + '...',
@@ -54,13 +54,13 @@ export async function POST(request: NextRequest) {
 
         // Handle file upload if present
         if (logoFile) {
-          console.log('📁 Processing logo file from FormData...');
+          console.log(' Processing logo file from FormData...');
           try {
             const { uploadBrandLogo } = await import('@/lib/utils/storageUtils');
             logoUrl = await uploadBrandLogo(logoFile, session.user.id);
-            console.log('✅ Logo uploaded successfully:', logoUrl);
+            console.log('Logo uploaded successfully:', logoUrl);
           } catch (uploadError) {
-            console.error('❌ Logo upload failed:', uploadError);
+            console.error('Logo upload failed:', uploadError);
             return NextResponse.json({ error: 'Failed to upload logo' }, { status: 500 });
           }
         }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         };
 
       } catch (formDataError) {
-        console.error('❌ FormData parsing failed:', formDataError);
+        console.error('FormData parsing failed:', formDataError);
         const errorMessage = formDataError instanceof Error ? formDataError.message : 'Unknown FormData parsing error';
         return NextResponse.json({
           error: 'Invalid form data provided',
@@ -84,18 +84,18 @@ export async function POST(request: NextRequest) {
       }
 
     } else if (contentType?.includes('application/json')) {
-      console.log('📋 Processing JSON request...');
+      console.log(' Processing JSON request...');
 
       try {
         const jsonData = await request.json();
-        console.log('✅ JSON parsed successfully');
-        console.log('📊 Request data keys:', Object.keys(jsonData));
+        console.log('JSON parsed successfully');
+        console.log(' Request data keys:', Object.keys(jsonData));
 
         body = jsonData;
         logoUrl = jsonData.logoUrl || null;
 
       } catch (jsonError) {
-        console.error('❌ JSON parsing failed:', jsonError);
+        console.error('JSON parsing failed:', jsonError);
         return NextResponse.json({
           error: 'Invalid JSON data provided',
           details: 'The request body could not be parsed as JSON'
@@ -103,14 +103,14 @@ export async function POST(request: NextRequest) {
       }
 
     } else {
-      console.error('❌ Unsupported content type:', contentType);
+      console.error('Unsupported content type:', contentType);
       return NextResponse.json({
         error: 'Unsupported content type',
         details: `Expected multipart/form-data or application/json, got: ${contentType}`
       }, { status: 400 });
     }
 
-    console.log('🔄 Validating data...');
+    console.log('Validating data...');
     const validatedData = brandOnboardingSchema.parse({
       brandName: body.brandName,
       website: body.website,
@@ -119,12 +119,12 @@ export async function POST(request: NextRequest) {
       socialMedia: body.socialMedia,
     });
 
-    console.log('✅ Data validation successful');
-    console.log('🖼️  Logo URL:', logoUrl ? 'provided' : 'not provided');
+    console.log('Data validation successful');
+    console.log('  Logo URL:', logoUrl ? 'provided' : 'not provided');
 
-    console.log('💾 Saving to database...');
-    console.log('📊 User ID from Better Auth:', session.user.id);
-    console.log('📊 User data:', {
+    console.log(' Saving to database...');
+    console.log(' User ID from Better Auth:', session.user.id);
+    console.log(' User data:', {
       email: session.user.email,
       firstName: session.user.firstName,
       lastName: session.user.lastName,
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       error = updateResult.error;
 
       if (!error) {
-        console.log('✅ Brand profile updated:', existingBrand.id);
+        console.log('Brand profile updated:', existingBrand.id);
       }
     } else {
       // Create new brand profile with proper user_id reference
@@ -191,13 +191,13 @@ export async function POST(request: NextRequest) {
       error = insertResult.error;
 
       if (insertResult.data && !error) {
-        console.log('✅ Brand profile created:', insertResult.data.id);
+        console.log('Brand profile created:', insertResult.data.id);
       }
     }
 
     if (error) {
       const supabaseError = error as any;
-      console.error('❌ Supabase error details:', {
+      console.error('Supabase error details:', {
         message: supabaseError.message,
         code: supabaseError.code,
         details: supabaseError.details,
@@ -219,10 +219,10 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('✅ Brand onboarding completed successfully');
+    console.log('Brand onboarding completed successfully');
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ Brand onboarding error:', error);
+    console.error('Brand onboarding error:', error);
 
     // Handle JSON parsing errors specifically
     if (error instanceof SyntaxError) {
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // Handle validation errors
     if (error && typeof error === 'object' && 'issues' in error) {
-      console.error('📋 Validation issues:', error.issues);
+      console.error(' Validation issues:', error.issues);
       return NextResponse.json({
         error: 'Validation failed',
         details: error.issues

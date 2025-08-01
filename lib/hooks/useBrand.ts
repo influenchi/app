@@ -59,8 +59,8 @@ export function useBrandOnboarding() {
 
   return useMutation({
     mutationFn: async (data: BrandOnboardingData) => {
-      console.log('🚀 Starting brand onboarding mutation...');
-      console.log('📋 Raw input data:', {
+      console.log(' Starting brand onboarding mutation...');
+      console.log(' Raw input data:', {
         brandName: data.brandName,
         website: data.website,
         description: data.description?.substring(0, 50) + '...',
@@ -74,19 +74,19 @@ export function useBrandOnboarding() {
         throw new Error('User session not found. Please log in again.');
       }
 
-      console.log('👤 User session validated:', session.user.id);
+      console.log(' User session validated:', session.user.id);
 
       let logoUrl: string | null = null;
 
       // Handle file upload separately for better error handling
       if (data.logoFile) {
-        console.log('📁 Processing logo file upload...');
+        console.log(' Processing logo file upload...');
         try {
           logoUrl = await uploadBrandLogo(data.logoFile, session.user.id);
-          console.log('✅ Logo uploaded successfully:', logoUrl);
+          console.log('Logo uploaded successfully:', logoUrl);
         } catch (uploadError) {
           const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
-          console.error('❌ Logo upload failed:', errorMessage);
+          console.error('Logo upload failed:', errorMessage);
           throw new Error(`Logo upload failed: ${errorMessage}`);
         }
       }
@@ -99,7 +99,7 @@ export function useBrandOnboarding() {
         payload.logoUrl = logoUrl;
       }
 
-      console.log('📤 Sending clean JSON payload:', {
+      console.log(' Sending clean JSON payload:', {
         ...payload,
         description: payload.description?.substring(0, 50) + '...',
         logoUrl: payload.logoUrl ? 'provided' : 'not provided'
@@ -109,9 +109,9 @@ export function useBrandOnboarding() {
       let jsonString: string;
       try {
         jsonString = JSON.stringify(payload);
-        console.log('✅ JSON serialization successful, length:', jsonString.length);
+        console.log('JSON serialization successful, length:', jsonString.length);
       } catch (serializationError) {
-        console.error('❌ JSON serialization failed:', serializationError);
+        console.error('JSON serialization failed:', serializationError);
         throw new Error('Failed to prepare request data');
       }
 
@@ -132,16 +132,16 @@ export function useBrandOnboarding() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-          console.error('❌ Server error:', errorData);
+          console.error('Server error:', errorData);
         } catch {
-          console.error('❌ Failed to parse error response');
+          console.error('Failed to parse error response');
           // If JSON parsing fails, use default message
         }
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('✅ Brand onboarding completed successfully');
+      console.log('Brand onboarding completed successfully');
       return result;
     },
     onSuccess: () => {
@@ -150,7 +150,7 @@ export function useBrandOnboarding() {
       toast.success('Brand profile created successfully!');
     },
     onError: (error: Error) => {
-      console.error('❌ Brand onboarding mutation failed:', error);
+      console.error('Brand onboarding mutation failed:', error);
       toast.error(error.message || 'Failed to create brand profile');
     },
   });

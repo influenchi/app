@@ -10,8 +10,8 @@ export function useCreatorOnboarding() {
 
   return useMutation({
     mutationFn: async (data: CreatorOnboardingFormData) => {
-      console.log('🚀 Starting creator onboarding mutation...');
-      console.log('📋 Raw input data:', {
+      console.log(' Starting creator onboarding mutation...');
+      console.log(' Raw input data:', {
         ...data,
         bio: data.bio?.substring(0, 50) + '...',
         hasProfileImage: !!data.profileImage,
@@ -22,27 +22,27 @@ export function useCreatorOnboarding() {
         throw new Error('User session not found. Please log in again.');
       }
 
-      console.log('👤 User session validated:', session.user.id);
+      console.log(' User session validated:', session.user.id);
 
       let profileImageUrl: string | null = null;
       let portfolioImageUrls: string[] = [];
 
       // Handle profile image upload
       if (data.profileImage && data.profileImage instanceof File) {
-        console.log('📁 Processing profile image upload...');
+        console.log(' Processing profile image upload...');
         try {
           profileImageUrl = await uploadCreatorProfileImage(data.profileImage, session.user.id);
-          console.log('✅ Profile image uploaded successfully:', profileImageUrl);
+          console.log('Profile image uploaded successfully:', profileImageUrl);
         } catch (uploadError) {
           const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
-          console.error('❌ Profile image upload failed:', errorMessage);
+          console.error('Profile image upload failed:', errorMessage);
           throw new Error(`Profile image upload failed: ${errorMessage}`);
         }
       }
 
       // Handle portfolio images - separate files from URLs
       if (data.portfolioImages && data.portfolioImages.length > 0) {
-        console.log(`📁 Processing ${data.portfolioImages.length} portfolio items...`);
+        console.log(` Processing ${data.portfolioImages.length} portfolio items...`);
 
         const portfolioFiles: File[] = [];
         const existingUrls: string[] = [];
@@ -56,7 +56,7 @@ export function useCreatorOnboarding() {
           }
         });
 
-        console.log(`📊 Found ${portfolioFiles.length} new files and ${existingUrls.length} existing URLs`);
+        console.log(` Found ${portfolioFiles.length} new files and ${existingUrls.length} existing URLs`);
 
         // Upload new files if any
         if (portfolioFiles.length > 0) {
@@ -64,16 +64,16 @@ export function useCreatorOnboarding() {
             const result = await uploadPortfolioImages(portfolioFiles, session.user.id);
 
             if (result.errors && result.errors.length > 0) {
-              console.warn('⚠️ Some portfolio images failed:', result.errors);
+              console.warn('Some portfolio images failed:', result.errors);
               result.errors.forEach(error => toast.error(error));
             }
 
             // Combine new uploads with existing URLs
             portfolioImageUrls = [...existingUrls, ...result.urls];
-            console.log(`✅ Portfolio images uploaded: ${result.urls.length} new, ${existingUrls.length} existing`);
+            console.log(`Portfolio images uploaded: ${result.urls.length} new, ${existingUrls.length} existing`);
           } catch (uploadError) {
             const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
-            console.error('❌ Portfolio upload failed:', errorMessage);
+            console.error('Portfolio upload failed:', errorMessage);
             // Don't throw here - we can still save the profile with existing images
             toast.error(`Some portfolio images failed to upload: ${errorMessage}`);
             portfolioImageUrls = existingUrls; // Use only existing URLs
@@ -134,7 +134,7 @@ export function useCreatorOnboarding() {
         // Portfolio images (URLs only)
         formData.append('portfolioImages', JSON.stringify(portfolioImageUrls));
 
-        console.log('📤 Sending FormData to API with uploaded URLs...');
+        console.log(' Sending FormData to API with uploaded URLs...');
 
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
@@ -151,7 +151,7 @@ export function useCreatorOnboarding() {
           website: formattedWebsite
         };
 
-        console.log('📤 Sending JSON payload to API...');
+        console.log(' Sending JSON payload to API...');
 
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
@@ -165,7 +165,7 @@ export function useCreatorOnboarding() {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('❌ API error:', error);
+        console.error('API error:', error);
         throw new Error(error.error || 'Failed to complete onboarding');
       }
 
@@ -177,7 +177,7 @@ export function useCreatorOnboarding() {
       toast.success('Creator profile created successfully!');
     },
     onError: (error: Error) => {
-      console.error('❌ Onboarding error:', error);
+      console.error('Onboarding error:', error);
       toast.error(error.message || 'Failed to create creator profile');
     },
   });

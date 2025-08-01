@@ -5,16 +5,16 @@ import { validateImageFile, MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '@/lib/util
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Creator profile image upload request received');
+    console.log('Creator profile image upload request received');
 
     const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session) {
-      console.error('❌ No session found');
+      console.error('No session found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('✅ Session validated for user:', session.user.id);
+    console.log('Session validated for user:', session.user.id);
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log('📁 File details:', {
+    console.log(' File details:', {
       name: file.name,
       type: file.type,
       size: file.size
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const fileName = `creator-profile-${session.user.id}-${Date.now()}.${fileExt}`;
     const filePath = `creator-profiles/${fileName}`;
 
-    console.log('📤 Uploading to Supabase Storage:', filePath);
+    console.log(' Uploading to Supabase Storage:', filePath);
 
     const { data, error } = await supabaseAdmin.storage
       .from('uploads')
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('❌ Supabase storage error:', error);
+      console.error('Supabase storage error:', error);
       return NextResponse.json({
         error: 'Upload failed',
         details: error.message
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .from('uploads')
       .getPublicUrl(filePath);
 
-    console.log('✅ Upload successful:', {
+    console.log('Upload successful:', {
       path: data.path,
       publicUrl: urlData.publicUrl
     });
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Profile image upload error:', error);
+    console.error('Profile image upload error:', error);
     return NextResponse.json({
       error: 'Upload failed',
       details: error instanceof Error ? error.message : 'Unknown error'

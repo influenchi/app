@@ -84,7 +84,7 @@ export async function uploadBrandLogo(
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
-    console.log('🔄 Upload attempt details:', {
+    console.log('Upload attempt details:', {
       betterAuthUserId: userId,
       fileDetails: {
         name: file.name,
@@ -113,7 +113,7 @@ export async function uploadBrandLogo(
     const formData = new FormData();
     formData.append('file', processedFile);
 
-    console.log('📤 Uploading via secure API endpoint...');
+    console.log(' Uploading via secure API endpoint...');
 
     // Upload via API endpoint (works for both Supabase and Better Auth users)
     const response = await fetch('/api/upload/brand-logo', {
@@ -124,7 +124,7 @@ export async function uploadBrandLogo(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('❌ Upload API error:', errorData);
+      console.error('Upload API error:', errorData);
 
       // Provide user-friendly error messages
       if (response.status === 401) {
@@ -142,7 +142,7 @@ export async function uploadBrandLogo(
 
     const result = await response.json();
 
-    console.log('✅ Upload successful:', {
+    console.log('Upload successful:', {
       publicUrl: result.url,
       path: result.path,
       userId
@@ -151,7 +151,7 @@ export async function uploadBrandLogo(
     return result.url;
 
   } catch (err) {
-    console.error('❌ Unexpected upload error:', err);
+    console.error('Unexpected upload error:', err);
     throw new Error(`Logo upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 }
@@ -206,7 +206,7 @@ export async function uploadCreatorProfileImage(
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
-    console.log('🔄 Upload attempt details:', {
+    console.log('Upload attempt details:', {
       betterAuthUserId: userId,
       fileDetails: {
         name: file.name,
@@ -228,7 +228,7 @@ export async function uploadCreatorProfileImage(
     const formData = new FormData();
     formData.append('file', processedFile);
 
-    console.log('📤 Uploading via secure API endpoint...');
+    console.log(' Uploading via secure API endpoint...');
 
     const response = await fetch('/api/upload/creator-profile', {
       method: 'POST',
@@ -238,7 +238,7 @@ export async function uploadCreatorProfileImage(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('❌ Upload API error:', errorData);
+      console.error('Upload API error:', errorData);
 
       if (response.status === 401) {
         throw new Error('Please log in to upload files');
@@ -255,7 +255,7 @@ export async function uploadCreatorProfileImage(
 
     const result = await response.json();
 
-    console.log('✅ Upload successful:', {
+    console.log('Upload successful:', {
       publicUrl: result.url,
       path: result.path,
       userId
@@ -264,7 +264,7 @@ export async function uploadCreatorProfileImage(
     return result.url;
 
   } catch (err) {
-    console.error('❌ Unexpected upload error:', err);
+    console.error('Unexpected upload error:', err);
     throw new Error(`Profile image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 }
@@ -275,7 +275,7 @@ export async function uploadPortfolioImages(
   onProgress?: (progress: number) => void
 ): Promise<{ urls: string[]; errors?: string[] }> {
   try {
-    console.log('🔄 Portfolio upload attempt:', {
+    console.log('Portfolio upload attempt:', {
       userId,
       fileCount: files.length,
       files: files.map(f => ({
@@ -311,7 +311,7 @@ export async function uploadPortfolioImages(
       formData.append('files', file);
     });
 
-    console.log(`📤 Uploading ${processedFiles.length} portfolio images...`);
+    console.log(` Uploading ${processedFiles.length} portfolio images...`);
 
     const response = await fetch('/api/upload/portfolio-images', {
       method: 'POST',
@@ -321,7 +321,7 @@ export async function uploadPortfolioImages(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('❌ Upload API error:', errorData);
+      console.error('Upload API error:', errorData);
 
       if (response.status === 401) {
         throw new Error('Please log in to upload files');
@@ -332,7 +332,7 @@ export async function uploadPortfolioImages(
 
     const result = await response.json();
 
-    console.log('✅ Portfolio upload complete:', {
+    console.log('Portfolio upload complete:', {
       successCount: result.urls?.length || 0,
       errorCount: result.errors?.length || 0,
       userId
@@ -344,7 +344,7 @@ export async function uploadPortfolioImages(
     };
 
   } catch (err) {
-    console.error('❌ Unexpected portfolio upload error:', err);
+    console.error('Unexpected portfolio upload error:', err);
     throw new Error(`Portfolio upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 }
@@ -355,7 +355,7 @@ export async function uploadCampaignImage(
   onProgress?: (progress: number) => void
 ): Promise<string> {
   try {
-    console.log('🔄 Campaign image upload attempt:', {
+    console.log('Campaign image upload attempt:', {
       betterAuthUserId: userId,
       fileDetails: {
         name: file.name,
@@ -377,7 +377,7 @@ export async function uploadCampaignImage(
     const formData = new FormData();
     formData.append('file', processedFile);
 
-    console.log('📤 Uploading via secure API endpoint...');
+    console.log(' Uploading via secure API endpoint...');
 
     const response = await fetch('/api/upload/campaign-image', {
       method: 'POST',
@@ -387,7 +387,7 @@ export async function uploadCampaignImage(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('❌ Upload API error:', errorData);
+      console.error('Upload API error:', errorData);
 
       if (response.status === 401) {
         throw new Error('Please log in to upload files');
@@ -404,7 +404,7 @@ export async function uploadCampaignImage(
 
     const result = await response.json();
 
-    console.log('✅ Campaign image upload successful:', {
+    console.log('Campaign image upload successful:', {
       publicUrl: result.url,
       path: result.path,
       userId
@@ -413,7 +413,7 @@ export async function uploadCampaignImage(
     return result.url;
 
   } catch (err) {
-    console.error('❌ Unexpected campaign image upload error:', err);
+    console.error('Unexpected campaign image upload error:', err);
     throw new Error(`Campaign image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 } 

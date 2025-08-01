@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, Plus, Image, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Upload, X, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import { brandOnboardingSchema, BrandOnboardingFormData } from "@/lib/validations/brand";
 import { useBrandOnboarding } from "@/lib/hooks/useBrand";
 import { useBrandOnboardingStore } from "@/lib/stores/brandOnboardingStore";
@@ -25,6 +25,7 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const {
     formData,
@@ -37,7 +38,6 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
     setLogoPreview,
     setCurrentStep,
     setSelectedIndustries,
-    updateField,
     resetStore
   } = useBrandOnboardingStore();
 
@@ -48,8 +48,28 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
 
   const brandOnboarding = useBrandOnboarding();
 
+  // Reset store on component mount to ensure fresh start for new brand onboarding
   useEffect(() => {
-    if (session?.user && !formData.brandName) {
+    if (!hasInitialized) {
+      console.log('Resetting brand onboarding store for fresh start');
+      resetStore();
+      form.reset({
+        brandName: '',
+        website: '',
+        description: '',
+        socialMedia: {
+          instagram: '',
+          tiktok: '',
+          youtube: '',
+          website: ''
+        }
+      });
+      setHasInitialized(true);
+    }
+  }, [resetStore, hasInitialized, form]);
+
+  useEffect(() => {
+    if (hasInitialized && session?.user && !formData.brandName) {
       const user = session.user as { companyName?: string };
       if (user.companyName) {
         const defaultFormData = {
@@ -60,14 +80,16 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
         form.reset(defaultFormData);
       }
     }
-  }, [session, formData.brandName, setFormData, form]);
+  }, [session, formData.brandName, setFormData, form, hasInitialized]);
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      setFormData(value as Partial<BrandOnboardingFormData>);
-    });
-    return () => subscription.unsubscribe();
-  }, [form, setFormData]);
+    if (hasInitialized) {
+      const subscription = form.watch((value) => {
+        setFormData(value as Partial<BrandOnboardingFormData>);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [form, setFormData, hasInitialized]);
 
   const industries = [
     'Travel & Tourism', 'Hospitality', 'Food & Beverage', 'Fashion & Beauty',
@@ -90,7 +112,7 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
   };
 
   const handleSubmit = () => {
-    console.log('🔄 Preparing brand onboarding submission...');
+    console.log(' Preparing brand onboarding submission...');
 
     const formValues = form.getValues();
 
@@ -109,14 +131,14 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
       logoFile: logoFile // File object - handled separately by the hook
     };
 
-    console.log('📋 Submission data prepared:', {
+    console.log(' Submission data prepared:', {
       ...submissionData,
       logoFile: logoFile ? `File: ${logoFile.name}` : 'No file'
     });
 
     brandOnboarding.mutate(submissionData, {
       onSuccess: () => {
-        console.log('✅ Brand onboarding successful, cleaning up...');
+        console.log('Brand onboarding successful, cleaning up...');
         resetStore();
         // Small delay to ensure session is refreshed before navigation
         setTimeout(() => {
@@ -124,7 +146,7 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
         }, 500);
       },
       onError: (error) => {
-        console.error('❌ Brand onboarding failed:', error);
+        console.error('Brand onboarding failed:', error);
       }
     });
   };
