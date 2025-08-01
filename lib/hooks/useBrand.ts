@@ -204,7 +204,8 @@ export function useCreateCampaign() {
       }
 
       // Prepare campaign data (exclude File object)
-      const { image: _image, ...campaignDataWithoutImage } = data;
+      const { image, ...campaignDataWithoutImage } = data;
+      void image; // Explicitly mark as used to avoid linter warning
       const campaignData = {
         ...campaignDataWithoutImage,
       };
@@ -346,6 +347,139 @@ export function useDeleteCampaign() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete campaign');
+    },
+  });
+}
+
+export function useBrandAssets() {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['brand-assets', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const response = await fetch('/api/assets', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch assets');
+      }
+
+      const data = await response.json();
+      return data.assets;
+    },
+    enabled: !!session?.user?.id && session.user.user_type === 'brand',
+  });
+}
+
+export function useDownloadAsset() {
+  return useMutation({
+    mutationFn: async (assetId: string) => {
+      const response = await fetch(`/api/assets/${assetId}/download`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to download asset');
+      }
+
+      // Get the blob and create a download
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'download';
+
+      // Create a temporary URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      return filename;
+    },
+    onSuccess: (filename) => {
+      toast.success(`Downloaded: ${filename}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to download asset');
+    },
+  });
+}
+
+export function useBrandSubmissions() {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['brand-submissions', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const response = await fetch('/api/submissions', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
+      }
+
+      const data = await response.json();
+      return data.submissions;
+    },
+    enabled: !!session?.user?.id && session.user.user_type === 'brand',
+  });
+}
+
+export function useUpdateSubmission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ submissionId, status, rejectionComment }: {
+      submissionId: string;
+      status: 'approved' | 'rejected';
+      rejectionComment?: string;
+    }) => {
+      const response = await fetch('/api/submissions', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          submissionId,
+          status,
+          rejectionComment,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update submission');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['brand-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-assets'] });
+
+      if (variables.status === 'approved') {
+        toast.success('Submission approved successfully');
+      } else {
+        toast.success('Submission rejected');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update submission');
     },
   });
 } 

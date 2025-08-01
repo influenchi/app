@@ -1,11 +1,13 @@
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -20,7 +22,6 @@ import {
   Eye,
   MessageSquare,
   Play,
-  Download,
   ExternalLink,
   Instagram,
   Youtube,
@@ -28,13 +29,19 @@ import {
   Twitter,
   Upload,
   Search,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
+import { useBrandSubmissions, useUpdateSubmission } from "@/lib/hooks/useBrand";
+import Image from 'next/image';
 
 interface Submission {
   id: string;
   creatorId: string;
   creatorName: string;
   creatorImage: string;
+  campaignId?: string;
+  campaignName?: string;
   taskId: string;
   taskDescription: string;
   contentType: string;
@@ -56,109 +63,28 @@ interface SubmissionsViewProps {
   campaignId: string;
 }
 
-// Mock data for demonstration
-const mockSubmissions: Submission[] = [
-  {
-    id: '1',
-    creatorId: '2',
-    creatorName: 'Marcus Chen',
-    creatorImage: '/placeholder.svg',
-    taskId: 'task-1',
-    taskDescription: 'Create 2 Instagram posts showcasing the product in luxury settings',
-    contentType: 'Post',
-    socialChannel: 'Instagram',
-    quantity: 2,
-    submittedAssets: [
-      {
-        id: 'asset-1',
-        type: 'image',
-        url: '/placeholder.svg',
-        title: 'Luxury Hotel Post 1'
-      },
-      {
-        id: 'asset-2',
-        type: 'image',
-        url: '/placeholder.svg',
-        title: 'Luxury Hotel Post 2'
-      }
-    ],
-    status: 'pending',
-    submittedDate: '2024-01-18'
-  },
-  {
-    id: '2',
-    creatorId: '1',
-    creatorName: 'Sarah Johnson',
-    creatorImage: '/placeholder.svg',
-    taskId: 'task-2',
-    taskDescription: 'Create 1 TikTok video showcasing adventure activities',
-    contentType: 'Video',
-    socialChannel: 'TikTok',
-    quantity: 1,
-    submittedAssets: [
-      {
-        id: 'asset-3',
-        type: 'video',
-        url: '/placeholder.svg',
-        thumbnail: '/placeholder.svg',
-        title: 'Adventure Activities TikTok'
-      }
-    ],
-    status: 'approved',
-    submittedDate: '2024-01-17'
-  },
-  {
-    id: '3',
-    creatorId: '3',
-    creatorName: 'Emma Rodriguez',
-    creatorImage: '/placeholder.svg',
-    taskId: 'task-3',
-    taskDescription: 'Create 3 YouTube Shorts about budget travel tips',
-    contentType: 'Short',
-    socialChannel: 'YouTube',
-    quantity: 3,
-    submittedAssets: [
-      {
-        id: 'asset-4',
-        type: 'video',
-        url: '/placeholder.svg',
-        thumbnail: '/placeholder.svg',
-        title: 'Budget Travel Tip 1'
-      },
-      {
-        id: 'asset-5',
-        type: 'video',
-        url: '/placeholder.svg',
-        thumbnail: '/placeholder.svg',
-        title: 'Budget Travel Tip 2'
-      }
-    ],
-    status: 'rejected',
-    submittedDate: '2024-01-16',
-    rejectionComment: 'Please include more specific budget details and clearer audio quality. The third video is missing.'
-  }
-];
-
 const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
-  const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
+  const { data: submissions = [], isLoading, error } = useBrandSubmissions();
+  const updateSubmission = useUpdateSubmission();
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [rejectionComment, setRejectionComment] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
-  
+
   // Simple filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Filtered submissions
   const filteredSubmissions = useMemo(() => {
-    return submissions.filter(submission => {
+    return submissions.filter((submission: any) => {
       const matchesSearch = submission.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          submission.taskDescription.toLowerCase().includes(searchTerm.toLowerCase());
+        submission.taskDescription.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
+      const matchesCampaign = !campaignId || submission.campaignId === campaignId;
+
+      return matchesSearch && matchesStatus && matchesCampaign;
     });
-  }, [submissions, searchTerm, statusFilter]);
+  }, [submissions, searchTerm, statusFilter, campaignId]);
 
   const getSocialIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
@@ -180,23 +106,18 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
   };
 
   const handleApproveSubmission = (submissionId: string) => {
-    setSubmissions(prev => 
-      prev.map(submission => 
-        submission.id === submissionId 
-          ? { ...submission, status: 'approved' as const }
-          : submission
-      )
-    );
+    updateSubmission.mutate({
+      submissionId,
+      status: 'approved'
+    });
   };
 
   const handleRejectSubmission = (submissionId: string, comment: string) => {
-    setSubmissions(prev => 
-      prev.map(submission => 
-        submission.id === submissionId 
-          ? { ...submission, status: 'rejected' as const, rejectionComment: comment }
-          : submission
-      )
-    );
+    updateSubmission.mutate({
+      submissionId,
+      status: 'rejected',
+      rejectionComment: comment
+    });
     setShowRejectDialog(false);
     setRejectionComment('');
     setSelectedSubmission(null);
@@ -207,6 +128,39 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
     setRejectionComment(submission.rejectionComment || '');
     setShowRejectDialog(true);
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign Submissions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Loading submissions...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign Submissions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <p className="text-destructive mb-2">Failed to load submissions</p>
+            <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (submissions.length === 0) {
     return (
@@ -265,14 +219,14 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
           </CardContent>
         </Card>
       ) : (
-        filteredSubmissions.map((submission) => (
+        filteredSubmissions.map((submission: any) => (
           <Card key={submission.id} className="overflow-hidden">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
                     <AvatarImage src={submission.creatorImage} />
-                    <AvatarFallback>{submission.creatorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarFallback>{submission.creatorName.split(' ').map((n: any) => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-semibold">{submission.creatorName}</h3>
@@ -288,7 +242,7 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent>
               <div className="space-y-4">
                 <div>
@@ -301,25 +255,29 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
                     Submitted Assets ({submission.submittedAssets.length}/{submission.quantity})
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {submission.submittedAssets.map((asset) => (
+                    {submission.submittedAssets.map((asset: any) => (
                       <div key={asset.id} className="relative group">
                         <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                           {asset.type === 'video' ? (
                             <div className="relative w-full h-full">
-                              <img 
-                                src={asset.thumbnail || asset.url} 
+                              <Image
+                                src={asset.thumbnail || asset.url}
                                 alt={asset.title}
                                 className="w-full h-full object-cover"
+                                width={100}
+                                height={100}
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Play className="h-8 w-8 text-white" />
                               </div>
                             </div>
                           ) : (
-                            <img 
-                              src={asset.url} 
+                            <Image
+                              src={asset.url}
                               alt={asset.title}
                               className="w-full h-full object-cover"
+                              width={100}
+                              height={100}
                             />
                           )}
                         </div>
@@ -348,21 +306,27 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
 
                 {submission.status === 'pending' && (
                   <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="text-red-600 border-red-200 hover:bg-red-50"
                       onClick={() => openRejectDialog(submission)}
+                      disabled={updateSubmission.isPending}
                     >
                       <X className="h-4 w-4 mr-1" />
                       Reject
                     </Button>
-                    <Button 
+                    <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700"
                       onClick={() => handleApproveSubmission(submission.id)}
+                      disabled={updateSubmission.isPending}
                     >
-                      <Check className="h-4 w-4 mr-1" />
+                      {updateSubmission.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4 mr-1" />
+                      )}
                       Approve
                     </Button>
                   </div>
@@ -396,9 +360,16 @@ const SubmissionsView = ({ campaignId }: SubmissionsViewProps) => {
               <Button
                 className="bg-red-600 hover:bg-red-700"
                 onClick={() => selectedSubmission && handleRejectSubmission(selectedSubmission.id, rejectionComment)}
-                disabled={!rejectionComment.trim()}
+                disabled={!rejectionComment.trim() || updateSubmission.isPending}
               >
-                Reject Submission
+                {updateSubmission.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Rejecting...
+                  </>
+                ) : (
+                  'Reject Submission'
+                )}
               </Button>
             </div>
           </div>
