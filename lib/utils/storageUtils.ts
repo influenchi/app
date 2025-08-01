@@ -83,6 +83,7 @@ export async function uploadBrandLogo(
   userId: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
+  void onProgress; // Parameter kept for API consistency
   try {
     console.log('Upload attempt details:', {
       betterAuthUserId: userId,
@@ -107,7 +108,7 @@ export async function uploadBrandLogo(
 
     const fileExt = file.name.split('.').pop();
     const fileName = `brand-logo-${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `brand-logos/${fileName}`;
+    void fileName; // Used for debugging, silence linter
 
     // Create FormData for API upload
     const formData = new FormData();
@@ -165,12 +166,13 @@ export async function uploadMultipleFiles(
     const fileName = `${category}-${userId}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `${category}/${fileName}`;
 
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
       .from('uploads')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false // Ensure unique paths
       });
+    void _data; // Suppress unused variable warning
 
     if (error) {
       throw new Error(`Failed to upload ${file.name}: ${error.message}`);
@@ -205,6 +207,7 @@ export async function uploadCreatorProfileImage(
   userId: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
+  void onProgress; // Parameter kept for API consistency
   try {
     console.log('Upload attempt details:', {
       betterAuthUserId: userId,
@@ -274,6 +277,7 @@ export async function uploadPortfolioImages(
   userId: string,
   onProgress?: (progress: number) => void
 ): Promise<{ urls: string[]; errors?: string[] }> {
+  void onProgress; // Parameter kept for API consistency
   try {
     console.log('Portfolio upload attempt:', {
       userId,
@@ -354,6 +358,7 @@ export async function uploadCampaignImage(
   userId: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
+  void onProgress; // Parameter kept for API consistency
   try {
     console.log('Campaign image upload attempt:', {
       betterAuthUserId: userId,
@@ -415,5 +420,92 @@ export async function uploadCampaignImage(
   } catch (err) {
     console.error('Unexpected campaign image upload error:', err);
     throw new Error(`Campaign image upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
+}
+
+export async function uploadSubmissionAssets(
+  files: File[],
+  campaignId: string,
+  taskId: string,
+  onProgress?: (progress: number) => void
+): Promise<{
+  assets: Array<{
+    url: string;
+    type: 'image' | 'video';
+    title: string;
+    file_size: string;
+    name: string;
+    dimensions?: string;
+    duration?: string;
+    thumbnail_url?: string;
+  }>; errors?: string[]
+}> {
+  // onProgress parameter is unused but kept for API consistency
+  void onProgress;
+  try {
+    console.log('Submission assets upload attempt:', {
+      campaignId,
+      taskId,
+      fileCount: files.length,
+      files: files.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size
+      }))
+    });
+
+    if (files.length === 0) {
+      throw new Error('No files provided for upload');
+    }
+
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    formData.append('campaignId', campaignId);
+    formData.append('taskId', taskId);
+
+    console.log(`✨ Uploading ${files.length} submission assets...`);
+
+    const response = await fetch('/api/upload/submission-assets', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      console.error('Submission assets upload API error:', errorData);
+
+      if (response.status === 401) {
+        throw new Error('Please log in to upload files');
+      }
+      if (response.status === 403) {
+        throw new Error('You are not authorized to upload to this campaign');
+      }
+      if (response.status === 413) {
+        throw new Error('One or more files are too large');
+      }
+
+      throw new Error(errorData.error || 'Upload failed. Please try again.');
+    }
+
+    const result = await response.json();
+
+    console.log('Submission assets upload complete:', {
+      successCount: result.assets?.length || 0,
+      errorCount: result.errors?.length || 0,
+      campaignId,
+      taskId
+    });
+
+    return {
+      assets: result.assets || [],
+      errors: result.errors
+    };
+
+  } catch (err) {
+    console.error('Unexpected submission assets upload error:', err);
+    throw new Error(`Submission assets upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 } 

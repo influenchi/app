@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useMessages } from "@/lib/hooks/useMessages";
 import { useSession } from "@/lib/hooks/useAuth";
+import { useSubmitContent, useCreatorSubmissions } from "@/lib/hooks/useCreator";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   MessageSquare,
@@ -95,6 +97,10 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
   // Get campaign ID from original campaign data if available
   const campaignId = project.originalCampaign?.id || (typeof project.id === 'string' ? project.id : '');
   const { messages, isLoading: messagesLoading, sendMessage, uploadingFiles, isSending } = useMessages(campaignId);
+
+  // Submission hooks
+  const submitContent = useSubmitContent();
+  const { data: submissions = [] } = useCreatorSubmissions(campaignId);
 
   // Handle deep linking to specific messages
   useEffect(() => {
@@ -239,19 +245,56 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
   };
 
   const handleSubmitTask = async (taskId: string) => {
-    const submissions = taskSubmissions[taskId];
-    if (submissions && submissions.length > 0) {
-      setSubmittingTask(taskId);
+    const taskSubmissionsData = taskSubmissions[taskId];
+    if (!taskSubmissionsData || taskSubmissionsData.length === 0) {
+      toast.error('Please upload at least one file before submitting.');
+      return;
+    }
 
-      // Simulate API call
-      setTimeout(() => {
-        console.log(`Submitting task ${taskId} with submissions:`, submissions);
-        setSubmittedTasks(prev => new Set([...prev, taskId]));
-        setSubmittingTask(null);
+    setSubmittingTask(taskId);
 
-        // Show success message or toast here
-        alert('Task submitted successfully! The brand will review your content.');
-      }, 2000);
+    try {
+      // Find the task details
+      const task = tasks.find(t => t.id.toString() === taskId);
+
+      // Prepare the files and metadata
+      const files = taskSubmissionsData.map(sub => sub.file).filter(Boolean) as File[];
+      const descriptions: { [key: string]: string } = {};
+      const tags: { [key: string]: string[] } = {};
+
+      taskSubmissionsData.forEach((sub) => {
+        if (sub.file) {
+          descriptions[sub.file.name] = sub.description || '';
+          tags[sub.file.name] = sub.tags || [];
+        }
+      });
+
+      await submitContent.mutateAsync({
+        campaignId,
+        taskId,
+        taskDescription: task?.description || '',
+        contentType: task?.type || '',
+        socialChannel: task?.platform || '',
+        quantity: taskSubmissionsData.length,
+        files,
+        descriptions,
+        tags
+      });
+
+      // Mark task as submitted locally
+      setSubmittedTasks(prev => new Set([...prev, taskId]));
+
+      // Clear the local submissions for this task
+      setTaskSubmissions(prev => ({
+        ...prev,
+        [taskId]: []
+      }));
+
+    } catch (error) {
+      console.error('Task submission error:', error);
+      // Error is already handled by the hook
+    } finally {
+      setSubmittingTask(null);
     }
   };
 
@@ -297,6 +340,13 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
   };
 
   const getTaskStatus = (taskId: string) => {
+    // Check if there's a real submission for this task from the API
+    const realSubmission = submissions.find((sub: any) => sub.taskId === taskId);
+    if (realSubmission) {
+      return realSubmission.status === 'pending' ? 'submitted' : realSubmission.status;
+    }
+
+    // Fall back to local state
     if (submittedTasks.has(taskId)) return 'submitted';
     if (submittingTask === taskId) return 'submitting';
     return 'draft';
@@ -327,7 +377,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg inline-flex">
+        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview'
@@ -649,17 +699,75 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                             <p className="text-sm text-muted-foreground mb-4">
                               Your content has been submitted for review. The brand will get back to you soon.
                             </p>
-                            <div className="bg-white rounded-lg p-4 border">
-                              <h4 className="font-medium text-sm mb-2">Submitted Content</h4>
-                              <div className="space-y-2">
-                                {taskSubmissions[task.id]?.map((submission) => (
-                                  <div key={submission.id} className="flex items-center gap-2 text-sm">
-                                    <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                    <span>{submission.name}</span>
+
+                            {/* Show real submitted content from API */}
+                            {(() => {
+                              const realSubmission = submissions.find((sub: any) => sub.taskId === task.id.toString());
+                              if (realSubmission && realSubmission.assets) {
+                                return (
+                                  <div className="bg-white rounded-lg p-4 border">
+                                    <h4 className="font-medium text-sm mb-2">Submitted Content</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                      {realSubmission.assets.map((asset: any) => (
+                                        <div key={asset.id} className="relative group">
+                                          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                            {asset.type === 'video' ? (
+                                              <div className="relative w-full h-full">
+                                                <Image
+                                                  src={asset.thumbnail || asset.url}
+                                                  alt={asset.title}
+                                                  className="w-full h-full object-cover"
+                                                  width={100}
+                                                  height={100}
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                                                  <Video className="h-6 w-6 text-white" />
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <Image
+                                                src={asset.url}
+                                                alt={asset.title}
+                                                className="w-full h-full object-cover"
+                                                width={100}
+                                                height={100}
+                                              />
+                                            )}
+                                          </div>
+                                          <p className="text-xs text-gray-600 mt-1 truncate">{asset.title}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="mt-3 text-left">
+                                      <p className="text-xs text-muted-foreground">
+                                        Status: <span className="capitalize">{realSubmission.status}</span>
+                                      </p>
+                                      {realSubmission.status === 'rejected' && realSubmission.rejectionComment && (
+                                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                                          <p className="font-medium text-red-800">Feedback:</p>
+                                          <p className="text-red-700">{realSubmission.rejectionComment}</p>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                ))}
-                              </div>
-                            </div>
+                                );
+                              }
+
+                              // Fallback to local submission data if no real submission found
+                              return (
+                                <div className="bg-white rounded-lg p-4 border">
+                                  <h4 className="font-medium text-sm mb-2">Submitted Content</h4>
+                                  <div className="space-y-2">
+                                    {taskSubmissions[task.id]?.map((submission) => (
+                                      <div key={submission.id} className="flex items-center gap-2 text-sm">
+                                        <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                        <span>{submission.name}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ) : (
                           <div className="space-y-6">
@@ -745,7 +853,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                                             />
                                           </div>
                                           <div className="flex gap-2">
-                                            <Button size="sm" onClick={saveSubmissionEdit}>
+                                            <Button size="sm" variant="default" className="bg-black" onClick={saveSubmissionEdit}>
                                               Save
                                             </Button>
                                             <Button size="sm" variant="outline" onClick={cancelSubmissionEdit}>
@@ -789,7 +897,7 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                                   <Button
                                     onClick={() => handleSubmitTask(task.id.toString())}
                                     disabled={isSubmitting}
-                                    className="min-w-[140px]"
+                                    className="min-w-[140px] bg-black"
                                   >
                                     {isSubmitting ? (
                                       <>

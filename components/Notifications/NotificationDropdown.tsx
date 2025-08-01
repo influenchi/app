@@ -28,7 +28,12 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
       case 'message_broadcast':
         return <MessageSquare className="h-4 w-4 text-blue-600" />;
       case 'submission':
+      case 'submission_created':
         return <Upload className="h-4 w-4 text-orange-600" />;
+      case 'submission_approved':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'submission_rejected':
+        return <X className="h-4 w-4 text-red-600" />;
       case 'review':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'payment':
@@ -48,23 +53,31 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
 
     if (campaignId) {
       if (session?.user?.user_type === 'brand') {
-        // For brands, navigate to campaign details with messages tab
+        // For brands, navigate to campaign details with appropriate tab
         if (notification.type === 'message_direct' || notification.type === 'message_broadcast') {
           const url = messageId
             ? `/brand/dashboard?campaign=${campaignId}&tab=chat&message=${messageId}`
             : `/brand/dashboard?campaign=${campaignId}&tab=chat`;
           router.push(url);
+        } else if (notification.type === 'submission_created') {
+          // Navigate to submissions tab for new submissions
+          router.push(`/brand/dashboard?campaign=${campaignId}&tab=submissions`);
         } else {
           router.push(`/brand/dashboard?campaign=${campaignId}`);
         }
       } else if (session?.user?.user_type === 'creator') {
-        // For creators, navigate to active project details with messages tab
+        // For creators, navigate to active project details
         if (onNavigate && notification.type.includes('message')) {
           onNavigate('active-project-details', campaignId, 'messages', messageId);
+        } else if (onNavigate && (notification.type === 'submission_approved' || notification.type === 'submission_rejected')) {
+          // Navigate to submissions tab for submission status updates
+          onNavigate('active-project-details', campaignId, 'submissions');
         } else {
           const url = messageId
             ? `/creator/dashboard?project=${campaignId}&tab=messages&message=${messageId}`
-            : `/creator/dashboard?project=${campaignId}&tab=messages`;
+            : notification.type === 'submission_approved' || notification.type === 'submission_rejected'
+              ? `/creator/dashboard?project=${campaignId}&tab=submissions`
+              : `/creator/dashboard?project=${campaignId}&tab=messages`;
           router.push(url);
         }
       }

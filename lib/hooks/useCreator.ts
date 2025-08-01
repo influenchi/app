@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreatorOnboardingFormData, CreatorApplicationFormData } from '@/lib/validations/creator';
 import { toast } from 'sonner';
-import { uploadCreatorProfileImage, uploadPortfolioImages } from '@/lib/utils/storageUtils';
+import { uploadCreatorProfileImage, uploadPortfolioImages, uploadSubmissionAssets } from '@/lib/utils/storageUtils';
 import { useSession } from '@/lib/hooks/useAuth';
 
 export function useCreatorOnboarding() {
@@ -210,6 +210,118 @@ export function useSubmitApplication() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to submit application');
+    },
+  });
+}
+
+export function useCreatorSubmissions(campaignId?: string) {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['creator-submissions', session?.user?.id, campaignId],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const url = campaignId
+        ? `/api/creator/submissions?campaign_id=${campaignId}`
+        : '/api/creator/submissions';
+
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
+      }
+
+      const data = await response.json();
+      return data.submissions;
+    },
+    enabled: !!session?.user?.id && session.user.user_type === 'creator',
+  });
+}
+
+export function useSubmitContent() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (data: {
+      campaignId: string;
+      taskId: string;
+      taskDescription?: string;
+      contentType?: string;
+      socialChannel?: string;
+      quantity?: number;
+      files: File[];
+      descriptions: { [key: string]: string };
+      tags: { [key: string]: string[] };
+    }) => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found. Please log in again.');
+      }
+
+      const { files, descriptions, tags, ...submissionData } = data;
+
+      console.log('🚀 Starting content submission process...');
+
+      // First, upload all the files
+      const uploadResult = await uploadSubmissionAssets(
+        files,
+        data.campaignId,
+        data.taskId
+      );
+
+      if (uploadResult.errors && uploadResult.errors.length > 0) {
+        console.warn('Some files failed to upload:', uploadResult.errors);
+        toast.warning(`Some files failed to upload: ${uploadResult.errors.join(', ')}`);
+      }
+
+      if (!uploadResult.assets || uploadResult.assets.length === 0) {
+        throw new Error('No files were uploaded successfully');
+      }
+
+      // Prepare assets with descriptions and tags
+      const assetsWithMetadata = uploadResult.assets.map((asset, index) => ({
+        ...asset,
+        description: descriptions[index] || descriptions[asset.name] || '',
+        tags: tags[index] || tags[asset.name] || []
+      }));
+
+      console.log('📤 Creating submission with uploaded assets...');
+
+      // Create the submission
+      const response = await fetch('/api/creator/submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...submissionData,
+          assets: assetsWithMetadata
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit content');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['creator-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-submissions', session?.user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['creator-submissions', session?.user?.id, variables.campaignId] });
+
+      toast.success('Content submitted successfully! The brand will review your submission.');
+    },
+    onError: (error: Error) => {
+      console.error('Content submission error:', error);
+      toast.error(error.message || 'Failed to submit content');
     },
   });
 } 
