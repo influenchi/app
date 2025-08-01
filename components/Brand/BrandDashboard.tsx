@@ -7,7 +7,7 @@ import CreateCampaignModal from "./CreateCampaignModal";
 import CampaignDetails from "./CampaignDetails";
 import DashboardHeader from "./Dashboard/DashboardHeader";
 import DashboardContent from "./Dashboard/DashboardContent";
-import { useBrandCampaigns } from "@/lib/hooks/useBrand";
+import { useBrandCampaigns, useDeleteCampaign } from "@/lib/hooks/useBrand";
 
 interface Campaign {
   id: string;
@@ -43,6 +43,7 @@ const BrandDashboard = () => {
   }>({});
 
   const { data: campaigns = [], isLoading, error } = useBrandCampaigns();
+  const deleteCampaign = useDeleteCampaign();
 
   console.log(' BrandDashboard render:', {
     selectedCampaign: selectedCampaign?.title || 'none',
@@ -161,6 +162,15 @@ const BrandDashboard = () => {
     }
   };
 
+  const handleDeleteCampaign = (campaign: any) => {
+    console.log('Delete campaign clicked:', campaign);
+    const campaignId = campaign.actualId || campaign.id;
+
+    if (confirm('Are you sure you want to delete this draft campaign? This action cannot be undone.')) {
+      deleteCampaign.mutate(campaignId);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -229,6 +239,7 @@ const BrandDashboard = () => {
           }}
           onViewCampaign={handleViewCampaign}
           onEditCampaign={handleEditCampaign}
+          onDeleteCampaign={handleDeleteCampaign}
           getStatusColor={() => ''}
         />
       )}

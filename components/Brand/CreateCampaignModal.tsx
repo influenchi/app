@@ -5,8 +5,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogOverlay,
-  DialogPortal,
 } from "@/components/ui/dialog";
 import CampaignBasicsStep from "./CreateCampaign/CampaignBasicsStep";
 import ContentRequirementsStep from "./CreateCampaign/ContentRequirementsStep";
@@ -27,16 +25,18 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
   const {
     currentStep,
     campaignData,
+    hasUnsavedChanges,
     handleNext,
     handleBack,
     handleSave,
     handleCreate,
+    handleClose,
     handleUpdate,
     handleUpdateBudgetType,
     handleUpdateTargetAudience,
     toggleInterest,
     toggleCampaignGoal
-  } = useCampaignForm({ initialData, onSuccess });
+  } = useCampaignForm({ initialData, onSuccess, onClose });
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -73,7 +73,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={() => handleClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-md border-border/50 shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">
@@ -96,7 +96,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
             currentStep={currentStep}
             campaignData={campaignData as CampaignData}
             isEditing={!!initialData}
-            onClose={onClose}
+            onClose={handleClose}
             onBack={handleBack}
             onNext={handleNext}
             onSave={handleSave}

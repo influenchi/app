@@ -68,6 +68,7 @@ interface DashboardContentProps {
   onCampaignClick: (campaign: any) => void;
   onViewCampaign: (campaign: any) => void;
   onEditCampaign: (campaign: any) => void;
+  onDeleteCampaign?: (campaign: any) => void;
   getStatusColor: (status: string) => string;
 }
 
@@ -79,6 +80,7 @@ const DashboardContent = ({
   onCampaignClick,
   onViewCampaign,
   onEditCampaign,
+  onDeleteCampaign,
   getStatusColor
 }: DashboardContentProps) => {
   // Transform campaigns to match RecentCampaigns expected format
@@ -137,6 +139,7 @@ const DashboardContent = ({
           campaigns={campaignsForPaginated}
           onViewCampaign={onViewCampaign}
           onEditCampaign={onEditCampaign}
+          onDeleteCampaign={onDeleteCampaign}
           getStatusColor={getStatusColor}
         />
       )}

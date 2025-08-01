@@ -12,8 +12,42 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, ...campaignData } = body;
-    const validatedData = campaignSchema.parse(campaignData);
+    const { imageUrl, status, ...campaignData } = body;
+    const isDraft = status === 'draft';
+
+    // For drafts, use more lenient validation
+    let validatedData;
+    if (isDraft) {
+      // For drafts, don't validate - just use the data with sensible defaults
+      validatedData = {
+        title: campaignData.title || 'Untitled Campaign',
+        description: campaignData.description || '',
+        campaignGoal: campaignData.campaignGoal || [],
+        budget: campaignData.budget || '0',
+        budgetType: campaignData.budgetType || ['paid'],
+        productServiceDescription: campaignData.productServiceDescription || '',
+        creatorCount: campaignData.creatorCount || '1',
+        startDate: campaignData.startDate || '',
+        completionDate: campaignData.completionDate || '',
+        contentItems: campaignData.contentItems || [],
+        targetAudience: campaignData.targetAudience || {
+          socialChannel: '',
+          audienceSize: [],
+          ageRange: [],
+          gender: '',
+          location: [],
+          ethnicity: '',
+          interests: []
+        },
+        requirements: campaignData.requirements || '',
+        creatorPurchaseRequired: campaignData.creatorPurchaseRequired || false,
+        productShipRequired: campaignData.productShipRequired || false,
+        affiliateProgram: campaignData.affiliateProgram || null,
+      };
+    } else {
+      // For active campaigns, use full validation
+      validatedData = campaignSchema.parse(campaignData);
+    }
 
     // Take the first budget type (no mapping needed as DB now uses same values)
     const primaryBudgetType = validatedData.budgetType[0] || 'paid';
@@ -30,15 +64,15 @@ export async function POST(request: NextRequest) {
         budget_type: primaryBudgetType,
         product_service_description: validatedData.productServiceDescription || null,
         creator_count: validatedData.creatorCount,
-        start_date: validatedData.startDate,
-        completion_date: validatedData.completionDate,
+        start_date: validatedData.startDate || null, // Allow null for drafts
+        completion_date: validatedData.completionDate || null, // Allow null for drafts
         content_items: validatedData.contentItems,
         target_audience: validatedData.targetAudience,
         requirements: validatedData.requirements || '',
         creator_purchase_required: validatedData.creatorPurchaseRequired || false,
         product_ship_required: validatedData.productShipRequired || false,
         affiliate_program: validatedData.affiliateProgram || null,
-        status: 'active',
+        status: isDraft ? 'draft' : 'active',
         applicant_count: 0,
       })
       .select()
