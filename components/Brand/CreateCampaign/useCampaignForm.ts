@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -5,16 +6,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CampaignData } from "./types";
 import { showConfetti } from "./confetti";
 import { campaignSchema, CampaignFormData } from "@/lib/validations/brand";
-import { useCreateCampaign } from "@/lib/hooks/useBrand";
+import { useCreateCampaign, useSaveCampaignDraft } from "@/lib/hooks/useBrand";
 
 interface UseCampaignFormProps {
   initialData?: Partial<CampaignData>;
   onSuccess: () => void;
+  onClose?: () => void;
 }
 
-export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps) => {
+export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaignFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [draftId, setDraftId] = useState<string | null>((initialData as any)?.id || null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const createCampaign = useCreateCampaign();
+  const saveDraft = useSaveCampaignDraft();
 
   const form = useForm<CampaignFormData & { image?: File }>({
     resolver: zodResolver(campaignSchema),
@@ -46,6 +51,21 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
   });
 
   const campaignData = form.watch();
+
+  // Track changes to detect if we need to save as draft
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      // Check if form has meaningful data (not just default values)
+      const hasData = value.title?.trim() ||
+        value.description?.trim() ||
+        (value.campaignGoal && value.campaignGoal.length > 0) ||
+        (value.budget && value.budget !== '0' && value.budget.trim()) ||
+        (value.contentItems && value.contentItems.length > 0);
+
+      setHasUnsavedChanges(!!hasData);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Load initial data if editing
   useEffect(() => {
@@ -101,7 +121,37 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
 
   const handleSave = () => {
     console.log('Saving campaign as draft:', campaignData);
-    onSuccess();
+    const formData = form.getValues();
+    saveDraft.mutate({ ...formData, id: draftId || undefined }, {
+      onSuccess: (result) => {
+        console.log('Draft saved successfully:', result);
+        if (result.campaign?.id && !draftId) {
+          setDraftId(result.campaign.id);
+        }
+        setHasUnsavedChanges(false);
+        onSuccess();
+      }
+    });
+  };
+
+  const handleClose = () => {
+    // Auto-save as draft if there are unsaved changes
+    if (hasUnsavedChanges && !createCampaign.isPending) {
+      console.log('Auto-saving draft before close...');
+      const formData = form.getValues();
+      saveDraft.mutate({ ...formData, id: draftId || undefined }, {
+        onSuccess: () => {
+          console.log('Auto-draft saved successfully');
+          if (onClose) onClose();
+        },
+        onError: () => {
+          // Even if auto-save fails, allow closing
+          if (onClose) onClose();
+        }
+      });
+    } else {
+      if (onClose) onClose();
+    }
   };
 
   const handleCreate = () => {
@@ -152,11 +202,14 @@ export const useCampaignForm = ({ initialData, onSuccess }: UseCampaignFormProps
     currentStep,
     campaignData,
     form,
-    isLoading: createCampaign.isPending,
+    isLoading: createCampaign.isPending || saveDraft.isPending,
+    hasUnsavedChanges,
+    draftId,
     handleNext,
     handleBack,
     handleSave,
     handleCreate,
+    handleClose,
     handleUpdate,
     handleUpdateBudgetType,
     handleUpdateTargetAudience,

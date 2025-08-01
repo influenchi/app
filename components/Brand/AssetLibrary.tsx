@@ -28,7 +28,9 @@ import {
   Crown,
   Lock,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
+import { useBrandAssets, useDownloadAsset } from "@/lib/hooks/useBrand";
 
 interface Asset {
   id: string;
@@ -58,71 +60,13 @@ interface AssetLibraryProps {
   monthlyDownloadLimit: number;
 }
 
-// Mock data for demonstration
-const mockAssets: Asset[] = [
-  {
-    id: '1',
-    type: 'image',
-    url: '/placeholder.svg',
-    title: 'Luxury Hotel Lobby Shot',
-    description: 'Professional shot of the hotel lobby with natural lighting',
-    creatorId: '1',
-    creatorName: 'Sarah Johnson',
-    creatorImage: '/placeholder.svg',
-    campaignId: 'camp-1',
-    campaignName: 'Luxury Travel Experience',
-    submittedDate: '2024-01-15',
-    approvedDate: '2024-01-16',
-    tags: ['luxury', 'hotel', 'interior'],
-    socialChannel: 'Instagram',
-    dimensions: '1080x1080',
-    fileSize: '2.4 MB'
-  },
-  {
-    id: '2',
-    type: 'video',
-    url: '/placeholder.svg',
-    thumbnail: '/placeholder.svg',
-    title: 'Adventure Activities Compilation',
-    description: 'Dynamic video showcasing various adventure activities',
-    creatorId: '2',
-    creatorName: 'Marcus Chen',
-    creatorImage: '/placeholder.svg',
-    campaignId: 'camp-2',
-    campaignName: 'Adventure Tourism',
-    submittedDate: '2024-01-18',
-    approvedDate: '2024-01-19',
-    tags: ['adventure', 'outdoor', 'action'],
-    socialChannel: 'TikTok',
-    duration: '30s',
-    fileSize: '15.2 MB'
-  },
-  {
-    id: '3',
-    type: 'image',
-    url: '/placeholder.svg',
-    title: 'Budget Travel Tips Infographic',
-    description: 'Colorful infographic with money-saving travel tips',
-    creatorId: '3',
-    creatorName: 'Emma Rodriguez',
-    creatorImage: '/placeholder.svg',
-    campaignId: 'camp-3',
-    campaignName: 'Budget Travel Campaign',
-    submittedDate: '2024-01-20',
-    approvedDate: '2024-01-21',
-    tags: ['budget', 'tips', 'infographic'],
-    socialChannel: 'Pinterest',
-    dimensions: '1080x1350',
-    fileSize: '1.8 MB'
-  }
-];
-
-const AssetLibrary = ({ 
-  subscriptionTier = 'basic', 
-  monthlyDownloadsUsed = 18, 
-  monthlyDownloadLimit = 20 
+const AssetLibrary = ({
+  subscriptionTier = 'basic',
+  monthlyDownloadsUsed = 18,
+  monthlyDownloadLimit = 20
 }: AssetLibraryProps) => {
-  const [assets] = useState<Asset[]>(mockAssets);
+  const { data: assets = [], isLoading, error } = useBrandAssets();
+  const downloadAsset = useDownloadAsset();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [channelFilter, setChannelFilter] = useState<string>('all');
@@ -139,11 +83,11 @@ const AssetLibrary = ({
   const filteredAssets = useMemo(() => {
     return assets.filter(asset => {
       const matchesSearch = asset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          asset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        asset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesType = typeFilter === 'all' || asset.type === typeFilter;
       const matchesChannel = channelFilter === 'all' || asset.socialChannel === channelFilter;
-      
+
       return matchesSearch && matchesType && matchesChannel;
     });
   }, [assets, searchTerm, typeFilter, channelFilter]);
@@ -158,10 +102,8 @@ const AssetLibrary = ({
       setShowUpgradeDialog(true);
       return;
     }
-    
-    // Mock download - in real app this would trigger actual download
-    console.log('Downloading asset:', asset.title);
-    // You would increment monthlyDownloadsUsed here in real implementation
+
+    downloadAsset.mutate(asset.id);
   };
 
   const handleAddTags = (asset: Asset) => {
@@ -192,6 +134,45 @@ const AssetLibrary = ({
 
   const subscriptionInfo = getSubscriptionLimitInfo();
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Asset Library</h1>
+            <p className="text-muted-foreground">Manage and download your approved campaign assets</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Loading your assets...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Asset Library</h1>
+            <p className="text-muted-foreground">Manage and download your approved campaign assets</p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="text-center py-12">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <p className="text-destructive mb-2">Failed to load assets</p>
+            <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -199,8 +180,6 @@ const AssetLibrary = ({
           <h1 className="text-2xl font-bold">Asset Library</h1>
           <p className="text-muted-foreground">Manage and download your approved campaign assets</p>
         </div>
-        
-
       </div>
 
       {/* Filters */}
@@ -252,16 +231,16 @@ const AssetLibrary = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAssets.map((asset, index) => {
             const isLocked = false; // No limits anymore
-            
+
             return (
               <Card key={asset.id} className={`overflow-hidden ${isLocked ? 'opacity-75' : ''}`}>
                 <div className="relative aspect-square">
-                  <img 
-                    src={asset.thumbnail || asset.url} 
+                  <img
+                    src={asset.thumbnail || asset.url}
                     alt={asset.title}
                     className="w-full h-full object-cover"
                   />
-                  
+
                   {/* Type indicator */}
                   <div className="absolute top-2 left-2">
                     <Badge variant="secondary" className="text-xs">
@@ -285,9 +264,9 @@ const AssetLibrary = ({
 
                   {/* Action buttons */}
                   <div className="absolute top-2 right-2 flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="secondary" 
+                    <Button
+                      size="sm"
+                      variant="secondary"
                       className="h-8 w-8 p-0"
                       onClick={() => handlePreview(asset)}
                     >
@@ -299,7 +278,7 @@ const AssetLibrary = ({
                 <CardContent className="p-4">
                   <h3 className="font-semibold mb-1 line-clamp-1">{asset.title}</h3>
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{asset.description}</p>
-                  
+
                   <div className="flex items-center gap-2 mb-2">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={asset.creatorImage} />
@@ -323,19 +302,23 @@ const AssetLibrary = ({
 
                   <div className="flex items-center justify-between">
                     <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => handleAddTags(asset)}
                       >
                         <Tag className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={() => handleDownload(asset)}
-                        disabled={isLocked}
+                        disabled={isLocked || downloadAsset.isPending}
                       >
-                        <Download className="h-4 w-4 mr-1" />
+                        {downloadAsset.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-1" />
+                        )}
                         Download
                       </Button>
                     </div>
@@ -363,14 +346,14 @@ const AssetLibrary = ({
                     <p className="text-sm sm:text-base text-muted-foreground">Video Preview</p>
                   </div>
                 ) : (
-                  <img 
-                    src={selectedAsset.url} 
+                  <img
+                    src={selectedAsset.url}
                     alt={selectedAsset.title}
                     className="max-w-full max-h-full object-contain"
                   />
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-1">
                   <p><strong>Creator:</strong> {selectedAsset.creatorName}</p>
@@ -384,12 +367,12 @@ const AssetLibrary = ({
                   {selectedAsset.duration && <p><strong>Duration:</strong> {selectedAsset.duration}</p>}
                 </div>
               </div>
-              
+
               <div>
                 <p className="font-medium mb-2">Description:</p>
                 <p className="text-muted-foreground text-sm">{selectedAsset.description}</p>
               </div>
-              
+
               <div>
                 <p className="font-medium mb-2">Tags:</p>
                 <div className="flex flex-wrap gap-1">
@@ -448,7 +431,7 @@ const AssetLibrary = ({
                 </p>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <p className="font-medium">Choose an option:</p>
               <div className="grid gap-3">

@@ -205,6 +205,7 @@ export function useCreateCampaign() {
 
       // Prepare campaign data (exclude File object)
       const { image, ...campaignDataWithoutImage } = data;
+      void image; // Explicitly mark as used to avoid linter warning
       const campaignData = {
         ...campaignDataWithoutImage,
       };
@@ -236,6 +237,249 @@ export function useCreateCampaign() {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create campaign');
+    },
+  });
+}
+
+export function useSaveCampaignDraft() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (data: Partial<CampaignFormData> & { image?: File, id?: string }) => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found. Please log in again.');
+      }
+
+      let imageUrl: string | null = null;
+
+      // Handle image upload if present
+      if (data.image && data.image instanceof File) {
+        try {
+          imageUrl = await uploadCampaignImage(data.image, session.user.id);
+        } catch (uploadError) {
+          console.warn('Draft image upload failed, saving without image:', uploadError);
+          // For drafts, we don't fail if image upload fails
+        }
+      }
+
+      // Prepare campaign data (exclude File object)
+      const { image: _, id, ...campaignDataWithoutImage } = data;
+      const campaignData = {
+        ...campaignDataWithoutImage,
+        // Ensure required fields have default values for drafts
+        title: data.title || 'Untitled Campaign',
+        description: data.description || '',
+        campaignGoal: data.campaignGoal || [],
+        budget: data.budget || '0',
+        budgetType: data.budgetType || ['paid'],
+        creatorCount: data.creatorCount || '1',
+        startDate: data.startDate || '',
+        completionDate: data.completionDate || '',
+        contentItems: data.contentItems || [],
+        targetAudience: data.targetAudience || {
+          socialChannel: '',
+          audienceSize: [],
+          ageRange: [],
+          gender: '',
+          location: [],
+          ethnicity: '',
+          interests: []
+        },
+      };
+
+      const url = id ? `/api/campaigns/${id}` : '/api/campaigns';
+      const method = id ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...campaignData,
+          imageUrl,
+          status: 'draft' // Explicitly set as draft
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save campaign draft');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate campaign queries to show updated drafts
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to save draft:', error);
+      // Silently fail for drafts - we don't want to interrupt the user
+    },
+  });
+}
+
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete campaign');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+      toast.success('Campaign deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete campaign');
+    },
+  });
+}
+
+export function useBrandAssets() {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['brand-assets', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const response = await fetch('/api/assets', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch assets');
+      }
+
+      const data = await response.json();
+      return data.assets;
+    },
+    enabled: !!session?.user?.id && session.user.user_type === 'brand',
+  });
+}
+
+export function useDownloadAsset() {
+  return useMutation({
+    mutationFn: async (assetId: string) => {
+      const response = await fetch(`/api/assets/${assetId}/download`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to download asset');
+      }
+
+      // Get the blob and create a download
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition?.match(/filename="(.+)"/)?.[1] || 'download';
+
+      // Create a temporary URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      return filename;
+    },
+    onSuccess: (filename) => {
+      toast.success(`Downloaded: ${filename}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to download asset');
+    },
+  });
+}
+
+export function useBrandSubmissions() {
+  const { data: session } = useSession();
+
+  return useQuery({
+    queryKey: ['brand-submissions', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found');
+      }
+
+      const response = await fetch('/api/submissions', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
+      }
+
+      const data = await response.json();
+      return data.submissions;
+    },
+    enabled: !!session?.user?.id && session.user.user_type === 'brand',
+  });
+}
+
+export function useUpdateSubmission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ submissionId, status, rejectionComment }: {
+      submissionId: string;
+      status: 'approved' | 'rejected';
+      rejectionComment?: string;
+    }) => {
+      const response = await fetch('/api/submissions', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          submissionId,
+          status,
+          rejectionComment,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update submission');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['brand-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-assets'] });
+
+      if (variables.status === 'approved') {
+        toast.success('Submission approved successfully');
+      } else {
+        toast.success('Submission rejected');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update submission');
     },
   });
 } 
