@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import CreateCampaignModal from "./CreateCampaignModal";
 import CampaignDetails from "./CampaignDetails";
 import DashboardHeader from "./Dashboard/DashboardHeader";
@@ -29,11 +31,65 @@ interface Campaign {
 }
 
 const BrandDashboard = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [activeView, setActiveView] = useState("overview");
+  const [lastProcessedParams, setLastProcessedParams] = useState<{
+    campaign?: string | null;
+    tab?: string | null;
+    message?: string | null;
+  }>({});
 
   const { data: campaigns = [], isLoading, error } = useBrandCampaigns();
+
+  console.log('🏗️ BrandDashboard render:', {
+    selectedCampaign: selectedCampaign?.title || 'none',
+    searchParams: searchParams?.toString(),
+    campaignsLoaded: campaigns.length > 0
+  });
+
+  // Handle URL parameters for deep linking - process when params actually change
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      const currentParams = {
+        campaign: searchParams?.get('campaign'),
+        tab: searchParams?.get('tab'),
+        message: searchParams?.get('message'),
+      };
+
+      console.log('🔍 URL params check:', {
+        currentParams,
+        lastProcessedParams,
+        campaignsLength: campaigns.length
+      });
+
+      // Check if URL parameters have actually changed
+      const hasParamsChanged =
+        currentParams.campaign !== lastProcessedParams.campaign ||
+        currentParams.tab !== lastProcessedParams.tab ||
+        currentParams.message !== lastProcessedParams.message;
+
+      console.log('📊 Params changed:', hasParamsChanged);
+
+      // Only process if params changed and we have a campaign ID
+      if (hasParamsChanged && currentParams.campaign) {
+        const campaign = campaigns.find((c: Campaign) => c.id === currentParams.campaign);
+        console.log('🎯 Found campaign for deep link:', campaign?.title);
+        if (campaign) {
+          setSelectedCampaign(campaign);
+        }
+        setLastProcessedParams(currentParams);
+      }
+      // If no campaign ID in URL but we had one before, clear the state
+      else if (hasParamsChanged && !currentParams.campaign && lastProcessedParams.campaign) {
+        console.log('🔄 Clearing campaign selection');
+        setSelectedCampaign(null);
+        setLastProcessedParams(currentParams);
+      }
+    }
+  }, [campaigns, searchParams, lastProcessedParams]);
 
   const transformedCampaigns = campaigns.map((campaign: Campaign) => ({
     id: campaign.id,
@@ -79,6 +135,8 @@ const BrandDashboard = () => {
   const handleViewChange = (view: string) => {
     setActiveView(view);
     setSelectedCampaign(null);
+    // Clear URL parameters when changing views
+    router.push('/brand/dashboard');
   };
 
   const handleViewCampaign = (campaign: any) => {
@@ -141,10 +199,16 @@ const BrandDashboard = () => {
       {selectedCampaign && (
         <CampaignDetails
           campaign={selectedCampaign}
-          onBack={() => setSelectedCampaign(null)}
+          onBack={() => {
+            setSelectedCampaign(null);
+            // Clear URL parameters when going back to dashboard
+            router.push('/brand/dashboard');
+          }}
           onEdit={() => {
             console.log("Edit campaign:", selectedCampaign.id);
           }}
+          defaultTab={searchParams?.get('tab') || 'details'}
+          messageId={searchParams?.get('message') || undefined}
         />
       )}
 

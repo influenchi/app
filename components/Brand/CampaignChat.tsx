@@ -23,7 +23,6 @@ import {
   Instagram,
   Youtube,
   Twitter,
-  Facebook,
   MapPin
 } from "lucide-react";
 import { useMessages } from "@/lib/hooks/useMessages";
@@ -31,9 +30,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
 
 interface CampaignChatProps {
   campaignId: string;
+  messageId?: string;
 }
 
 interface Participant {
@@ -63,8 +64,10 @@ interface CreatorProfile {
   is_vetted?: boolean;
 }
 
-const CampaignChat = ({ campaignId }: CampaignChatProps) => {
+const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProps) => {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [showCreatorProfile, setShowCreatorProfile] = useState(false);
   const [selectedCreatorProfile, setSelectedCreatorProfile] = useState<CreatorProfile | null>(null);
@@ -73,6 +76,7 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
   const [announcementMessage, setAnnouncementMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isLoading, sendMessage, uploadingFiles, isSending } = useMessages(campaignId);
@@ -123,6 +127,47 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
       });
     }
   }, [messages, participants, session]);
+
+  // Handle deep linking to specific messages
+  useEffect(() => {
+    const messageId = propMessageId || searchParams?.get('message');
+    if (messageId && messages.length > 0) {
+      // Find the message in the current messages
+      const targetMessage = messages.find(msg => msg.id === messageId);
+
+      if (targetMessage) {
+        // Set the correct creator selection based on message
+        if (targetMessage.is_broadcast) {
+          setSelectedCreator(null); // Announcements
+        } else {
+          // Select the creator who sent or received the message
+          const creatorId = targetMessage.sender_id === session?.user?.id
+            ? targetMessage.recipient_id
+            : targetMessage.sender_id;
+          setSelectedCreator(creatorId);
+        }
+
+        // Highlight the message temporarily
+        setHighlightedMessageId(messageId);
+
+        // Scroll to the message after a short delay to ensure rendering
+        setTimeout(() => {
+          const messageElement = document.getElementById(`message-${messageId}`);
+          if (messageElement) {
+            messageElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+          }
+        }, 100);
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          setHighlightedMessageId(null);
+        }, 3000);
+      }
+    }
+  }, [messages, searchParams, session?.user?.id, propMessageId]);
 
   const handleSendMessage = async () => {
     if (newMessage.trim() || attachedFiles.length > 0) {
@@ -326,12 +371,16 @@ const CampaignChat = ({ campaignId }: CampaignChatProps) => {
                 ) : (
                   displayMessages.map((message) => {
                     const isSent = message.sender_id === session?.user?.id;
+                    const isHighlighted = highlightedMessageId === message.id;
                     return (
-                      <div key={message.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+                      <div key={message.id} id={`message-${message.id}`} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
                         <div className="max-w-xs lg:max-w-md">
-                          <div className={`rounded-lg px-4 py-2 ${isSent
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-900'
+                          <div className={`rounded-lg px-4 py-2 transition-all duration-300 ${isHighlighted
+                            ? 'ring-2 ring-blue-400 ring-opacity-75 shadow-lg'
+                            : ''
+                            } ${isSent
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-100 text-gray-900'
                             }`}>
                             <p className="whitespace-pre-wrap">{message.message}</p>
 
