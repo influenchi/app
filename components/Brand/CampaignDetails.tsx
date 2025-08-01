@@ -1,5 +1,4 @@
 
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileText,
@@ -58,14 +57,22 @@ interface CampaignDetailsProps {
   campaign: Campaign;
   onBack: () => void;
   onEdit: () => void;
+  defaultTab?: string;
+  messageId?: string;
 }
 
-const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => {
+const CampaignDetails = ({ campaign, onBack, onEdit, defaultTab = 'details', messageId }: CampaignDetailsProps) => {
+  console.log('🏁 CampaignDetails render:', {
+    campaignTitle: campaign.title,
+    defaultTab,
+    messageId
+  });
+
   // Transform campaign data to match component expectations
   const transformedCampaign = {
     ...campaign,
     // Transform field names from snake_case to camelCase
-    budgetType: (campaign as any).budgetType || [campaign.budget_type || 'paid'], // Handle both formats
+    budgetType: (campaign as Campaign & { budgetType?: string[] }).budgetType || [campaign.budget_type || 'paid'], // Handle both formats
     productServiceDescription: campaign.product_service_description,
     creatorPurchaseRequired: campaign.creator_purchase_required,
     productShipRequired: campaign.product_ship_required,
@@ -83,7 +90,9 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
     }),
 
     // Format budget based on type - check if array contains 'paid' or if single value is 'cash'
-    budget: (Array.isArray((campaign as any).budgetType) ? (campaign as any).budgetType.includes('paid') : campaign.budget_type === 'cash')
+    budget: (Array.isArray((campaign as Campaign & { budgetType?: string[] }).budgetType)
+      ? (campaign as Campaign & { budgetType?: string[] }).budgetType?.includes('paid')
+      : campaign.budget_type === 'cash')
       ? `$${campaign.budget}`
       : campaign.budget,
 
@@ -103,7 +112,7 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
       <CampaignHeader campaign={transformedCampaign} onBack={onBack} onEdit={onEdit} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="details" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           {/* Enhanced Tab Navigation */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-8">
             <TabsList className="grid w-full grid-cols-5 h-auto p-2 bg-gray-50 rounded-lg">
@@ -170,7 +179,7 @@ const CampaignDetails = ({ campaign, onBack, onEdit }: CampaignDetailsProps) => 
           </TabsContent>
 
           <TabsContent value="chat" className="mt-0">
-            <CampaignChat campaignId={campaign.id} />
+            <CampaignChat campaignId={campaign.id} messageId={messageId} />
           </TabsContent>
 
           <TabsContent value="submissions" className="mt-0">

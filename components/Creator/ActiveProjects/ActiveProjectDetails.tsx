@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,16 +21,16 @@ import {
   Paperclip,
   X,
   Plus,
-  Eye,
   Edit3,
   Loader2,
   Camera,
   Video,
   FileText,
   Star,
-  Users,
   Share2
 } from "lucide-react";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 interface Task {
   id: number;
@@ -79,9 +79,11 @@ interface ActiveProjectDetailsProps {
 
 const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) => {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [newMessage, setNewMessage] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [taskSubmissions, setTaskSubmissions] = useState<{ [key: string]: Submission[] }>({});
   const [editingSubmission, setEditingSubmission] = useState<{ taskId: string, submissionId: number } | null>(null);
@@ -93,6 +95,39 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
   // Get campaign ID from original campaign data if available
   const campaignId = project.originalCampaign?.id || (typeof project.id === 'string' ? project.id : '');
   const { messages, isLoading: messagesLoading, sendMessage, uploadingFiles, isSending } = useMessages(campaignId);
+
+  // Handle deep linking to specific messages
+  useEffect(() => {
+    const messageId = searchParams?.get('message');
+    if (messageId && messages.length > 0) {
+      // Find the message in the current messages
+      const targetMessage = messages.find(msg => msg.id === messageId);
+
+      if (targetMessage) {
+        // Switch to messages tab
+        setActiveTab('messages');
+
+        // Highlight the message temporarily
+        setHighlightedMessageId(messageId);
+
+        // Scroll to the message after a short delay to ensure rendering
+        setTimeout(() => {
+          const messageElement = document.getElementById(`message-${messageId}`);
+          if (messageElement) {
+            messageElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+          }
+        }, 100);
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          setHighlightedMessageId(null);
+        }, 3000);
+      }
+    }
+  }, [messages, searchParams]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -340,10 +375,12 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                 <Card>
                   <CardContent className="p-0">
                     <div className="aspect-[2/1] overflow-hidden rounded-lg">
-                      <img
+                      <Image
                         src={project.image}
                         alt={project.title}
                         className="w-full h-full object-cover"
+                        width={100}
+                        height={100}
                       />
                     </div>
                   </CardContent>
@@ -449,13 +486,17 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                       ) : (
                         messages.map((message: any) => {
                           const isSent = message.sender_id === session?.user?.id;
+                          const isHighlighted = highlightedMessageId === message.id;
                           return (
-                            <div key={message.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
-                              <div className={`max-w-[70%] rounded-lg p-3 ${isSent
-                                ? 'bg-primary text-primary-foreground'
-                                : message.is_broadcast
-                                  ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                                  : 'bg-muted'
+                            <div key={message.id} id={`message-${message.id}`} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-[70%] rounded-lg p-3 transition-all duration-300 ${isHighlighted
+                                ? 'ring-2 ring-blue-400 ring-opacity-75 shadow-lg'
+                                : ''
+                                } ${isSent
+                                  ? 'bg-primary text-primary-foreground'
+                                  : message.is_broadcast
+                                    ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                    : 'bg-muted'
                                 }`}>
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-xs font-medium">{message.sender?.name || 'Unknown'}</span>

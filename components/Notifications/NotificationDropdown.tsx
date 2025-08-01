@@ -14,7 +14,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useSession } from "@/lib/hooks/useAuth";
 
 interface NotificationDropdownProps {
-  onNavigate?: (view: string, campaignId?: string, tab?: string) => void;
+  onNavigate?: (view: string, campaignId?: string, tab?: string, messageId?: string) => void;
 }
 
 const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
@@ -44,21 +44,28 @@ const NotificationDropdown = ({ onNavigate }: NotificationDropdownProps) => {
 
     // Navigate based on notification type and user type
     const campaignId = notification.data?.campaign_id;
+    const messageId = notification.data?.message_id;
 
     if (campaignId) {
       if (session?.user?.user_type === 'brand') {
         // For brands, navigate to campaign details with messages tab
         if (notification.type === 'message_direct' || notification.type === 'message_broadcast') {
-          router.push(`/brand/dashboard?campaign=${campaignId}&tab=chat`);
+          const url = messageId
+            ? `/brand/dashboard?campaign=${campaignId}&tab=chat&message=${messageId}`
+            : `/brand/dashboard?campaign=${campaignId}&tab=chat`;
+          router.push(url);
         } else {
           router.push(`/brand/dashboard?campaign=${campaignId}`);
         }
       } else if (session?.user?.user_type === 'creator') {
         // For creators, navigate to active project details with messages tab
         if (onNavigate && notification.type.includes('message')) {
-          onNavigate('active-project-details', campaignId, 'messages');
+          onNavigate('active-project-details', campaignId, 'messages', messageId);
         } else {
-          router.push(`/creator/dashboard?project=${campaignId}&tab=messages`);
+          const url = messageId
+            ? `/creator/dashboard?project=${campaignId}&tab=messages&message=${messageId}`
+            : `/creator/dashboard?project=${campaignId}&tab=messages`;
+          router.push(url);
         }
       }
     }
