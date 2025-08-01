@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useBrandAssets, useDownloadAsset } from "@/lib/hooks/useBrand";
+import Image from 'next/image';
 
 interface Asset {
   id: string;
@@ -81,10 +83,10 @@ const AssetLibrary = ({
 
   // Filter assets
   const filteredAssets = useMemo(() => {
-    return assets.filter(asset => {
+    return assets.filter((asset: any) => {
       const matchesSearch = asset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         asset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        asset.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesType = typeFilter === 'all' || asset.type === typeFilter;
       const matchesChannel = channelFilter === 'all' || asset.socialChannel === channelFilter;
 
@@ -229,16 +231,18 @@ const AssetLibrary = ({
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAssets.map((asset, index) => {
+          {filteredAssets.map((asset: any, index: any) => {
             const isLocked = false; // No limits anymore
 
             return (
               <Card key={asset.id} className={`overflow-hidden ${isLocked ? 'opacity-75' : ''}`}>
                 <div className="relative aspect-square">
-                  <img
+                  <Image
                     src={asset.thumbnail || asset.url}
                     alt={asset.title}
                     className="w-full h-full object-cover"
+                    width={100}
+                    height={100}
                   />
 
                   {/* Type indicator */}
@@ -282,13 +286,13 @@ const AssetLibrary = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={asset.creatorImage} />
-                      <AvatarFallback>{asset.creatorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback>{asset.creatorName.split(' ').map((n: any) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <span className="text-xs text-muted-foreground">{asset.creatorName}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {asset.tags.slice(0, 3).map((tag) => (
+                    {asset.tags.slice(0, 3).map((tag: any) => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -313,6 +317,7 @@ const AssetLibrary = ({
                         size="sm"
                         onClick={() => handleDownload(asset)}
                         disabled={isLocked || downloadAsset.isPending}
+                        className="bg-black"
                       >
                         {downloadAsset.isPending ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -346,10 +351,12 @@ const AssetLibrary = ({
                     <p className="text-sm sm:text-base text-muted-foreground">Video Preview</p>
                   </div>
                 ) : (
-                  <img
+                  <Image
                     src={selectedAsset.url}
                     alt={selectedAsset.title}
                     className="max-w-full max-h-full object-contain"
+                    width={100}
+                    height={100}
                   />
                 )}
               </div>
@@ -427,7 +434,7 @@ const AssetLibrary = ({
               <div>
                 <p className="font-medium">Monthly download limit exceeded</p>
                 <p className="text-sm text-muted-foreground">
-                  You've reached your monthly limit of {monthlyDownloadLimit} downloads.
+                  You&apos;ve reached your monthly limit of {monthlyDownloadLimit} downloads.
                 </p>
               </div>
             </div>
