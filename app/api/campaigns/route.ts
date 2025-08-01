@@ -15,16 +15,8 @@ export async function POST(request: NextRequest) {
     const { imageUrl, ...campaignData } = body;
     const validatedData = campaignSchema.parse(campaignData);
 
-    // Map frontend budget types to backend budget types
-    const budgetTypeMapping = {
-      'paid': 'cash',
-      'gifted': 'product',
-      'affiliate': 'service'
-    };
-
-    // Take the first budget type and map it to backend format
-    const primaryBudgetType = validatedData.budgetType[0];
-    const mappedBudgetType = budgetTypeMapping[primaryBudgetType as keyof typeof budgetTypeMapping] || 'cash';
+    // Take the first budget type (no mapping needed as DB now uses same values)
+    const primaryBudgetType = validatedData.budgetType[0] || 'paid';
 
     const { data, error } = await supabaseAdmin
       .from('campaigns')
@@ -35,7 +27,7 @@ export async function POST(request: NextRequest) {
         image: imageUrl || null,
         campaign_goal: validatedData.campaignGoal,
         budget: validatedData.budget,
-        budget_type: mappedBudgetType,
+        budget_type: primaryBudgetType,
         product_service_description: validatedData.productServiceDescription || null,
         creator_count: validatedData.creatorCount,
         start_date: validatedData.startDate,
@@ -117,13 +109,6 @@ export async function GET(request: NextRequest) {
         applicationMap.set(app.campaign_id, app.status);
       });
 
-      // Map backend budget types back to frontend types
-      const backendToFrontendMapping = {
-        'cash': 'paid',
-        'product': 'gifted',
-        'service': 'affiliate'
-      };
-
       // Add application status and brand name to each campaign
       const campaignsWithApplicationStatus = campaigns.map(campaign => {
         const brandData = campaign.users;
@@ -135,23 +120,17 @@ export async function GET(request: NextRequest) {
           ...campaign,
           applicationStatus: applicationMap.get(campaign.id) || null,
           brand_name: brandName,
-          budgetType: [backendToFrontendMapping[campaign.budget_type as keyof typeof backendToFrontendMapping] || 'paid']
+          budgetType: [campaign.budget_type || 'paid']
         };
       });
 
       return NextResponse.json({ campaigns: campaignsWithApplicationStatus });
     }
 
-    // Map backend budget types back to frontend types for brand campaigns
-    const backendToFrontendMapping = {
-      'cash': 'paid',
-      'product': 'gifted',
-      'service': 'affiliate'
-    };
-
+    // Add budgetType array format for brand campaigns
     const campaignsWithMappedBudgetType = campaigns?.map(campaign => ({
       ...campaign,
-      budgetType: [backendToFrontendMapping[campaign.budget_type as keyof typeof backendToFrontendMapping] || 'paid']
+      budgetType: [campaign.budget_type || 'paid']
     }));
 
     return NextResponse.json({ campaigns: campaignsWithMappedBudgetType });
