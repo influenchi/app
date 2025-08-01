@@ -4,7 +4,7 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables:');
+  console.error('Missing required environment variables:');
   console.error('- SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL');
   console.error('- SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
@@ -13,21 +13,21 @@ if (!supabaseUrl || !supabaseServiceKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function updateCreatorTable() {
-  console.log('🔄 Starting creator table migration...');
+  console.log('Starting creator table migration...');
 
   try {
     // Drop existing creator_profiles table if it exists
-    console.log('📋 Dropping old creator_profiles table if exists...');
+    console.log(' Dropping old creator_profiles table if exists...');
     const { error: dropError } = await supabase.rpc('exec_sql', {
       sql: 'DROP TABLE IF EXISTS creator_profiles CASCADE;'
     });
 
     if (dropError) {
-      console.warn('⚠️ Could not drop creator_profiles:', dropError.message);
+      console.warn('Could not drop creator_profiles:', dropError.message);
     }
 
     // Create creators table
-    console.log('📋 Creating creators table...');
+    console.log(' Creating creators table...');
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS creators (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -72,10 +72,10 @@ async function updateCreatorTable() {
       throw new Error(`Failed to create table: ${createError.message}`);
     }
 
-    console.log('✅ Creator table created successfully');
+    console.log('Creator table created successfully');
 
     // Create indexes
-    console.log('📋 Creating indexes...');
+    console.log(' Creating indexes...');
     const indexes = [
       'CREATE INDEX IF NOT EXISTS idx_creators_user_id ON creators(user_id);',
       'CREATE INDEX IF NOT EXISTS idx_creators_primary_niche ON creators(primary_niche);',
@@ -85,22 +85,22 @@ async function updateCreatorTable() {
     for (const indexSQL of indexes) {
       const { error } = await supabase.rpc('exec_sql', { sql: indexSQL });
       if (error) {
-        console.warn(`⚠️ Index creation warning: ${error.message}`);
+        console.warn(`Index creation warning: ${error.message}`);
       }
     }
 
     // Enable RLS
-    console.log('📋 Setting up Row Level Security...');
+    console.log(' Setting up Row Level Security...');
     const { error: rlsError } = await supabase.rpc('exec_sql', {
       sql: 'ALTER TABLE creators ENABLE ROW LEVEL SECURITY;'
     });
 
     if (rlsError) {
-      console.warn('⚠️ RLS enable warning:', rlsError.message);
+      console.warn('RLS enable warning:', rlsError.message);
     }
 
     // Create RLS policies
-    console.log('📋 Creating RLS policies...');
+    console.log(' Creating RLS policies...');
     const policies = [
       {
         name: 'users_view_own_creator_profile',
@@ -128,12 +128,12 @@ async function updateCreatorTable() {
       // Create new policy
       const { error } = await supabase.rpc('exec_sql', { sql: policy.sql });
       if (error) {
-        console.warn(`⚠️ Policy creation warning for ${policy.name}: ${error.message}`);
+        console.warn(`Policy creation warning for ${policy.name}: ${error.message}`);
       }
     }
 
     // Create updated_at trigger
-    console.log('📋 Creating updated_at trigger...');
+    console.log(' Creating updated_at trigger...');
     const triggerSQL = `
       CREATE OR REPLACE FUNCTION update_updated_at_column()
       RETURNS TRIGGER AS $$
@@ -155,13 +155,13 @@ async function updateCreatorTable() {
     });
 
     if (triggerError) {
-      console.warn('⚠️ Trigger creation warning:', triggerError.message);
+      console.warn('Trigger creation warning:', triggerError.message);
     }
 
-    console.log('✅ Creator table migration completed successfully!');
+    console.log('Creator table migration completed successfully!');
 
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error('Migration failed:', error);
     process.exit(1);
   }
 }
@@ -182,12 +182,12 @@ async function setupExecSQL() {
     const { error } = await supabase.from('_dummy').select().single();
 
     // If we get here, we can try to create the function directly
-    console.log('📋 Setting up exec_sql function...');
+    console.log(' Setting up exec_sql function...');
 
     // This might fail if we don't have permission, but that's okay
     // We'll handle it in the main function
   } catch (error) {
-    console.log('⚠️ Note: exec_sql function may need to be created manually in Supabase dashboard');
+    console.log('Note: exec_sql function may need to be created manually in Supabase dashboard');
   }
 }
 
