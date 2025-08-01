@@ -44,7 +44,7 @@ const BrandDashboard = () => {
 
   const { data: campaigns = [], isLoading, error } = useBrandCampaigns();
 
-  console.log('🏗️ BrandDashboard render:', {
+  console.log(' BrandDashboard render:', {
     selectedCampaign: selectedCampaign?.title || 'none',
     searchParams: searchParams?.toString(),
     campaignsLoaded: campaigns.length > 0
@@ -59,7 +59,7 @@ const BrandDashboard = () => {
         message: searchParams?.get('message'),
       };
 
-      console.log('🔍 URL params check:', {
+      console.log('URL params check:', {
         currentParams,
         lastProcessedParams,
         campaignsLength: campaigns.length
@@ -71,12 +71,12 @@ const BrandDashboard = () => {
         currentParams.tab !== lastProcessedParams.tab ||
         currentParams.message !== lastProcessedParams.message;
 
-      console.log('📊 Params changed:', hasParamsChanged);
+      console.log('Params changed:', hasParamsChanged);
 
       // Only process if params changed and we have a campaign ID
       if (hasParamsChanged && currentParams.campaign) {
         const campaign = campaigns.find((c: Campaign) => c.id === currentParams.campaign);
-        console.log('🎯 Found campaign for deep link:', campaign?.title);
+        console.log('Found campaign for deep link:', campaign?.title);
         if (campaign) {
           setSelectedCampaign(campaign);
         }
@@ -84,7 +84,7 @@ const BrandDashboard = () => {
       }
       // If no campaign ID in URL but we had one before, clear the state
       else if (hasParamsChanged && !currentParams.campaign && lastProcessedParams.campaign) {
-        console.log('🔄 Clearing campaign selection');
+        console.log('Clearing campaign selection');
         setSelectedCampaign(null);
         setLastProcessedParams(currentParams);
       }
