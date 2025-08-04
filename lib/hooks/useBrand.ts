@@ -125,7 +125,7 @@ export function useBrandOnboarding() {
         body: jsonString,
       });
 
-      console.log('📨 Response status:', response.status);
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         let errorMessage = 'Failed to complete onboarding';

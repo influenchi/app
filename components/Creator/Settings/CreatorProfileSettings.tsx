@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,14 @@ const CreatorProfileSettings = () => {
 
   // Initialize portfolio images from current user profile
   useEffect(() => {
-    if (creatorProfile?.portfolio_images) {
-      setPortfolioImages(creatorProfile.portfolio_images);
+    // Handle both camelCase (onboarding) and snake_case (database) field names
+    const portfolioImagesData = creatorProfile?.portfolio_images ||
+      (creatorProfile as any)?.portfolioImages ||
+      [];
+    if (portfolioImagesData && portfolioImagesData.length > 0) {
+      setPortfolioImages(portfolioImagesData);
     }
-  }, [creatorProfile?.portfolio_images]);
+  }, [creatorProfile?.portfolio_images, creatorProfile]);
 
   const handleSave = () => {
     // TODO: Implement save functionality

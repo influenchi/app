@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Search, Trash2 } from "lucide-react";
+import { Edit, Search, Trash2, Copy } from "lucide-react";
 import { PaginationWrapper } from "@/components/ui/pagination-wrapper";
 import { usePagination } from "@/hooks/usePagination";
 import { useState, useMemo } from "react";
@@ -152,9 +152,14 @@ export function PaginatedCampaignList({
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <CardTitle className="text-lg mb-1 group-hover:text-primary transition-colors">
-                    {campaign.title}
-                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg mb-1 group-hover:text-primary transition-colors">
+                      {campaign.title}
+                    </CardTitle>
+                    {campaign.title.includes('(Copy)') && (
+                      <Copy className="h-4 w-4 text-amber-500 mb-1" title="This is a duplicated campaign - edit the title to remove (Copy)" />
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{campaign.type}</p>
                 </div>
               </div>

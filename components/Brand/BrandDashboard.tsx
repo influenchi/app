@@ -8,6 +8,8 @@ import CampaignDetails from "./CampaignDetails";
 import DashboardHeader from "./Dashboard/DashboardHeader";
 import DashboardContent from "./Dashboard/DashboardContent";
 import { useBrandCampaigns, useDeleteCampaign } from "@/lib/hooks/useBrand";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface Campaign {
   id: string;
@@ -33,7 +35,10 @@ interface Campaign {
 const BrandDashboard = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [activeView, setActiveView] = useState("overview");
   const [lastProcessedParams, setLastProcessedParams] = useState<{
@@ -46,6 +51,38 @@ const BrandDashboard = () => {
   const campaigns = useMemo(() => campaignsData?.campaigns || [], [campaignsData?.campaigns]);
   const hiredCreatorsCount = campaignsData?.hiredCreatorsCount || 0;
   const deleteCampaign = useDeleteCampaign();
+
+  // Campaign duplication mutation
+  const duplicateCampaignMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const response = await fetch(`/api/campaigns/${campaignId}/duplicate`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to duplicate campaign');
+      }
+      return response.json();
+    },
+    onSuccess: async (data) => {
+      const campaignTitle = data.campaign.title;
+      toast.success(
+        `Campaign "${campaignTitle}" created as draft. Redirecting to edit...`,
+        { duration: 3000 }
+      );
+
+      // Invalidate and wait for campaigns to refresh
+      await queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+
+      // Small delay to ensure data is refreshed before navigation
+      setTimeout(() => {
+        router.push(`/brand/dashboard?campaign=${data.campaign.id}&tab=details`);
+      }, 800);
+    },
+    onError: (error) => {
+      console.error('Duplication error:', error);
+      toast.error('Failed to duplicate campaign. Please try again.');
+    },
+  });
 
   console.log(' BrandDashboard render:', {
     selectedCampaign: selectedCampaign?.title || 'none',
@@ -159,7 +196,8 @@ const BrandDashboard = () => {
     const campaignId = campaign.actualId || campaign.id;
     const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
     if (originalCampaign) {
-      setSelectedCampaign(originalCampaign);
+      setEditingCampaign(originalCampaign);
+      setShowEditModal(true);
     }
   };
 
@@ -169,6 +207,12 @@ const BrandDashboard = () => {
 
     if (confirm('Are you sure you want to delete this draft campaign? This action cannot be undone.')) {
       deleteCampaign.mutate(campaignId);
+    }
+  };
+
+  const handleDuplicateCampaign = () => {
+    if (selectedCampaign) {
+      duplicateCampaignMutation.mutate(selectedCampaign.id);
     }
   };
 
@@ -217,7 +261,10 @@ const BrandDashboard = () => {
           }}
           onEdit={() => {
             console.log("Edit campaign:", selectedCampaign.id);
+            setEditingCampaign(selectedCampaign);
+            setShowEditModal(true);
           }}
+          onDuplicate={handleDuplicateCampaign}
           defaultTab={searchParams?.get('tab') || 'details'}
           messageId={searchParams?.get('message') || undefined}
         />
@@ -251,6 +298,50 @@ const BrandDashboard = () => {
           onSuccess={() => {
             console.log('Campaign creation successful');
             setShowCreateModal(false);
+          }}
+        />
+      )}
+
+      {showEditModal && editingCampaign && (
+        <CreateCampaignModal
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingCampaign(null);
+          }}
+          onSuccess={() => {
+            console.log('Campaign edit successful');
+            setShowEditModal(false);
+            setEditingCampaign(null);
+            // Refresh campaigns data
+            queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+          }}
+          initialData={{
+            title: editingCampaign.title,
+            description: editingCampaign.description,
+            image: undefined, // Reset image to allow re-upload, stored as URL in DB but form expects File
+            campaignGoal: editingCampaign.campaign_goal || [],
+            budget: editingCampaign.budget?.replace('$', '') || '',
+            budgetType: editingCampaign.budget_type === 'cash' ? ['paid'] :
+              editingCampaign.budget_type === 'product' ? ['gifted'] :
+                editingCampaign.budget_type === 'service' ? ['gifted'] : ['paid'],
+            productServiceDescription: editingCampaign.product_service_description || '',
+            creatorCount: editingCampaign.creator_count || '',
+            startDate: editingCampaign.start_date || '',
+            completionDate: editingCampaign.completion_date || '',
+            contentItems: editingCampaign.content_items || [],
+            targetAudience: editingCampaign.target_audience || {
+              socialChannel: '',
+              audienceSize: [],
+              ageRange: [],
+              gender: '',
+              location: [],
+              ethnicity: '',
+              interests: []
+            },
+            requirements: editingCampaign.requirements || '',
+            creatorPurchaseRequired: editingCampaign.creator_purchase_required || false,
+            productShipRequired: editingCampaign.product_ship_required || false,
+            id: editingCampaign.id // Include ID for editing
           }}
         />
       )}
