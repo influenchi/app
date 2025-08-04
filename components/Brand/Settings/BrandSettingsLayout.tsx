@@ -3,12 +3,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { 
-  User, 
-  Building2, 
-  Users, 
-  Bell, 
-  Shield, 
+import {
+  User,
+  Building2,
+  Users,
+  Bell,
+  Shield,
   LogOut,
   Crown,
   Wallet
@@ -55,7 +55,7 @@ const BrandSettingsLayout = ({ children, activeSection, onSectionChange }: Brand
                     <Button
                       key={item.id}
                       variant={activeSection === item.id ? "secondary" : "ghost"}
-                      className="w-full justify-start"
+                      className={`w-full justify-start ${activeSection === item.id ? "bg-amber-300 hover:bg-yellow-700" : "bg-gray-100 hover:bg-gray-200"}`}
                       onClick={() => onSectionChange(item.id)}
                     >
                       <Icon className="h-4 w-4 mr-3" />
@@ -63,9 +63,9 @@ const BrandSettingsLayout = ({ children, activeSection, onSectionChange }: Brand
                     </Button>
                   );
                 })}
-                
+
                 <Separator className="my-4" />
-                
+
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-destructive hover:text-destructive"
