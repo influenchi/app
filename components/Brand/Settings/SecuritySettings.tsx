@@ -5,39 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, Key, Smartphone, AlertTriangle, CheckCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Shield, Key, Smartphone, AlertTriangle, CheckCircle, Loader2, Clock } from "lucide-react";
+import { toast } from "sonner";
+import {
+  useChangePassword,
+  useTwoFactorStatus,
+  useTwoFactorSetup,
+  useSessions,
+  useRevokeSession
+} from "@/lib/hooks/useSecuritySettings";
 
 const SecuritySettings = () => {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [sessions] = useState([
-    {
-      id: 1,
-      device: "MacBook Pro",
-      location: "New York, NY",
-      lastActive: "2 minutes ago",
-      current: true,
-      browser: "Chrome 120"
-    },
-    {
-      id: 2,
-      device: "iPhone 15 Pro",
-      location: "New York, NY",
-      lastActive: "1 hour ago",
-      current: false,
-      browser: "Safari Mobile"
-    },
-    {
-      id: 3,
-      device: "Windows PC",
-      location: "Los Angeles, CA",
-      lastActive: "3 days ago",
-      current: false,
-      browser: "Firefox 119"
-    }
-  ]);
+  // Hooks
+  const { data: twoFactorStatus, isLoading: loading2FA } = useTwoFactorStatus();
+  const { data: sessions, isLoading: loadingSessions, refetch: refetchSessions } = useSessions();
+  const changePasswordMutation = useChangePassword();
+  const twoFactorSetupMutation = useTwoFactorSetup();
+  const revokeSessionMutation = useRevokeSession();
 
+  // Local state
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     current: "",
@@ -45,21 +33,53 @@ const SecuritySettings = () => {
     confirm: ""
   });
 
-  const handleChangePassword = () => {
-    // TODO: Implement password change
-    console.log('Changing password');
-    setShowChangePassword(false);
-    setPasswordData({ current: "", new: "", confirm: "" });
+  const handleChangePassword = async () => {
+    if (!passwordData.current || !passwordData.new || !passwordData.confirm) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (passwordData.new !== passwordData.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.new.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    changePasswordMutation.mutate(
+      {
+        currentPassword: passwordData.current,
+        newPassword: passwordData.new
+      },
+      {
+        onSuccess: () => {
+          setShowChangePassword(false);
+          setPasswordData({ current: "", new: "", confirm: "" });
+        }
+      }
+    );
   };
 
-  const handleRevokeSession = (sessionId: number) => {
-    // TODO: Implement session revocation
-    console.log('Revoking session:', sessionId);
+  const handleRevokeSession = async (sessionId: string) => {
+    revokeSessionMutation.mutate({ sessionId });
   };
 
-  const handleEnable2FA = () => {
-    // TODO: Implement 2FA setup
-    setTwoFactorEnabled(true);
+  const handleRevokeAllSessions = async () => {
+    revokeSessionMutation.mutate({ revokeAll: true });
+  };
+
+  const handleEnable2FA = async () => {
+    if (twoFactorStatus?.twoFactorEnabled) {
+      // If already enabled, show management options
+      toast.info('2FA management coming soon');
+      return;
+    }
+
+    // Start 2FA setup process
+    twoFactorSetupMutation.mutate({ action: 'generate' });
   };
 
   return (
@@ -115,10 +135,25 @@ const SecuritySettings = () => {
                 />
               </div>
               <div className="flex space-x-3">
-                <Button onClick={handleChangePassword}>
-                  Update Password
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changePasswordMutation.isPending}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {changePasswordMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Password'
+                  )}
                 </Button>
-                <Button variant="outline" onClick={() => setShowChangePassword(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowChangePassword(false)}
+                  disabled={changePasswordMutation.isPending}
+                >
                   Cancel
                 </Button>
               </div>
@@ -142,7 +177,9 @@ const SecuritySettings = () => {
             <div>
               <div className="flex items-center space-x-2">
                 <p className="font-medium">2FA Status</p>
-                {twoFactorEnabled ? (
+                {loading2FA ? (
+                  <Skeleton className="h-5 w-16" />
+                ) : twoFactorStatus?.twoFactorEnabled ? (
                   <Badge variant="default" className="bg-green-500">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     Enabled
@@ -155,21 +192,32 @@ const SecuritySettings = () => {
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {twoFactorEnabled 
-                  ? "Your account is protected with 2FA"
-                  : "Enable 2FA to secure your account"
+                {loading2FA
+                  ? "Loading..."
+                  : twoFactorStatus?.twoFactorEnabled
+                    ? "Your account is protected with 2FA"
+                    : "Enable 2FA to secure your account"
                 }
               </p>
             </div>
-            <Button 
-              variant={twoFactorEnabled ? "outline" : "default"}
+            <Button
+              variant={twoFactorStatus?.twoFactorEnabled ? "outline" : "default"}
               onClick={handleEnable2FA}
+              disabled={loading2FA || twoFactorSetupMutation.isPending}
+              className={!twoFactorStatus?.twoFactorEnabled ? "bg-primary hover:bg-primary/90" : ""}
             >
-              {twoFactorEnabled ? "Manage 2FA" : "Enable 2FA"}
+              {twoFactorSetupMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                twoFactorStatus?.twoFactorEnabled ? "Manage 2FA" : "Enable 2FA"
+              )}
             </Button>
           </div>
 
-          {!twoFactorEnabled && (
+          {!loading2FA && !twoFactorStatus?.twoFactorEnabled && (
             <Alert>
               <Shield className="h-4 w-4" />
               <AlertDescription>
@@ -189,46 +237,90 @@ const SecuritySettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {sessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="p-2 bg-muted rounded-lg">
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <p className="font-medium">{session.device}</p>
-                      {session.current && (
-                        <Badge variant="default" className="text-xs">
-                          Current
-                        </Badge>
-                      )}
+          {loadingSessions ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                      <Skeleton className="h-3 w-24" />
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {session.browser} • {session.location}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Last active: {session.lastActive}
-                    </p>
                   </div>
+                  <Skeleton className="h-8 w-16" />
                 </div>
-                {!session.current && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleRevokeSession(session.id)}
-                  >
-                    Revoke
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-          
+              ))}
+            </div>
+          ) : sessions && sessions.length > 0 ? (
+            <div className="space-y-4">
+              {sessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-muted rounded-lg">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">{session.device}</p>
+                        {session.current && (
+                          <Badge variant="default" className="text-xs">
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {session.browser} • {session.location}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Last active: {session.lastActive}
+                      </p>
+                    </div>
+                  </div>
+                  {!session.current && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRevokeSession(session.id)}
+                      disabled={revokeSessionMutation.isPending}
+                    >
+                      {revokeSessionMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        'Revoke'
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No active sessions found</p>
+              <Button variant="outline" size="sm" onClick={() => refetchSessions()} className="mt-2">
+                Refresh
+              </Button>
+            </div>
+          )}
+
           <div className="mt-4">
-            <Button variant="destructive" size="sm">
-              Revoke All Other Sessions
+            <Button
+              variant="destructive"
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 border-red-600 text-white"
+              onClick={handleRevokeAllSessions}
+              disabled={revokeSessionMutation.isPending || loadingSessions}
+            >
+              {revokeSessionMutation.isPending ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Revoking...
+                </>
+              ) : (
+                'Revoke All Other Sessions'
+              )}
             </Button>
           </div>
         </CardContent>
