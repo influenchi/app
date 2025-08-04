@@ -21,12 +21,8 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
   const [imageUploadState, setImageUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
 
   const campaignGoalOptions = [
-    'Brand Awareness',
     'Content Creation',
-    'Product Launch',
-    'User Generated Content',
-    'Event Promotion',
-    'Seasonal Campaign'
+    'Content Distribution'
   ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,10 +59,33 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
     setIsGeneratingDescription(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const aiDescription = `Create engaging content showcasing ${campaignData.title}. We're looking for authentic storytelling that resonates with your audience while highlighting the key features and benefits. Please ensure your content aligns with our brand values and maintains a professional yet approachable tone. Include clear calls-to-action and use relevant hashtags to maximize reach and engagement.`;
-      onUpdate('description', aiDescription);
-      toast.success('AI description generated!');
+      const response = await fetch('/api/ai/generate-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaignTitle: campaignData.title,
+          campaignGoals: campaignData.campaignGoal,
+          budgetType: campaignData.budgetType,
+          budget: campaignData.budget,
+          productDescription: campaignData.productServiceDescription,
+          targetAudience: campaignData.targetAudience,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const data = await response.json();
+      onUpdate('description', data.description);
+
+      if (data.fallback) {
+        toast.success('Description generated (using fallback)');
+      } else {
+        toast.success('AI-enhanced description generated!');
+      }
     } catch (error) {
       console.error('Error generating AI description:', error);
       toast.error('Failed to generate description. Please try again.');
@@ -219,7 +238,7 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
                   {getImageUploadIcon()}
                   <p className="text-gray-600 font-medium">{getImageUploadText()}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Recommended: 1200x600px or higher
+                    Upload any size that works best for your campaign
                   </p>
                 </div>
               )}

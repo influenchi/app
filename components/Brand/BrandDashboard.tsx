@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import CreateCampaignModal from "./CreateCampaignModal";
 import CampaignDetails from "./CampaignDetails";
@@ -42,7 +42,9 @@ const BrandDashboard = () => {
     message?: string | null;
   }>({});
 
-  const { data: campaigns = [], isLoading, error } = useBrandCampaigns();
+  const { data: campaignsData, isLoading, error } = useBrandCampaigns();
+  const campaigns = useMemo(() => campaignsData?.campaigns || [], [campaignsData?.campaigns]);
+  const hiredCreatorsCount = campaignsData?.hiredCreatorsCount || 0;
   const deleteCampaign = useDeleteCampaign();
 
   console.log(' BrandDashboard render:', {
@@ -122,10 +124,9 @@ const BrandDashboard = () => {
 
   const stats = {
     totalCampaigns: campaigns.length,
-    activeCampaigns: campaigns.filter((c: Campaign) => c.status === 'active').length,
     totalApplications: campaigns.reduce((sum: number, c: Campaign) => sum + (c.applicant_count || 0), 0),
-    completedCampaigns: campaigns.filter((c: Campaign) => c.status === 'completed').length,
-    totalSpent: campaigns.reduce((sum: number, c: Campaign) => {
+    hiredCreators: hiredCreatorsCount,
+    totalSpend: campaigns.reduce((sum: number, c: Campaign) => {
       if (c.budget_type === 'cash' && typeof c.budget === 'string') {
         return sum + parseFloat(c.budget.replace(/[^0-9.-]+/g, ''));
       }

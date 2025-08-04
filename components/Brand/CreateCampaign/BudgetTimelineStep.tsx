@@ -62,8 +62,8 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
                   key={type}
                   variant={isSelected ? "default" : "outline"}
                   className={`cursor-pointer transition-all duration-200 ${isSelected
-                      ? 'ring-2 ring-primary ring-offset-2'
-                      : 'hover:border-primary/50'
+                    ? 'ring-2 ring-primary ring-offset-2'
+                    : 'hover:border-primary/50'
                     }`}
                   onClick={() => onUpdateBudgetType(type as any)}
                 >
@@ -79,19 +79,19 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
 
         <div>
           <Label htmlFor="budget">
-            {campaignData.budgetType.includes('paid') ? 'Budget Amount' :
-              campaignData.budgetType.includes('gifted') ? 'Product Value' :
+            {campaignData.budgetType.includes('paid') ? 'Budget Amount ($ USD)' :
+              campaignData.budgetType.includes('gifted') ? 'Product Value ($ USD)' :
                 campaignData.budgetType.includes('affiliate') ? 'Commission Rate' :
-                  'Budget'}
+                  'Budget ($ USD)'}
           </Label>
           <Input
             id="budget"
             value={campaignData.budget}
             onChange={(e) => onUpdate('budget', e.target.value)}
-            placeholder={campaignData.budgetType.includes('paid') ? '$500' :
-              campaignData.budgetType.includes('gifted') ? '$200' :
+            placeholder={campaignData.budgetType.includes('paid') ? '500' :
+              campaignData.budgetType.includes('gifted') ? '200' :
                 campaignData.budgetType.includes('affiliate') ? '10%' :
-                  'Enter budget'}
+                  'Enter amount'}
           />
         </div>
       </div>
@@ -100,13 +100,23 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
         <div className="space-y-4">
           <div>
             <Label htmlFor="productServiceDescription">Product Description</Label>
-            <Textarea
-              id="productServiceDescription"
-              value={campaignData.productServiceDescription}
-              onChange={(e) => onUpdate('productServiceDescription', e.target.value)}
-              placeholder="Describe the product you're offering in exchange..."
-              rows={4}
-            />
+            <div className="relative">
+              <Textarea
+                id="productServiceDescription"
+                value={campaignData.productServiceDescription}
+                onChange={(e) => {
+                  if (e.target.value.length <= 140) {
+                    onUpdate('productServiceDescription', e.target.value);
+                  }
+                }}
+                placeholder="e.g., 1 Hotel Night, Luxury Skincare Set, etc."
+                rows={3}
+                maxLength={140}
+              />
+              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                {campaignData.productServiceDescription.length}/140
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">

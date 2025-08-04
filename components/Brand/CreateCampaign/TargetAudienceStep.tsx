@@ -7,7 +7,7 @@ import { Users } from "lucide-react";
 import { CampaignData } from "./types";
 import { socialChannels, travelNiches, audienceSizeOptions, ageRangeOptions, genderOptions, ethnicityOptions } from "./constants";
 import MultiSelect from "./MultiSelect";
-import SmartLocationInput from "./SmartLocationInput";
+import ModernLocationAutocomplete from "@/components/ui/modern-location-autocomplete";
 
 interface TargetAudienceStepProps {
   campaignData: CampaignData;
@@ -17,7 +17,7 @@ interface TargetAudienceStepProps {
 }
 
 const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInterest, onUpdate }: TargetAudienceStepProps) => {
-  const isDistributionGoal = campaignData.campaignGoal.includes('Distribution');
+  const isDistributionGoal = campaignData.campaignGoal.includes('Content Distribution');
 
   return (
     <div className="space-y-6">
@@ -42,8 +42,8 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
         <div className="grid grid-cols-2 gap-6">
           <div>
             <Label>Primary Social Channel</Label>
-            <Select 
-              value={campaignData.targetAudience.socialChannel} 
+            <Select
+              value={campaignData.targetAudience.socialChannel}
               onValueChange={(value) => onUpdateTargetAudience('socialChannel', value)}
             >
               <SelectTrigger>
@@ -72,8 +72,8 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       <div className="grid grid-cols-2 gap-6">
         <div>
           <Label>Gender</Label>
-          <Select 
-            value={campaignData.targetAudience.gender} 
+          <Select
+            value={campaignData.targetAudience.gender}
             onValueChange={(value) => onUpdateTargetAudience('gender', value)}
           >
             <SelectTrigger>
@@ -101,8 +101,8 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       <div className="grid grid-cols-2 gap-6">
         <div>
           <Label>Ethnicity</Label>
-          <Select 
-            value={campaignData.targetAudience.ethnicity} 
+          <Select
+            value={campaignData.targetAudience.ethnicity}
             onValueChange={(value) => onUpdateTargetAudience('ethnicity', value)}
           >
             <SelectTrigger>
@@ -118,9 +118,10 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
 
         <div>
           <Label>Location</Label>
-          <SmartLocationInput
+          <ModernLocationAutocomplete
             selected={campaignData.targetAudience.location}
             onSelectionChange={(selected) => onUpdateTargetAudience('location', selected)}
+            placeholder="Search for target locations..."
           />
         </div>
       </div>
