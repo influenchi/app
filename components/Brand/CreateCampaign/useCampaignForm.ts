@@ -7,6 +7,8 @@ import { CampaignData } from "./types";
 import { showConfetti } from "./confetti";
 import { campaignSchema, CampaignFormData } from "@/lib/validations/brand";
 import { useCreateCampaign, useSaveCampaignDraft } from "@/lib/hooks/useBrand";
+import { getStepValidation, validateAllSteps, StepValidation } from "./validation";
+import { toast } from "sonner";
 
 interface UseCampaignFormProps {
   initialData?: Partial<CampaignData>;
@@ -18,6 +20,7 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   const [currentStep, setCurrentStep] = useState(1);
   const [draftId, setDraftId] = useState<string | null>((initialData as any)?.id || null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [stepValidation, setStepValidation] = useState<StepValidation>({ isValid: true, errors: [] });
   const createCampaign = useCreateCampaign();
   const saveDraft = useSaveCampaignDraft();
 
@@ -52,7 +55,7 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
 
   const campaignData = form.watch();
 
-  // Track changes to detect if we need to save as draft
+  // Track changes to detect if we need to save as draft and validate current step
   useEffect(() => {
     const subscription = form.watch((value) => {
       // Check if form has meaningful data (not just default values)
@@ -63,9 +66,13 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
         (value.contentItems && value.contentItems.length > 0);
 
       setHasUnsavedChanges(!!hasData);
+
+      // Update current step validation
+      const validation = getStepValidation(currentStep, value as CampaignData);
+      setStepValidation(validation);
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, currentStep]);
 
   // Load initial data if editing
   useEffect(() => {
@@ -109,6 +116,15 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
 
   const handleNext = () => {
     if (currentStep < 4) {
+      // Validate current step before proceeding
+      const validation = getStepValidation(currentStep, campaignData);
+      if (!validation.isValid) {
+        // Show validation errors
+        validation.errors.forEach(error => {
+          toast.error(error.message);
+        });
+        return;
+      }
       setCurrentStep(currentStep + 1);
     }
   };
@@ -156,6 +172,17 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
 
   const handleCreate = () => {
     const formData = form.getValues();
+
+    // Final validation before submission
+    const validation = validateAllSteps(formData as CampaignData);
+    if (!validation.isValid) {
+      // Show validation errors
+      validation.errors.forEach(error => {
+        toast.error(error.message);
+      });
+      return;
+    }
+
     createCampaign.mutate(formData, {
       onSuccess: () => {
         showConfetti();
@@ -205,6 +232,7 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
     isLoading: createCampaign.isPending || saveDraft.isPending,
     hasUnsavedChanges,
     draftId,
+    stepValidation,
     handleNext,
     handleBack,
     handleSave,

@@ -26,6 +26,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
     currentStep,
     campaignData,
     hasUnsavedChanges,
+    stepValidation,
     handleNext,
     handleBack,
     handleSave,
@@ -96,6 +97,7 @@ const CreateCampaignModal = ({ onClose, onSuccess, initialData }: CreateCampaign
             currentStep={currentStep}
             campaignData={campaignData as CampaignData}
             isEditing={!!initialData}
+            stepValidation={stepValidation}
             onClose={handleClose}
             onBack={handleBack}
             onNext={handleNext}

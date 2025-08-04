@@ -40,7 +40,7 @@ interface Campaign {
   description: string;
   status: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate' | 'cash' | 'product' | 'service';
   product_service_description?: string;
   creator_purchase_required: boolean;
   product_ship_required: boolean;
@@ -57,12 +57,13 @@ interface CampaignDetailsProps {
   campaign: Campaign;
   onBack: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   defaultTab?: string;
   messageId?: string;
 }
 
-const CampaignDetails = ({ campaign, onBack, onEdit, defaultTab = 'details', messageId }: CampaignDetailsProps) => {
-  console.log('🏁 CampaignDetails render:', {
+const CampaignDetails = ({ campaign, onBack, onEdit, onDuplicate, defaultTab = 'details', messageId }: CampaignDetailsProps) => {
+  console.log('CampaignDetails render:', {
     campaignTitle: campaign.title,
     defaultTab,
     messageId
@@ -109,7 +110,7 @@ const CampaignDetails = ({ campaign, onBack, onEdit, defaultTab = 'details', mes
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <CampaignHeader campaign={transformedCampaign} onBack={onBack} onEdit={onEdit} />
+      <CampaignHeader campaign={transformedCampaign} onBack={onBack} onEdit={onEdit} onDuplicate={onDuplicate} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue={defaultTab} className="w-full">

@@ -3,11 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users } from "lucide-react";
+import { Users, Check } from "lucide-react";
 import { CampaignData } from "./types";
 import { socialChannels, travelNiches, audienceSizeOptions, ageRangeOptions, genderOptions, ethnicityOptions } from "./constants";
 import MultiSelect from "./MultiSelect";
-import SmartLocationInput from "./SmartLocationInput";
+import ModernLocationAutocomplete from "@/components/ui/modern-location-autocomplete";
 
 interface TargetAudienceStepProps {
   campaignData: CampaignData;
@@ -17,7 +17,7 @@ interface TargetAudienceStepProps {
 }
 
 const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInterest, onUpdate }: TargetAudienceStepProps) => {
-  const isDistributionGoal = campaignData.campaignGoal.includes('Distribution');
+  const isDistributionGoal = campaignData.campaignGoal.includes('Content Distribution');
 
   return (
     <div className="space-y-6">
@@ -27,7 +27,7 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       </h3>
 
       <div>
-        <Label htmlFor="creatorCount">Number of Creators Needed</Label>
+        <Label htmlFor="creatorCount">Number of Creators Needed <span className="text-red-500">*</span></Label>
         <Input
           id="creatorCount"
           type="number"
@@ -35,15 +35,16 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
           value={campaignData.creatorCount}
           onChange={(e) => onUpdate('creatorCount', e.target.value)}
           placeholder="5"
+          className={!campaignData.creatorCount?.trim() || Number(campaignData.creatorCount) < 1 ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''}
         />
       </div>
 
       {isDistributionGoal && (
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <Label>Primary Social Channel</Label>
-            <Select 
-              value={campaignData.targetAudience.socialChannel} 
+            <Label>Primary Social Channel <span className="text-red-500">*</span></Label>
+            <Select
+              value={campaignData.targetAudience.socialChannel}
               onValueChange={(value) => onUpdateTargetAudience('socialChannel', value)}
             >
               <SelectTrigger>
@@ -58,7 +59,7 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
           </div>
 
           <div>
-            <Label>Audience Size</Label>
+            <Label>Audience Size <span className="text-red-500">*</span></Label>
             <MultiSelect
               options={audienceSizeOptions}
               selected={campaignData.targetAudience.audienceSize}
@@ -72,8 +73,8 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       <div className="grid grid-cols-2 gap-6">
         <div>
           <Label>Gender</Label>
-          <Select 
-            value={campaignData.targetAudience.gender} 
+          <Select
+            value={campaignData.targetAudience.gender}
             onValueChange={(value) => onUpdateTargetAudience('gender', value)}
           >
             <SelectTrigger>
@@ -101,8 +102,8 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       <div className="grid grid-cols-2 gap-6">
         <div>
           <Label>Ethnicity</Label>
-          <Select 
-            value={campaignData.targetAudience.ethnicity} 
+          <Select
+            value={campaignData.targetAudience.ethnicity}
             onValueChange={(value) => onUpdateTargetAudience('ethnicity', value)}
           >
             <SelectTrigger>
@@ -118,27 +119,43 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
 
         <div>
           <Label>Location</Label>
-          <SmartLocationInput
+          <ModernLocationAutocomplete
             selected={campaignData.targetAudience.location}
             onSelectionChange={(selected) => onUpdateTargetAudience('location', selected)}
+            placeholder="Search for target locations..."
           />
         </div>
       </div>
 
       <div>
         <Label>Interests & Niches</Label>
+        <p className="text-sm text-muted-foreground mb-3">
+          Select all that apply to your target audience
+        </p>
         <div className="flex flex-wrap gap-2 mt-2">
-          {travelNiches.map((interest) => (
-            <Badge
-              key={interest}
-              variant={campaignData.targetAudience.interests.includes(interest) ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => onToggleInterest(interest)}
-            >
-              {interest}
-            </Badge>
-          ))}
+          {travelNiches.map((interest) => {
+            const isSelected = campaignData.targetAudience.interests.includes(interest);
+            return (
+              <Badge
+                key={interest}
+                variant={isSelected ? "default" : "outline"}
+                className={`cursor-pointer transition-all duration-200 hover:scale-105 ${isSelected
+                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    : "hover:bg-blue-50 hover:border-blue-300"
+                  }`}
+                onClick={() => onToggleInterest(interest)}
+              >
+                {isSelected && <Check className="w-3 h-3 mr-1" />}
+                {interest}
+              </Badge>
+            );
+          })}
         </div>
+        {campaignData.targetAudience.interests.length > 0 && (
+          <p className="text-sm text-blue-600 mt-2">
+            {campaignData.targetAudience.interests.length} interest{campaignData.targetAudience.interests.length > 1 ? 's' : ''} selected
+          </p>
+        )}
       </div>
     </div>
   );

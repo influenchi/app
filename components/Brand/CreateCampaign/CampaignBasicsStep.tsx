@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { Camera, Upload, Sparkles, Loader, X, Check } from "lucide-react";
 import { CampaignData } from "./types";
 import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 interface CampaignBasicsStepProps {
   campaignData: CampaignData;
@@ -19,14 +21,11 @@ interface CampaignBasicsStepProps {
 const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: CampaignBasicsStepProps) => {
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [imageUploadState, setImageUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const { currentUser } = useCurrentUser();
 
   const campaignGoalOptions = [
-    'Brand Awareness',
     'Content Creation',
-    'Product Launch',
-    'User Generated Content',
-    'Event Promotion',
-    'Seasonal Campaign'
+    'Content Distribution'
   ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,10 +62,48 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
     setIsGeneratingDescription(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const aiDescription = `Create engaging content showcasing ${campaignData.title}. We're looking for authentic storytelling that resonates with your audience while highlighting the key features and benefits. Please ensure your content aligns with our brand values and maintains a professional yet approachable tone. Include clear calls-to-action and use relevant hashtags to maximize reach and engagement.`;
-      onUpdate('description', aiDescription);
-      toast.success('AI description generated!');
+      // Get comprehensive brand information from current user
+      const brandProfile = currentUser?.profile as any;
+      const brandName = brandProfile?.company_name || currentUser?.user?.company_name || currentUser?.user?.name;
+      const companyName = currentUser?.user?.company_name || brandProfile?.company_name;
+
+      // Additional brand context for better AI descriptions
+      const brandDescription = brandProfile?.brand_description || '';
+      const website = brandProfile?.website || '';
+      const logoUrl = brandProfile?.logo_url || '';
+
+      const response = await fetch('/api/ai/generate-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaignTitle: campaignData.title,
+          campaignGoals: campaignData.campaignGoal,
+          budgetType: campaignData.budgetType,
+          budget: campaignData.budget,
+          productDescription: campaignData.productServiceDescription,
+          targetAudience: campaignData.targetAudience,
+          brandName: brandName,
+          companyName: companyName,
+          brandDescription: brandDescription,
+          website: website,
+          logoUrl: logoUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const data = await response.json();
+      onUpdate('description', data.description);
+
+      if (data.fallback) {
+        toast.success('Description generated (using fallback)');
+      } else {
+        toast.success('AI-enhanced description generated!');
+      }
     } catch (error) {
       console.error('Error generating AI description:', error);
       toast.error('Failed to generate description. Please try again.');
@@ -219,7 +256,7 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
                   {getImageUploadIcon()}
                   <p className="text-gray-600 font-medium">{getImageUploadText()}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Recommended: 1200x600px or higher
+                    Upload any size that works best for your campaign
                   </p>
                 </div>
               )}

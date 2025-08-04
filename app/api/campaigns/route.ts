@@ -126,6 +126,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
     }
 
+    // For brand requests, add hired creators count
+    let hiredCreatorsCount = 0;
+    if (forBrand && campaigns?.length > 0) {
+      const campaignIds = campaigns.map(c => c.id);
+
+      const { data: acceptedApplications } = await supabaseAdmin
+        .from('campaign_applications')
+        .select('creator_id')
+        .eq('status', 'accepted')
+        .in('campaign_id', campaignIds);
+
+      // Count distinct hired creators
+      if (acceptedApplications) {
+        const uniqueCreatorIds = new Set(acceptedApplications.map(app => app.creator_id));
+        hiredCreatorsCount = uniqueCreatorIds.size;
+      }
+    }
+
     // If the request is from a creator, check application status for each campaign
     if (!forBrand && session.user.user_type === 'creator' && campaigns) {
       // Get all application statuses for this creator
@@ -167,7 +185,12 @@ export async function GET(request: NextRequest) {
       budgetType: [campaign.budget_type || 'paid']
     }));
 
-    return NextResponse.json({ campaigns: campaignsWithMappedBudgetType });
+    const response = {
+      campaigns: campaignsWithMappedBudgetType,
+      ...(forBrand && { hiredCreatorsCount })
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Campaigns fetch error:', error);
     return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });

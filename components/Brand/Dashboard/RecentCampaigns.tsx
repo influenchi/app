@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, Images, Calendar, Gift, DollarSign, Wrench } from "lucide-react";
+import { Users, TrendingUp, Images, Calendar, Gift, DollarSign, Wrench, Copy } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -94,19 +94,24 @@ const RecentCampaigns = ({ campaigns, onCampaignClick }: RecentCampaignsProps) =
             const colors = getStatusColors(campaign.status);
             const budgetInfo = getBudgetDisplay(campaign);
             return (
-              <div 
-                key={campaign.id} 
+              <div
+                key={campaign.id}
                 className={`relative p-6 border rounded-lg cursor-pointer transition-all duration-300 bg-gradient-to-r from-white to-gray-50/50 ${colors.gradient} hover:shadow-lg hover:border-primary/20 group`}
                 onClick={() => onCampaignClick(campaign)}
               >
                 {/* Colored accent bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${colors.accent} group-hover:w-2 transition-all`} />
-                
+
                 <div className="flex-1 ml-2">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{campaign.title}</h3>
-                      <Badge 
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">{campaign.title}</h3>
+                        {campaign.title.includes('(Copy)') && (
+                          <Copy className="h-4 w-4 text-amber-500" title="This is a duplicated campaign - edit the title to remove (Copy)" />
+                        )}
+                      </div>
+                      <Badge
                         variant="outline"
                         className={colors.badge}
                       >
@@ -124,9 +129,9 @@ const RecentCampaigns = ({ campaigns, onCampaignClick }: RecentCampaignsProps) =
                       </div>
                     </div>
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2 group-hover:text-foreground/80 transition-colors">{campaign.description}</p>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-6 text-sm">
                       <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
@@ -145,7 +150,7 @@ const RecentCampaigns = ({ campaigns, onCampaignClick }: RecentCampaignsProps) =
                         <span className="text-purple-600">assets</span>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-1">
                       {campaign.platforms.slice(0, 2).map((platform) => (
                         <Badge key={platform} variant="outline" className="text-xs bg-background hover:bg-accent">

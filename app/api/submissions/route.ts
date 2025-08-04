@@ -162,12 +162,60 @@ export async function PUT(request: NextRequest) {
       .from('campaign_submissions')
       .update(updateData)
       .eq('id', submissionId)
-      .select()
+      .select(`
+        *,
+        campaigns!inner (
+          title,
+          brand_id
+        )
+      `)
       .single();
 
     if (updateError) {
       console.error('Submission update error:', updateError);
       return NextResponse.json({ error: 'Failed to update submission' }, { status: 500 });
+    }
+
+    // Get brand info for notification
+    const { data: brandInfo } = await supabaseAdmin
+      .from('users')
+      .select('first_name, last_name, company_name')
+      .eq('id', session.user.id)
+      .single();
+
+    // Create notification for the creator
+    if (data && data.campaigns && brandInfo) {
+      const brandName = brandInfo.first_name && brandInfo.last_name
+        ? `${brandInfo.first_name} ${brandInfo.last_name}`
+        : brandInfo.company_name || 'Brand';
+
+      const notificationType = status === 'approved' ? 'submission_approved' : 'submission_rejected';
+      const notificationTitle = status === 'approved'
+        ? `Submission approved by ${brandName}`
+        : `Submission needs revision`;
+
+      const notificationMessage = status === 'approved'
+        ? `Your submission for "${data.campaigns.title}" has been approved! 🎉`
+        : rejectionComment
+          ? `Your submission for "${data.campaigns.title}" needs revision: ${rejectionComment}`
+          : `Your submission for "${data.campaigns.title}" was rejected. Please check the feedback and resubmit.`;
+
+      await supabaseAdmin
+        .from('notifications')
+        .insert({
+          user_id: data.creator_id,
+          type: notificationType,
+          title: notificationTitle,
+          message: notificationMessage,
+          data: {
+            campaign_id: data.campaign_id,
+            submission_id: submissionId,
+            brand_id: session.user.id,
+            brand_name: brandName,
+            status: status,
+            rejection_comment: rejectionComment || null
+          }
+        });
     }
 
     return NextResponse.json({ success: true, submission: data });

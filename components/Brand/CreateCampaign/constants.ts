@@ -11,7 +11,7 @@ export const contentTypesBySocial = {
 };
 
 export const travelNiches = [
-  'Luxury Travel', 'Budget Travel', 'Adventure Travel', 'Solo Travel', 
+  'Luxury Travel', 'Budget Travel', 'Adventure Travel', 'Solo Travel',
   'Family Travel', 'Couple Travel', 'Backpacking', 'Glamping',
   'City Breaks', 'Beach Destinations', 'Mountain Adventures', 'Road Trips',
   'Food Tourism', 'Cultural Travel', 'Eco Tourism', 'Digital Nomad',
@@ -20,7 +20,7 @@ export const travelNiches = [
 
 export const audienceSizeOptions = [
   '1K - 10K followers',
-  '10K - 50K followers', 
+  '10K - 50K followers',
   '50K - 100K followers',
   '100K - 500K followers',
   '500K - 1M followers',
@@ -29,7 +29,7 @@ export const audienceSizeOptions = [
 
 export const ageRangeOptions = [
   '18-24',
-  '25-34', 
+  '25-34',
   '35-44',
   '45-54',
   '55-64',
@@ -39,7 +39,7 @@ export const ageRangeOptions = [
 export const genderOptions = ['Any', 'Female', 'Male'];
 
 export const ethnicityOptions = [
-  'Any', 'Asian', 'Black/African American', 'Hispanic/Latino', 
+  'Any', 'Asian', 'Black/African American', 'Hispanic/Latino',
   'White/Caucasian', 'Middle Eastern', 'Pacific Islander', 'Mixed/Other'
 ];
 
@@ -64,5 +64,45 @@ export const locationData = {
     'New South Wales': ['Sydney', 'Newcastle', 'Wollongong', 'Central Coast', 'Maitland'],
     'Victoria': ['Melbourne', 'Geelong', 'Ballarat', 'Bendigo', 'Frankston'],
     'Queensland': ['Brisbane', 'Gold Coast', 'Townsville', 'Cairns', 'Toowoomba']
+  },
+  'Germany': {
+    'Bavaria': ['Munich', 'Nuremberg', 'Augsburg', 'Würzburg', 'Regensburg'],
+    'North Rhine-Westphalia': ['Cologne', 'Düsseldorf', 'Dortmund', 'Essen', 'Duisburg'],
+    'Baden-Württemberg': ['Stuttgart', 'Mannheim', 'Karlsruhe', 'Freiburg', 'Heidelberg']
+  },
+  'France': {
+    'Île-de-France': ['Paris', 'Boulogne-Billancourt', 'Saint-Denis', 'Argenteuil', 'Versailles'],
+    'Provence-Alpes-Côte d\'Azur': ['Marseille', 'Nice', 'Toulon', 'Aix-en-Provence', 'Avignon'],
+    'Auvergne-Rhône-Alpes': ['Lyon', 'Grenoble', 'Saint-Étienne', 'Villeurbanne', 'Annecy']
+  },
+  'Spain': {
+    'Madrid': ['Madrid', 'Móstoles', 'Alcalá de Henares', 'Fuenlabrada', 'Leganés'],
+    'Catalonia': ['Barcelona', 'Hospitalet de Llobregat', 'Badalona', 'Terrassa', 'Sabadell'],
+    'Andalusia': ['Seville', 'Málaga', 'Córdoba', 'Granada', 'Jerez de la Frontera']
+  },
+  'Italy': {
+    'Lazio': ['Rome', 'Latina', 'Aprilia', 'Viterbo', 'Civitavecchia'],
+    'Lombardy': ['Milan', 'Brescia', 'Monza', 'Bergamo', 'Como'],
+    'Campania': ['Naples', 'Salerno', 'Giugliano in Campania', 'Torre del Greco', 'Pozzuoli']
+  },
+  'Portugal': {
+    'Lisbon': ['Lisbon', 'Sintra', 'Cascais', 'Loures', 'Oeiras'],
+    'Porto': ['Porto', 'Vila Nova de Gaia', 'Matosinhos', 'Maia', 'Valongo'],
+    'Faro': ['Faro', 'Portimão', 'Lagos', 'Olhão', 'Loulé']
+  },
+  'Netherlands': {
+    'North Holland': ['Amsterdam', 'Haarlem', 'Zaanstad', 'Haarlemmermeer', 'Alkmaar'],
+    'South Holland': ['The Hague', 'Rotterdam', 'Leiden', 'Zoetermeer', 'Dordrecht'],
+    'Utrecht': ['Utrecht', 'Nieuwegein', 'Veenendaal', 'Houten', 'Zeist']
+  },
+  'Brazil': {
+    'São Paulo': ['São Paulo', 'Guarulhos', 'Campinas', 'São Bernardo do Campo', 'Santo André'],
+    'Rio de Janeiro': ['Rio de Janeiro', 'São Gonçalo', 'Duque de Caxias', 'Nova Iguaçu', 'Niterói'],
+    'Minas Gerais': ['Belo Horizonte', 'Uberlândia', 'Contagem', 'Juiz de Fora', 'Betim']
+  },
+  'Japan': {
+    'Tokyo': ['Tokyo', 'Hachioji', 'Machida', 'Fuchu', 'Chofu'],
+    'Osaka': ['Osaka', 'Sakai', 'Higashiosaka', 'Hirakata', 'Toyonaka'],
+    'Kanagawa': ['Yokohama', 'Kawasaki', 'Sagamihara', 'Fujisawa', 'Chigasaki']
   }
 };

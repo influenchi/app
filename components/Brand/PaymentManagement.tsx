@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,21 +24,21 @@ import {
   Eye,
   CheckCircle,
   Clock,
-  Star
+  Star,
+  TrendingUp,
+  Users
 } from "lucide-react";
 
 interface PaymentCreator {
-  id: string;
-  name: string;
-  image: string;
+  creatorId: string;
+  creatorName: string;
   email: string;
-  rating: number;
-  completedTasks: number;
-  totalTasks: number;
-  totalEarnings: number;
-  paymentStatus: 'pending' | 'processing' | 'paid';
-  paymentMethod: 'cash' | 'product' | 'service';
-  submissionIds: string[];
+  profilePhoto?: string;
+  completedDate: string;
+  submissionCount: number;
+  totalRequirements: number;
+  budgetType: string;
+  paymentStatus?: 'pending' | 'processing' | 'paid';
 }
 
 interface PaymentManagementProps {
@@ -90,7 +90,8 @@ const mockPaymentCreators: PaymentCreator[] = [
 ];
 
 const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => {
-  const [creators, setCreators] = useState<PaymentCreator[]>(mockPaymentCreators);
+  const [creators, setCreators] = useState<PaymentCreator[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCreator, setSelectedCreator] = useState<PaymentCreator | null>(null);
@@ -98,15 +99,40 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
 
+  // Fetch creators due for payment
+  useEffect(() => {
+    const fetchCreatorsDueForPayment = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/campaigns/${campaignId}/payment-due`);
+        if (response.ok) {
+          const data = await response.json();
+          const creatorsWithStatus = data.creatorsDueForPayment.map((creator: PaymentCreator) => ({
+            ...creator,
+            paymentStatus: 'pending' as const
+          }));
+          setCreators(creatorsWithStatus);
+        } else {
+          console.error('Failed to fetch creators due for payment');
+        }
+      } catch (error) {
+        console.error('Error fetching creators due for payment:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreatorsDueForPayment();
+  }, [campaignId]);
+
   // Filter creators ready for payment (completed all tasks with approved submissions)
   const filteredCreators = useMemo(() => {
     return creators.filter(creator => {
-      const matchesSearch = creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = creator.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           creator.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || creator.paymentStatus === statusFilter;
-      const isReadyForPayment = creator.completedTasks === creator.totalTasks;
       
-      return matchesSearch && matchesStatus && isReadyForPayment;
+      return matchesSearch && matchesStatus;
     });
   }, [creators, searchTerm, statusFilter]);
 
@@ -201,6 +227,22 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
     .filter(c => c.paymentStatus === 'pending' && c.paymentMethod === 'cash')
     .reduce((sum, c) => sum + c.totalEarnings, 0);
 
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading creators due for payment...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (filteredCreators.length === 0 && searchTerm === '' && statusFilter === 'all') {
     return (
       <Card>
@@ -265,22 +307,22 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
         </Card>
       ) : (
         filteredCreators.map((creator) => (
-          <Card key={creator.id} className="overflow-hidden">
+          <Card key={creator.creatorId} className="overflow-hidden">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage src={creator.image} />
-                    <AvatarFallback>{creator.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={creator.profilePhoto || undefined} />
+                    <AvatarFallback>{creator.creatorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{creator.name}</h3>
-                    {renderStarRating(creator.rating)}
+                    <h3 className="font-semibold">{creator.creatorName}</h3>
+                    <p className="text-sm text-gray-600">{creator.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Badge className={getStatusColor(creator.paymentStatus)}>
-                    {creator.paymentStatus}
+                  <Badge className={getStatusColor(creator.paymentStatus || 'pending')}>
+                    {creator.paymentStatus || 'pending'}
                   </Badge>
                 </div>
               </div>
@@ -290,23 +332,23 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Tasks Completed</span>
+                    <span className="text-sm font-medium text-gray-600">Submissions</span>
                     <div className="flex items-center mt-1">
                       <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
-                      <span className="font-semibold">{creator.completedTasks}/{creator.totalTasks}</span>
+                      <span className="font-semibold">{creator.submissionCount}/{creator.totalRequirements}</span>
                     </div>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Payment Method</span>
+                    <span className="text-sm font-medium text-gray-600">Budget Type</span>
                     <div className="flex items-center mt-1">
-                      {getPaymentMethodIcon(creator.paymentMethod)}
-                      <span className="ml-1 text-sm">{getPaymentMethodLabel(creator.paymentMethod)}</span>
+                      {getPaymentMethodIcon(creator.budgetType)}
+                      <span className="ml-1 text-sm">{getPaymentMethodLabel(creator.budgetType)}</span>
                     </div>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Amount Due</span>
+                    <span className="text-sm font-medium text-gray-600">Completed Date</span>
                     <p className="font-semibold mt-1 text-sm">
-                      {getPaymentAmount(creator)}
+                      {new Date(creator.completedDate).toLocaleDateString()}
                     </p>
                   </div>
                   <div>

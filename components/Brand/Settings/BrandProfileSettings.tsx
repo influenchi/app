@@ -1,37 +1,140 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload, Globe, Instagram, Twitter, Linkedin, Youtube, Zap } from "lucide-react";
+import { Upload, Globe, Instagram, Twitter, Linkedin, Youtube, Zap, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const BrandProfileSettings = () => {
   const [profileData, setProfileData] = useState({
-    companyName: "TechCorp Inc.",
-    brandName: "TechCorp",
-    description: "Leading technology solutions provider focused on innovative software development.",
-    website: "https://techcorp.com",
-    instagram: "@techcorp",
-    twitter: "@techcorp_official",
-    linkedin: "company/techcorp",
-    tiktok: "@techcorp_official",
-    youtube: "@techcorp"
+    brand_name: "",
+    website: "",
+    description: "",
+    logo: "",
+    industries: [] as string[],
+    social_media: {
+      instagram: "",
+      twitter: "",
+      linkedin: "",
+      tiktok: "",
+      youtube: ""
+    }
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log('Saving profile data:', profileData);
-    setIsEditing(false);
+  // Fetch brand profile on component mount
+  useEffect(() => {
+    fetchBrandProfile();
+  }, []);
+
+  const fetchBrandProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/brand/profile');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.brandProfile) {
+          setProfileData({
+            brand_name: data.brandProfile.brand_name || "",
+            website: data.brandProfile.website || "",
+            description: data.brandProfile.description || "",
+            logo: data.brandProfile.logo || "",
+            industries: data.brandProfile.industries || [],
+            social_media: data.brandProfile.social_media || {
+              instagram: "",
+              twitter: "",
+              linkedin: "",
+              tiktok: "",
+              youtube: ""
+            }
+          });
+        }
+      } else {
+        console.error('Failed to fetch brand profile');
+      }
+    } catch (error) {
+      console.error('Error fetching brand profile:', error);
+      toast.error('Failed to load brand profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await fetch('/api/brand/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfileData({
+          brand_name: data.brandProfile.brand_name || "",
+          website: data.brandProfile.website || "",
+          description: data.brandProfile.description || "",
+          logo: data.brandProfile.logo || "",
+          industries: data.brandProfile.industries || [],
+          social_media: data.brandProfile.social_media || {
+            instagram: "",
+            twitter: "",
+            linkedin: "",
+            tiktok: "",
+            youtube: ""
+          }
+        });
+        setIsEditing(false);
+        toast.success('Brand profile updated successfully');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to update brand profile');
+      }
+    } catch (error) {
+      console.error('Error saving brand profile:', error);
+      toast.error('Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setProfileData(prev => ({ ...prev, [field]: value }));
+    if (field.startsWith('social_media.')) {
+      const socialField = field.replace('social_media.', '');
+      setProfileData(prev => ({
+        ...prev,
+        social_media: {
+          ...prev.social_media,
+          [socialField]: value
+        }
+      }));
+    } else {
+      setProfileData(prev => ({ ...prev, [field]: value }));
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading brand profile...</span>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -46,11 +149,13 @@ const BrandProfileSettings = () => {
           {/* Profile Picture */}
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src="/placeholder.svg" alt="Brand logo" />
-              <AvatarFallback className="text-lg">TC</AvatarFallback>
+              <AvatarImage src={profileData.logo || undefined} alt="Brand logo" />
+              <AvatarFallback className="text-lg">
+                {profileData.brand_name ? profileData.brand_name.charAt(0).toUpperCase() : 'B'}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" disabled={!isEditing}>
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Logo
               </Button>
@@ -61,23 +166,15 @@ const BrandProfileSettings = () => {
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                value={profileData.companyName}
-                onChange={(e) => handleInputChange('companyName', e.target.value)}
-                disabled={!isEditing}
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <Label htmlFor="brandName">Brand Name</Label>
               <Input
                 id="brandName"
-                value={profileData.brandName}
-                onChange={(e) => handleInputChange('brandName', e.target.value)}
+                value={profileData.brand_name}
+                onChange={(e) => handleInputChange('brand_name', e.target.value)}
                 disabled={!isEditing}
+                placeholder="Enter your brand name"
               />
             </div>
           </div>
@@ -90,6 +187,7 @@ const BrandProfileSettings = () => {
               onChange={(e) => handleInputChange('description', e.target.value)}
               disabled={!isEditing}
               rows={3}
+              placeholder="Describe your brand, what you do, and what makes you unique"
             />
           </div>
 
@@ -107,6 +205,7 @@ const BrandProfileSettings = () => {
                     onChange={(e) => handleInputChange('website', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="https://yourbrand.com"
                   />
                 </div>
               </div>
@@ -116,10 +215,11 @@ const BrandProfileSettings = () => {
                   <Instagram className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="instagram"
-                    value={profileData.instagram}
-                    onChange={(e) => handleInputChange('instagram', e.target.value)}
+                    value={profileData.social_media.instagram}
+                    onChange={(e) => handleInputChange('social_media.instagram', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="@yourbrand"
                   />
                 </div>
               </div>
@@ -129,10 +229,11 @@ const BrandProfileSettings = () => {
                   <Twitter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="twitter"
-                    value={profileData.twitter}
-                    onChange={(e) => handleInputChange('twitter', e.target.value)}
+                    value={profileData.social_media.twitter}
+                    onChange={(e) => handleInputChange('social_media.twitter', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="@yourbrand"
                   />
                 </div>
               </div>
@@ -142,10 +243,11 @@ const BrandProfileSettings = () => {
                   <Linkedin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="linkedin"
-                    value={profileData.linkedin}
-                    onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                    value={profileData.social_media.linkedin}
+                    onChange={(e) => handleInputChange('social_media.linkedin', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="company/yourbrand"
                   />
                 </div>
               </div>
@@ -155,10 +257,11 @@ const BrandProfileSettings = () => {
                   <Zap className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="tiktok"
-                    value={profileData.tiktok}
-                    onChange={(e) => handleInputChange('tiktok', e.target.value)}
+                    value={profileData.social_media.tiktok}
+                    onChange={(e) => handleInputChange('social_media.tiktok', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="@yourbrand"
                   />
                 </div>
               </div>
@@ -168,10 +271,11 @@ const BrandProfileSettings = () => {
                   <Youtube className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="youtube"
-                    value={profileData.youtube}
-                    onChange={(e) => handleInputChange('youtube', e.target.value)}
+                    value={profileData.social_media.youtube}
+                    onChange={(e) => handleInputChange('social_media.youtube', e.target.value)}
                     disabled={!isEditing}
                     className="pl-10"
+                    placeholder="@yourbrand"
                   />
                 </div>
               </div>
@@ -182,11 +286,26 @@ const BrandProfileSettings = () => {
           <div className="flex justify-end space-x-3">
             {isEditing ? (
               <>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={saving}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleSave}>
-                  Save Changes
+                <Button 
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </Button>
               </>
             ) : (

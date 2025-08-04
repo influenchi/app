@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Upload, User, MapPin, X, Info, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import ModernSingleLocationAutocomplete from "@/components/ui/modern-single-location-autocomplete";
 import { CreatorProfileData } from "../types";
 import { useRef, useState } from "react";
 import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
@@ -223,16 +224,11 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
         {/* Location */}
         <div>
           <Label htmlFor="location">Location *</Label>
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="location"
-              value={profileData.location}
-              onChange={(e) => onUpdateData('location', e.target.value)}
-              placeholder="City, State/Country"
-              className="pl-10"
-            />
-          </div>
+          <ModernSingleLocationAutocomplete
+            value={profileData.location}
+            onChange={(value) => onUpdateData('location', value)}
+            placeholder="Enter your city, state/country..."
+          />
           <p className="text-sm text-muted-foreground mt-1">
             This helps brands find creators in specific locations
           </p>

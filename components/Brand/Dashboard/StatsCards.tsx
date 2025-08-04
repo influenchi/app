@@ -1,14 +1,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, DollarSign } from "lucide-react";
+import { Calendar, Users, DollarSign, UserCheck } from "lucide-react";
 
 interface StatsCardsProps {
   stats: {
     totalCampaigns: number;
-    activeCampaigns: number;
     totalApplications: number;
-    totalSpent: number;
-    completedCampaigns: number;
+    hiredCreators: number;
+    totalSpend: number;
   };
 }
 
@@ -23,7 +22,7 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
         <CardContent>
           <div className="text-2xl font-bold text-primary">{stats.totalCampaigns}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.activeCampaigns} currently active
+            All time campaigns
           </p>
         </CardContent>
       </Card>
@@ -43,26 +42,26 @@ const StatsCards = ({ stats }: StatsCardsProps) => {
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Hired Creators</CardTitle>
+          <UserCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-primary">${stats.totalSpent.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-green-600">{stats.hiredCreators}</div>
           <p className="text-xs text-muted-foreground">
-            +12% from last month
+            Creators working with you
           </p>
         </CardContent>
       </Card>
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Completed</CardTitle>
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-accent">{stats.completedCampaigns}</div>
+          <div className="text-2xl font-bold text-primary">${stats.totalSpend.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">
-            Campaigns completed
+            Campaign investments
           </p>
         </CardContent>
       </Card>

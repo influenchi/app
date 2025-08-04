@@ -125,7 +125,7 @@ export function useBrandOnboarding() {
         body: jsonString,
       });
 
-      console.log('📨 Response status:', response.status);
+      console.log('Response status:', response.status);
 
       if (!response.ok) {
         let errorMessage = 'Failed to complete onboarding';
@@ -175,7 +175,10 @@ export function useBrandCampaigns() {
       }
 
       const data = await response.json();
-      return data.campaigns;
+      return {
+        campaigns: data.campaigns,
+        hiredCreatorsCount: data.hiredCreatorsCount || 0
+      };
     },
     enabled: !!session?.user?.id,
   });
@@ -264,7 +267,8 @@ export function useSaveCampaignDraft() {
       }
 
       // Prepare campaign data (exclude File object)
-      const { image: _, id, ...campaignDataWithoutImage } = data;
+      const { image: _image, id, ...campaignDataWithoutImage } = data;
+      void _image;
       const campaignData = {
         ...campaignDataWithoutImage,
         // Ensure required fields have default values for drafts

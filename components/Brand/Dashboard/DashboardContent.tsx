@@ -145,11 +145,7 @@ const DashboardContent = ({
       )}
 
       {activeView === "assets" && (
-        <AssetLibrary
-          subscriptionTier="basic"
-          monthlyDownloadsUsed={18}
-          monthlyDownloadLimit={20}
-        />
+        <AssetLibrary />
       )}
     </div>
   );

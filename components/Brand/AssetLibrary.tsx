@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -17,20 +18,16 @@ import {
 import {
   Download,
   Search,
-  Filter,
   Tag,
   Eye,
   Play,
-  Calendar,
-  User,
   Camera,
   Video,
-  Crown,
-  Lock,
   AlertTriangle,
   Loader2,
 } from "lucide-react";
 import { useBrandAssets, useDownloadAsset } from "@/lib/hooks/useBrand";
+import Image from 'next/image';
 
 interface Asset {
   id: string;
@@ -53,18 +50,18 @@ interface Asset {
   fileSize: string;
 }
 
-interface AssetLibraryProps {
-  // Mock subscription data - in real app this would come from context/props
-  subscriptionTier: 'basic' | 'premium' | 'enterprise' | null;
-  monthlyDownloadsUsed: number;
-  monthlyDownloadLimit: number;
-}
+// interface AssetLibraryProps {
+//   // Mock subscription data - in real app this would come from context/props
+//   // subscriptionTier: 'basic' | 'premium' | 'enterprise' | null;
+//   // monthlyDownloadsUsed: number;
+//   // monthlyDownloadLimit: number;
+// }
 
 const AssetLibrary = ({
-  subscriptionTier = 'basic',
-  monthlyDownloadsUsed = 18,
-  monthlyDownloadLimit = 20
-}: AssetLibraryProps) => {
+  // subscriptionTier = 'basic',
+  // monthlyDownloadsUsed = 18,
+  // monthlyDownloadLimit = 20
+}) => {
   const { data: assets = [], isLoading, error } = useBrandAssets();
   const downloadAsset = useDownloadAsset();
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,18 +70,18 @@ const AssetLibrary = ({
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
-  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  // const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [newTags, setNewTags] = useState('');
 
   // Downloads are unlimited now
-  const canDownload = true;
+  // const canDownload = true;
 
   // Filter assets
   const filteredAssets = useMemo(() => {
-    return assets.filter(asset => {
+    return assets.filter((asset: any) => {
       const matchesSearch = asset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         asset.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+        asset.tags.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesType = typeFilter === 'all' || asset.type === typeFilter;
       const matchesChannel = channelFilter === 'all' || asset.socialChannel === channelFilter;
 
@@ -98,10 +95,10 @@ const AssetLibrary = ({
   };
 
   const handleDownload = (asset: Asset) => {
-    if (!canDownload) {
-      setShowUpgradeDialog(true);
-      return;
-    }
+    // if (!canDownload) {
+    //   setShowUpgradeDialog(true);
+    //   return;
+    // }
 
     downloadAsset.mutate(asset.id);
   };
@@ -123,16 +120,16 @@ const AssetLibrary = ({
     setSelectedAsset(null);
   };
 
-  const getSubscriptionLimitInfo = () => {
-    switch (subscriptionTier) {
-      case 'basic': return { limit: 20, name: 'Basic' };
-      case 'premium': return { limit: 100, name: 'Premium' };
-      case 'enterprise': return { limit: 500, name: 'Enterprise' };
-      default: return { limit: 5, name: 'Free' };
-    }
-  };
+  // const getSubscriptionLimitInfo = () => {
+  //   switch (subscriptionTier) {
+  //     case 'basic': return { limit: 20, name: 'Basic' };
+  //     case 'premium': return { limit: 100, name: 'Premium' };
+  //     case 'enterprise': return { limit: 500, name: 'Enterprise' };
+  //     default: return { limit: 5, name: 'Free' };
+  //   }
+  // };
 
-  const subscriptionInfo = getSubscriptionLimitInfo();
+  // const subscriptionInfo = getSubscriptionLimitInfo();
 
   if (isLoading) {
     return (
@@ -229,16 +226,18 @@ const AssetLibrary = ({
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAssets.map((asset, index) => {
-            const isLocked = false; // No limits anymore
+          {filteredAssets.map((asset: any) => {
+            // const isLocked = false; // No limits anymore
 
             return (
-              <Card key={asset.id} className={`overflow-hidden ${isLocked ? 'opacity-75' : ''}`}>
+              <Card key={asset.id} className="overflow-hidden">
                 <div className="relative aspect-square">
-                  <img
+                  <Image
                     src={asset.thumbnail || asset.url}
                     alt={asset.title}
                     className="w-full h-full object-cover"
+                    width={100}
+                    height={100}
                   />
 
                   {/* Type indicator */}
@@ -252,15 +251,15 @@ const AssetLibrary = ({
                     </Badge>
                   </div>
 
-                  {/* Lock overlay for exceeded limit */}
-                  {isLocked && (
+                  {/* Lock overlay for exceeded limit - COMMENTED OUT */}
+                  {/* {isLocked && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <div className="text-center text-white">
                         <Lock className="h-8 w-8 mx-auto mb-2" />
                         <p className="text-sm font-medium">Upgrade to Download</p>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Action buttons */}
                   <div className="absolute top-2 right-2 flex gap-1">
@@ -282,13 +281,13 @@ const AssetLibrary = ({
                   <div className="flex items-center gap-2 mb-2">
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={asset.creatorImage} />
-                      <AvatarFallback>{asset.creatorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      <AvatarFallback>{asset.creatorName.split(' ').map((n: any) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <span className="text-xs text-muted-foreground">{asset.creatorName}</span>
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {asset.tags.slice(0, 3).map((tag) => (
+                    {asset.tags.slice(0, 3).map((tag: any) => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -312,7 +311,8 @@ const AssetLibrary = ({
                       <Button
                         size="sm"
                         onClick={() => handleDownload(asset)}
-                        disabled={isLocked || downloadAsset.isPending}
+                        disabled={downloadAsset.isPending}
+                        className="bg-black"
                       >
                         {downloadAsset.isPending ? (
                           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -346,10 +346,12 @@ const AssetLibrary = ({
                     <p className="text-sm sm:text-base text-muted-foreground">Video Preview</p>
                   </div>
                 ) : (
-                  <img
+                  <Image
                     src={selectedAsset.url}
                     alt={selectedAsset.title}
                     className="max-w-full max-h-full object-contain"
+                    width={100}
+                    height={100}
                   />
                 )}
               </div>
@@ -415,8 +417,8 @@ const AssetLibrary = ({
         </DialogContent>
       </Dialog>
 
-      {/* Upgrade Dialog - Enhanced responsiveness */}
-      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+      {/* Upgrade Dialog - Enhanced responsiveness - COMMENTED OUT */}
+      {/* <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
         <DialogContent className="w-[95vw] max-w-lg">
           <DialogHeader>
             <DialogTitle>Download Limit Reached</DialogTitle>
@@ -427,7 +429,7 @@ const AssetLibrary = ({
               <div>
                 <p className="font-medium">Monthly download limit exceeded</p>
                 <p className="text-sm text-muted-foreground">
-                  You've reached your monthly limit of {monthlyDownloadLimit} downloads.
+                  You&apos;ve reached your monthly limit of {monthlyDownloadLimit} downloads.
                 </p>
               </div>
             </div>
@@ -453,7 +455,7 @@ const AssetLibrary = ({
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 };

@@ -1,15 +1,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, Copy } from "lucide-react";
 
 interface CampaignHeaderProps {
   campaign: any;
   onBack: () => void;
   onEdit: () => void;
+  onDuplicate: () => void;
 }
 
-const CampaignHeader = ({ campaign, onBack, onEdit }: CampaignHeaderProps) => {
+const CampaignHeader = ({ campaign, onBack, onEdit, onDuplicate }: CampaignHeaderProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
@@ -29,7 +30,7 @@ const CampaignHeader = ({ campaign, onBack, onEdit }: CampaignHeaderProps) => {
             Back to Dashboard
           </Button>
         </div>
-        
+
         {/* Title and actions aligned */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -38,13 +39,22 @@ const CampaignHeader = ({ campaign, onBack, onEdit }: CampaignHeaderProps) => {
               {campaign.status}
             </Badge>
           </div>
-          
-          {campaign.status === 'draft' && (
-            <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Campaign
+
+          <div className="flex items-center space-x-3">
+            {/* Edit button - for draft and active campaigns */}
+            {(campaign.status === 'draft' || campaign.status === 'active') && (
+              <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Campaign
+              </Button>
+            )}
+
+            {/* Duplicate button - for all campaigns */}
+            <Button onClick={onDuplicate} variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
             </Button>
-          )}
+          </div>
         </div>
       </div>
     </header>
