@@ -54,7 +54,7 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
     // Extract files and URLs for parent component
     const filesAndUrls = portfolioImages.map(img => img.file || img.url).filter(Boolean);
     onUpdateData('portfolioImages', filesAndUrls);
-  }, [portfolioImages, hasInitialized, onUpdateData]);
+  }, [portfolioImages, hasInitialized, onUpdateData]); // onUpdateData is now stable via useCallback
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

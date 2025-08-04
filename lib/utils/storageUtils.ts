@@ -465,7 +465,7 @@ export async function uploadSubmissionAssets(
     formData.append('campaignId', campaignId);
     formData.append('taskId', taskId);
 
-    console.log(`✨ Uploading ${files.length} submission assets...`);
+    console.log(`Uploading ${files.length} submission assets...`);
 
     const response = await fetch('/api/upload/submission-assets', {
       method: 'POST',

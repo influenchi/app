@@ -53,7 +53,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Budget Type</Label>
+          <Label>Budget Type <span className="text-red-500">*</span></Label>
           <div className="flex space-x-2 mt-2">
             {['paid', 'gifted', 'affiliate'].map((type) => {
               const isSelected = campaignData.budgetType.includes(type);
@@ -82,7 +82,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
             {campaignData.budgetType.includes('paid') ? 'Budget Amount ($ USD)' :
               campaignData.budgetType.includes('gifted') ? 'Product Value ($ USD)' :
                 campaignData.budgetType.includes('affiliate') ? 'Commission Rate' :
-                  'Budget ($ USD)'}
+                  'Budget ($ USD)'} <span className="text-red-500">*</span>
           </Label>
           <Input
             id="budget"
@@ -92,6 +92,7 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
               campaignData.budgetType.includes('gifted') ? '200' :
                 campaignData.budgetType.includes('affiliate') ? '10%' :
                   'Enter amount'}
+            className={!campaignData.budget?.trim() ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''}
           />
         </div>
       </div>
@@ -168,23 +169,25 @@ const BudgetTimelineStep = ({ campaignData, onUpdate, onUpdateBudgetType }: Budg
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="startDate">Campaign Start Date</Label>
+            <Label htmlFor="startDate">Campaign Start Date <span className="text-red-500">*</span></Label>
             <Input
               id="startDate"
               type="date"
               value={campaignData.startDate}
               onChange={(e) => onUpdate('startDate', e.target.value)}
+              className={!campaignData.startDate?.trim() ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''}
             />
           </div>
 
           <div>
-            <Label htmlFor="completionDate">Campaign Completion Date</Label>
+            <Label htmlFor="completionDate">Campaign Completion Date <span className="text-red-500">*</span></Label>
             <Input
               id="completionDate"
               type="date"
               value={campaignData.completionDate}
               onChange={(e) => onUpdate('completionDate', e.target.value)}
               min={getMinCompletionDate()}
+              className={!campaignData.completionDate?.trim() ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''}
             />
           </div>
         </div>

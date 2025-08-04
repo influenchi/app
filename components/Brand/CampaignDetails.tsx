@@ -62,7 +62,7 @@ interface CampaignDetailsProps {
 }
 
 const CampaignDetails = ({ campaign, onBack, onEdit, defaultTab = 'details', messageId }: CampaignDetailsProps) => {
-  console.log('🏁 CampaignDetails render:', {
+  console.log('CampaignDetails render:', {
     campaignTitle: campaign.title,
     defaultTab,
     messageId

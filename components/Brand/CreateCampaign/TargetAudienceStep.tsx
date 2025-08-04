@@ -27,7 +27,7 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
       </h3>
 
       <div>
-        <Label htmlFor="creatorCount">Number of Creators Needed</Label>
+        <Label htmlFor="creatorCount">Number of Creators Needed <span className="text-red-500">*</span></Label>
         <Input
           id="creatorCount"
           type="number"
@@ -35,13 +35,14 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
           value={campaignData.creatorCount}
           onChange={(e) => onUpdate('creatorCount', e.target.value)}
           placeholder="5"
+          className={!campaignData.creatorCount?.trim() || Number(campaignData.creatorCount) < 1 ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : ''}
         />
       </div>
 
       {isDistributionGoal && (
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <Label>Primary Social Channel</Label>
+            <Label>Primary Social Channel <span className="text-red-500">*</span></Label>
             <Select
               value={campaignData.targetAudience.socialChannel}
               onValueChange={(value) => onUpdateTargetAudience('socialChannel', value)}
@@ -58,7 +59,7 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
           </div>
 
           <div>
-            <Label>Audience Size</Label>
+            <Label>Audience Size <span className="text-red-500">*</span></Label>
             <MultiSelect
               options={audienceSizeOptions}
               selected={campaignData.targetAudience.audienceSize}
@@ -128,18 +129,33 @@ const TargetAudienceStep = ({ campaignData, onUpdateTargetAudience, onToggleInte
 
       <div>
         <Label>Interests & Niches</Label>
+        <p className="text-sm text-muted-foreground mb-3">
+          Select all that apply to your target audience
+        </p>
         <div className="flex flex-wrap gap-2 mt-2">
-          {travelNiches.map((interest) => (
-            <Badge
-              key={interest}
-              variant={campaignData.targetAudience.interests.includes(interest) ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => onToggleInterest(interest)}
-            >
-              {interest}
-            </Badge>
-          ))}
+          {travelNiches.map((interest) => {
+            const isSelected = campaignData.targetAudience.interests.includes(interest);
+            return (
+              <Badge
+                key={interest}
+                variant={isSelected ? "default" : "outline"}
+                className={`cursor-pointer transition-all duration-200 hover:scale-105 ${isSelected
+                    ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    : "hover:bg-blue-50 hover:border-blue-300"
+                  }`}
+                onClick={() => onToggleInterest(interest)}
+              >
+                {isSelected && <Check className="w-3 h-3 mr-1" />}
+                {interest}
+              </Badge>
+            );
+          })}
         </div>
+        {campaignData.targetAudience.interests.length > 0 && (
+          <p className="text-sm text-blue-600 mt-2">
+            {campaignData.targetAudience.interests.length} interest{campaignData.targetAudience.interests.length > 1 ? 's' : ''} selected
+          </p>
+        )}
       </div>
     </div>
   );

@@ -265,7 +265,7 @@ export function useSubmitContent() {
 
       const { files, descriptions, tags, ...submissionData } = data;
 
-      console.log('🚀 Starting content submission process...');
+      console.log('Starting content submission process...');
 
       // First, upload all the files
       const uploadResult = await uploadSubmissionAssets(
@@ -290,7 +290,7 @@ export function useSubmitContent() {
         tags: tags[index] || tags[asset.name] || []
       }));
 
-      console.log('📤 Creating submission with uploaded assets...');
+      console.log('Creating submission with uploaded assets...');
 
       // Create the submission
       const response = await fetch('/api/creator/submissions', {

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Plus, X, Shield, Video, CheckCircle } from "lucide-react";
+import { Camera, Plus, X, Shield, Video, CheckCircle, Upload, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
+import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 
 const CreatorProfileSettings = () => {
   const [profileData, setProfileData] = useState({
@@ -25,10 +26,19 @@ const CreatorProfileSettings = () => {
   const [newCategory, setNewCategory] = useState("");
   const [vettingVideoUrl, setVettingVideoUrl] = useState("");
   const [isSubmittingVideo, setIsSubmittingVideo] = useState(false);
+  const [portfolioImages, setPortfolioImages] = useState<string[]>([]);
+  const [isUploadingPortfolio, setIsUploadingPortfolio] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | undefined;
   const isVetted = creatorProfile?.is_vetted || false;
+
+  // Initialize portfolio images from current user profile
+  useEffect(() => {
+    if (creatorProfile?.portfolio_images) {
+      setPortfolioImages(creatorProfile.portfolio_images);
+    }
+  }, [creatorProfile?.portfolio_images]);
 
   const handleSave = () => {
     // TODO: Implement save functionality
@@ -96,6 +106,51 @@ const CreatorProfileSettings = () => {
     } finally {
       setIsSubmittingVideo(false);
     }
+  };
+
+  const handlePortfolioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingPortfolio(true);
+    try {
+      const { uploadPortfolioImages } = await import('@/lib/utils/storageUtils');
+      const result = await uploadPortfolioImages(Array.from(files), currentUser?.user?.id || '');
+
+      if (result.urls && result.urls.length > 0) {
+        setPortfolioImages(prev => [...prev, ...result.urls]);
+        toast({
+          title: "Portfolio updated!",
+          description: `${result.urls.length} image(s) added to your portfolio.`,
+        });
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        result.errors.forEach(error => {
+          toast({
+            title: "Upload error",
+            description: error,
+            variant: "destructive"
+          });
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload portfolio images. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingPortfolio(false);
+    }
+  };
+
+  const removePortfolioImage = (index: number) => {
+    setPortfolioImages(prev => prev.filter((_, i) => i !== index));
+    toast({
+      title: "Image removed",
+      description: "Portfolio image has been removed.",
+    });
   };
 
   return (
@@ -212,6 +267,80 @@ const CreatorProfileSettings = () => {
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Portfolio Images */}
+          <div>
+            <Label className="flex items-center gap-2 mb-3">
+              <Upload className="h-4 w-4" />
+              Portfolio Images ({portfolioImages.length}/5)
+            </Label>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+              {portfolioImages.map((imageUrl, index) => (
+                <Card key={index} className="relative group overflow-hidden">
+                  <CardContent className="p-2">
+                    <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
+                      <img
+                        src={imageUrl}
+                        alt={`Portfolio ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Portfolio image failed to load:', imageUrl);
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removePortfolioImage(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Add Image Button */}
+              {portfolioImages.length < 5 && (
+                <Card
+                  className="border-dashed border-2 border-gray-300 hover:border-blue-400 transition-colors cursor-pointer"
+                  onClick={() => document.getElementById('portfolio-upload')?.click()}
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square flex flex-col items-center justify-center text-gray-500 hover:text-blue-600 transition-colors">
+                      {isUploadingPortfolio ? (
+                        <div className="animate-spin h-8 w-8 border-2 border-current border-t-transparent rounded-full" />
+                      ) : (
+                        <>
+                          <Upload className="h-8 w-8 mb-2" />
+                          <span className="text-sm font-medium">Add Image</span>
+                          <span className="text-xs">{getFileTypeDisplay()}</span>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              id="portfolio-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePortfolioUpload}
+              className="hidden"
+              disabled={isUploadingPortfolio || portfolioImages.length >= 5}
+            />
+
+            <p className="text-sm text-muted-foreground">
+              Upload up to 5 portfolio images to showcase your work ({getMaxFileSizeDisplay()} max per image)
+            </p>
           </div>
 
           <div className="flex justify-end space-x-3">

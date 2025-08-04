@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
       productDescription,
       targetAudience,
       brandName,
-      companyName
+      companyName,
+      brandDescription,
+      website,
+      logoUrl
     } = body;
 
     if (!campaignTitle) {
@@ -40,6 +43,9 @@ CAMPAIGN DETAILS:
 
 BRAND INFORMATION:
 - Brand Name: ${brandName || companyName || 'Your Brand'}
+- Company: ${companyName || brandName || 'Your Company'}
+- Brand Description: ${brandDescription || 'Not specified'}
+- Website: ${website || 'Not specified'}
 
 TARGET AUDIENCE:
 - Demographics: ${targetAudience?.ageRange?.join(', ') || 'Not specified'}
@@ -49,14 +55,17 @@ TARGET AUDIENCE:
 
 REQUIREMENTS:
 1. Write a compelling campaign description (50-150 words)
-2. Include the campaign's value proposition
-3. Specify what type of creator would be ideal
-4. Mention key brand guidelines and content expectations
-5. Include a clear call-to-action
-6. Make it authentic and engaging
-7. Focus on the benefits for both the creator and their audience
+2. Include the campaign's value proposition and brand story
+3. Specify what type of creator would be ideal for this brand
+4. Reference the brand's personality and values from the description
+5. Mention key content expectations that align with the brand identity
+6. Include a clear call-to-action that reflects the brand voice
+7. Make it authentic and engaging, true to the brand's character
+8. Focus on the mutual benefits - brand exposure for creators, authentic content for the brand
+9. If budget type is 'gifted', emphasize the product value and experience
+10. If website is provided, subtly reference the brand's digital presence
 
-The tone should be professional yet approachable, inspiring creators to participate while clearly communicating expectations.
+The tone should match the brand's personality (professional, casual, luxury, etc.) while being inspiring and clear about expectations. Use the brand description to inform the voice and style.
 
 Generate ONLY the campaign description text, no additional formatting or labels.`;
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -68,9 +68,11 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
         form.setValue('lastName', session.user.last_name, { shouldValidate: true });
       }
 
-      // Auto-suggest displayName based on firstName and lastName
+      // Auto-suggest displayName based on firstName and lastName (replace spaces with underscores)
       if (session.user.first_name && session.user.last_name && !form.getValues('displayName')) {
-        const suggestedDisplayName = `${session.user.first_name} ${session.user.last_name}`.trim();
+        const suggestedDisplayName = `${session.user.first_name} ${session.user.last_name}`
+          .trim()
+          .replace(/\s+/g, '_'); // Replace spaces with underscores for standard username formatting
         if (suggestedDisplayName) {
           form.setValue('displayName', suggestedDisplayName, { shouldValidate: true });
         }
@@ -82,6 +84,8 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
 
   // Watch form values to ensure reactivity
   const formValues = form.watch();
+
+  // Portfolio images are now managed properly via the PortfolioStep component
 
   // Check display name availability only on step 1
   const displayNameCheck = useDisplayNameCheck(
@@ -125,6 +129,8 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
       }
     }
 
+    // Final step validation happens here
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -145,6 +151,8 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     const hasProfileImage = formData.profileImage instanceof File;
     const hasPortfolioFiles = formData.portfolioImages?.some(img => img instanceof File);
 
+
+
     if (hasProfileImage || hasPortfolioFiles) {
       setIsSubmitting(true);
     }
@@ -163,13 +171,13 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     });
   };
 
-  const updateProfileData = (field: string, value: unknown) => {
+  const updateProfileData = useCallback((field: string, value: unknown) => {
     form.setValue(field as keyof CreatorOnboardingFormData, value, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true
     });
-  };
+  }, [form]);
 
   const CurrentStepComponent = steps[currentStep - 1].component;
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { Camera, Upload, Sparkles, Loader, X, Check } from "lucide-react";
 import { CampaignData } from "./types";
 import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
 
 interface CampaignBasicsStepProps {
   campaignData: CampaignData;
@@ -19,6 +21,7 @@ interface CampaignBasicsStepProps {
 const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: CampaignBasicsStepProps) => {
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [imageUploadState, setImageUploadState] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const { currentUser } = useCurrentUser();
 
   const campaignGoalOptions = [
     'Content Creation',
@@ -59,6 +62,16 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
     setIsGeneratingDescription(true);
 
     try {
+      // Get comprehensive brand information from current user
+      const brandProfile = currentUser?.profile as any;
+      const brandName = brandProfile?.company_name || currentUser?.user?.company_name || currentUser?.user?.name;
+      const companyName = currentUser?.user?.company_name || brandProfile?.company_name;
+
+      // Additional brand context for better AI descriptions
+      const brandDescription = brandProfile?.brand_description || '';
+      const website = brandProfile?.website || '';
+      const logoUrl = brandProfile?.logo_url || '';
+
       const response = await fetch('/api/ai/generate-description', {
         method: 'POST',
         headers: {
@@ -71,6 +84,11 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
           budget: campaignData.budget,
           productDescription: campaignData.productServiceDescription,
           targetAudience: campaignData.targetAudience,
+          brandName: brandName,
+          companyName: companyName,
+          brandDescription: brandDescription,
+          website: website,
+          logoUrl: logoUrl,
         }),
       });
 
