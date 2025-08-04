@@ -40,7 +40,7 @@ interface Campaign {
   description: string;
   status: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate' | 'cash' | 'product' | 'service';
   product_service_description?: string;
   creator_purchase_required: boolean;
   product_ship_required: boolean;
