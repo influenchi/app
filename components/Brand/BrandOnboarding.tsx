@@ -248,8 +248,13 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
                 <Input
                   id="website"
                   type="url"
-                  {...form.register('website')}
                   placeholder="https://yourbrand.com"
+                  {...form.register('website', {
+                    validate: (value) => {
+                      if (!value) return true; // Optional field
+                      return /^https?:\/\//i.test(value) || 'Please include http:// or https:// in the URL';
+                    }
+                  })}
                 />
                 {form.formState.errors.website && (
                   <p className="text-sm text-red-500 mt-1">{form.formState.errors.website.message}</p>
