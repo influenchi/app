@@ -46,8 +46,11 @@ export async function POST(request: NextRequest) {
         affiliateProgram: campaignData.affiliateProgram || null,
       };
     } else {
-      // For active campaigns, use full validation
-      validatedData = campaignSchema.parse(campaignData);
+      // For active campaigns, use full validation. Include imageUrl in validation as 'image' field
+      validatedData = campaignSchema.parse({
+        ...campaignData,
+        image: imageUrl // Provide image value expected by schema
+      });
     }
 
     // Take the first budget type (no mapping needed as DB now uses same values)
