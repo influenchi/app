@@ -37,11 +37,18 @@ function cleanStringValue(value: unknown): string {
   return cleaned;
 }
 
+// Ensure website URL has a scheme; prepend https:// if missing
+function normalizeWebsiteUrl(url: string): string {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+}
+
 // Helper function to clean the entire payload
 function cleanPayload(data: BrandOnboardingData): BrandOnboardingPayload {
   return {
     brandName: cleanStringValue(data.brandName),
-    website: cleanStringValue(data.website),
+    website: normalizeWebsiteUrl(cleanStringValue(data.website)),
     description: cleanStringValue(data.description),
     industries: Array.isArray(data.industries) ? data.industries.filter(Boolean) : [],
     socialMedia: {
