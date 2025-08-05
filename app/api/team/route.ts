@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { NotificationService } from "@/lib/notifications";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -144,8 +145,29 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Failed to create invitation' }, { status: 500 });
     }
 
-    // TODO: Send invitation email here
-    // For now, we'll just return success
+    // Get brand details for email
+    const { data: brandUser } = await supabaseAdmin
+      .from('users')
+      .select('first_name, last_name, company_name')
+      .eq('id', session.user.id)
+      .single();
+
+    const inviterName = brandUser ? `${brandUser.first_name} ${brandUser.last_name}`.trim() : 'Team Admin';
+    const brandName = brandUser?.company_name || 'Influenchi Team';
+
+    // Send invitation email
+    try {
+      await NotificationService.sendTeamInvitation(
+        email,
+        inviterName,
+        brandName,
+        role,
+        invitationToken
+      );
+    } catch (emailError) {
+      console.error('Failed to send invitation email:', emailError);
+      // Don't fail the invitation creation if email fails
+    }
 
     return Response.json({
       message: 'Invitation sent successfully',

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { NotificationService } from "@/lib/notifications";
 
 const sendMessageSchema = z.object({
   campaignId: z.string().uuid(),
@@ -130,6 +131,29 @@ export async function POST(request: NextRequest) {
         await supabase
           .from('notifications')
           .insert(notificationInserts);
+
+        // Send email notifications to creators about brand message
+        try {
+          for (const app of acceptedApplications) {
+            const { data: creatorInfo } = await supabase
+              .from('users')
+              .select('first_name, email')
+              .eq('id', app.creator_id)
+              .single();
+
+            if (creatorInfo) {
+              await NotificationService.sendCreatorMessageReceived(
+                app.creator_id,
+                creatorInfo.first_name || 'there',
+                creatorInfo.email,
+                campaign.title,
+                sender?.name || 'the brand'
+              );
+            }
+          }
+        } catch (emailError) {
+          console.error('Failed to send broadcast message emails:', emailError);
+        }
       }
     } else if (!validatedData.isBroadcast) {
       // Direct message - create notification for recipient
@@ -149,6 +173,45 @@ export async function POST(request: NextRequest) {
             sender_name: sender?.name || 'User'
           }
         });
+
+      // Send email notification for direct message
+      try {
+        const { data: recipientInfo } = await supabase
+          .from('users')
+          .select('first_name, email, user_type')
+          .eq('id', recipientId)
+          .single();
+
+        if (recipientInfo) {
+          if (recipientInfo.user_type === 'brand') {
+            // Creator sending message to brand
+            const { data: creatorInfo } = await supabase
+              .from('creators')
+              .select('display_name')
+              .eq('user_id', userId)
+              .single();
+
+            await NotificationService.sendBrandMessageReceived(
+              recipientId,
+              recipientInfo.first_name || 'there',
+              recipientInfo.email,
+              campaign.title,
+              creatorInfo?.display_name || 'A creator'
+            );
+          } else {
+            // Brand sending message to creator
+            await NotificationService.sendCreatorMessageReceived(
+              recipientId,
+              recipientInfo.first_name || 'there',
+              recipientInfo.email,
+              campaign.title,
+              sender?.name || 'the brand'
+            );
+          }
+        }
+      } catch (emailError) {
+        console.error('Failed to send direct message email:', emailError);
+      }
     }
 
     return NextResponse.json({ message, success: true });

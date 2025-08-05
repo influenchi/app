@@ -2,6 +2,58 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest } from "next/server";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { token: string } }
+) {
+  try {
+    const invitationToken = params.token;
+
+    // Get invitation details with brand information
+    const { data: invitation, error: inviteError } = await supabaseAdmin
+      .from('team_invitations')
+      .select(`
+        *,
+        brand:users!team_invitations_brand_id_fkey(
+          id, 
+          company_name, 
+          first_name, 
+          last_name
+        ),
+        inviter:users!team_invitations_invited_by_fkey(
+          first_name, 
+          last_name
+        )
+      `)
+      .eq('invitation_token', invitationToken)
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (inviteError || !invitation) {
+      return Response.json({
+        error: 'Invalid or expired invitation'
+      }, { status: 400 });
+    }
+
+    // Return invitation details (without sensitive data)
+    return Response.json({
+      invitation: {
+        email: invitation.email,
+        role: invitation.role,
+        brandName: invitation.brand?.company_name || 'Influenchi Team',
+        inviterName: `${invitation.inviter?.first_name || ''} ${invitation.inviter?.last_name || ''}`.trim() || 'Team Admin',
+        expiresAt: invitation.expires_at,
+        createdAt: invitation.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching invitation:', error);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { token: string } }

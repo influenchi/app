@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { creatorOnboardingSchema } from '@/lib/validations/creator';
+import { NotificationService } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -204,6 +205,18 @@ export async function POST(request: NextRequest) {
 
       if (insertResult.data && !error) {
         console.log('Creator profile created:', insertResult.data.id);
+        
+        // Send welcome email for new creator signup
+        try {
+          await NotificationService.sendCreatorWelcome(
+            userId,
+            validatedData.firstName || 'there',
+            session.user.email!
+          );
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't fail the onboarding process if email fails
+        }
       }
     }
 

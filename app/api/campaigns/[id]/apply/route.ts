@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { creatorApplicationSchema } from "@/lib/validations/creator";
+import { NotificationService } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -86,6 +87,52 @@ export async function POST(
       .from('campaigns')
       .update({ applicant_count: (campaign.applicant_count || 0) + 1 })
       .eq('id', campaignId);
+
+    // Send notification emails
+    try {
+      // Get campaign and brand info
+      const { data: campaignInfo } = await supabaseAdmin
+        .from('campaigns')
+        .select(`
+          title,
+          brand_id,
+          users!brand_id(first_name, email)
+        `)
+        .eq('id', campaignId)
+        .single();
+
+      // Get creator info
+      const { data: creatorInfo } = await supabaseAdmin
+        .from('creators')
+        .select('display_name')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (campaignInfo?.users) {
+        // Notify brand of new application
+        await NotificationService.sendBrandCreatorApplied(
+          campaignInfo.brand_id,
+          campaignInfo.users.first_name || 'there',
+          campaignInfo.users.email,
+          campaignId,
+          campaignInfo.title,
+          creatorInfo?.display_name || 'A creator'
+        );
+      }
+
+      // Confirm application to creator
+      await NotificationService.sendCreatorApplicationConfirmation(
+        session.user.id,
+        session.user.first_name || 'there',
+        session.user.email!,
+        campaignInfo?.title || 'the campaign',
+        campaignInfo?.users?.first_name || 'the brand'
+      );
+
+    } catch (emailError) {
+      console.error('Failed to send application emails:', emailError);
+      // Don't fail the application if email fails
+    }
 
     return NextResponse.json({
       success: true,
