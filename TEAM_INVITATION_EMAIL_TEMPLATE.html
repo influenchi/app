@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Team Invitation - Influenchi</title>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
+    <style>
+      /* Reset styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #374151;
+        background-color: #f8fafc;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+      }
+
+      /* Header with gradient */
+      .header {
+        background: linear-gradient(
+          135deg,
+          #e0e7ff 0%,
+          #f3e8ff 50%,
+          #fef3e2 100%
+        );
+        padding: 40px 20px;
+        text-align: center;
+      }
+
+      .logo {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #06b6d4 25%,
+          #3b82f6 50%,
+          #8b5cf6 75%,
+          #f59e0b 100%
+        );
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .logo svg {
+        width: 40px;
+        height: 40px;
+        fill: white;
+      }
+
+      .main-content {
+        padding: 40px 30px;
+      }
+
+      .title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #1f2937;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        color: #374151;
+        margin-bottom: 20px;
+      }
+
+      .message {
+        font-size: 16px;
+        color: #374151;
+        margin-bottom: 20px;
+      }
+
+      /* Invitation Card */
+      .invitation-card {
+        background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 24px;
+        margin: 24px 0;
+      }
+
+      .invitation-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .invitation-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .invitation-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+      }
+
+      .invitation-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        background-color: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: capitalize;
+      }
+
+      .role-badge.admin {
+        background-color: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+      }
+
+      .role-badge.manager {
+        background-color: #dbeafe;
+        color: #1e40af;
+        border-color: #93c5fd;
+      }
+
+      .role-badge.member {
+        background-color: #f3f4f6;
+        color: #374151;
+        border-color: #d1d5db;
+      }
+
+      /* Button */
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+        color: white !important;
+        text-decoration: none;
+        padding: 16px 32px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        text-align: center;
+        margin: 24px 0;
+        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        transition: all 0.2s;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      .cta-container {
+        text-align: center;
+        margin: 32px 0;
+      }
+
+      /* Role permissions box */
+      .permissions-box {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 24px 0;
+      }
+
+      .permissions-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+
+      .permissions-list {
+        list-style: none;
+        padding: 0;
+      }
+
+      .permissions-list li {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+
+      .permissions-list li:before {
+        content: "•";
+        color: #3b82f6;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+
+      /* Footer */
+      .footer {
+        background-color: #f9fafb;
+        padding: 24px 30px;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .footer-text {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 8px;
+      }
+
+      .footer-link {
+        color: #3b82f6;
+        text-decoration: none;
+      }
+
+      .signature {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 16px;
+        color: #374151;
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .main-content {
+          padding: 24px 20px;
+        }
+
+        .title {
+          font-size: 24px;
+        }
+
+        .invitation-card {
+          padding: 16px;
+        }
+
+        .invitation-row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+
+        .cta-button {
+          display: block;
+          width: 100%;
+          padding: 14px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <h1 class="title">You're invited to join {{{brandName}}}!</h1>
+        <p class="subtitle">
+          {{{inviterName}}} has invited you to collaborate on Influenchi
+        </p>
+
+        <p class="greeting">Hi there,</p>
+
+        <p class="message">
+          Great news! {{{inviterName}}} has invited you to join their team at
+          {{{brandName}}} on Influenchi, the platform for authentic UGC and
+          travel collaborations.
+        </p>
+
+        <!-- Invitation Details Card -->
+        <div class="invitation-card">
+          <div class="invitation-row">
+            <span class="invitation-label">Company</span>
+            <span class="invitation-value">{{{brandName}}}</span>
+          </div>
+          <div class="invitation-row">
+            <span class="invitation-label">Invited by</span>
+            <span class="invitation-value">{{{inviterName}}}</span>
+          </div>
+          <div class="invitation-row">
+            <span class="invitation-label">Your role</span>
+            <span class="role-badge {{role}}">{{role}}</span>
+          </div>
+          <div class="invitation-row">
+            <span class="invitation-label">Email</span>
+            <span class="invitation-value">{{{inviteEmail}}}</span>
+          </div>
+        </div>
+
+        <!-- Role Permissions -->
+        <div class="permissions-box">
+          <div class="permissions-title">
+            What you'll be able to do as {{role}}:
+          </div>
+          <ul class="permissions-list">
+            {{#if (eq role "admin")}}
+            <li>Full account access and team management</li>
+            <li>Manage billing and subscription settings</li>
+            <li>Create and manage all campaigns</li>
+            <li>View all analytics and financial data</li>
+            {{else if (eq role "manager")}}
+            <li>Create and manage campaigns</li>
+            <li>Review and approve creator content</li>
+            <li>View analytics and performance data</li>
+            <li>Communicate with creators</li>
+            {{else}}
+            <li>View active campaigns and content</li>
+            <li>Communicate with creators</li>
+            <li>Comment and provide feedback</li>
+            <li>Access basic analytics</li>
+            {{/if}}
+          </ul>
+        </div>
+
+        <!-- CTA Button -->
+        <div class="cta-container">
+          <a href="{{acceptUrl}}" class="cta-button"> 👋 Accept Invitation </a>
+        </div>
+
+        <p class="message">
+          This invitation will expire in 7 days, so be sure to accept it soon!
+          If you have any questions, just reply to this email.
+        </p>
+
+        <div class="signature">
+          <p>Excited to have you on the team!</p>
+          <p><strong>— The Influenchi Team</strong></p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p class="footer-text">
+          This invitation was sent to {{{inviteEmail}}}. If you weren't
+          expecting this invitation, you can safely ignore this email.
+        </p>
+        <p class="footer-text">
+          <a href="{{app_url}}" class="footer-link">Visit Influenchi</a> •
+          <a href="mailto:support@influenchi.com" class="footer-link"
+            >Contact Support</a
+          >
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { brandOnboardingSchema } from '@/lib/validations/brand';
+import { NotificationService } from '@/lib/notifications';
 // No longer needed - Better Auth uses users table directly
 
 export async function POST(request: NextRequest) {
@@ -126,9 +128,9 @@ export async function POST(request: NextRequest) {
     console.log(' User ID from Better Auth:', session.user.id);
     console.log(' User data:', {
       email: session.user.email,
-      firstName: session.user.firstName,
-      lastName: session.user.lastName,
-      companyName: session.user.companyName
+      firstName: session.user.first_name,
+      lastName: session.user.last_name,
+      companyName: session.user.company_name
     });
 
     // Better Auth now uses users table with UUIDs directly!
@@ -148,8 +150,8 @@ export async function POST(request: NextRequest) {
       const updateResult = await supabaseAdmin
         .from('brands')
         .update({
-          first_name: session.user.firstName || '',
-          last_name: session.user.lastName || '',
+          first_name: session.user.first_name || '',
+          last_name: session.user.last_name || '',
           company: validatedData.brandName,
           website: validatedData.website || null,
           brand_description: logoUrl
@@ -171,8 +173,8 @@ export async function POST(request: NextRequest) {
         .from('brands')
         .insert({
           user_id: userId, // Better Auth now uses users table with UUIDs directly
-          first_name: session.user.firstName || '',
-          last_name: session.user.lastName || '',
+          first_name: session.user.first_name || '',
+          last_name: session.user.last_name || '',
           email: session.user.email || '',
           company: validatedData.brandName,
           website: validatedData.website || null,
@@ -192,6 +194,18 @@ export async function POST(request: NextRequest) {
 
       if (insertResult.data && !error) {
         console.log('Brand profile created:', insertResult.data.id);
+
+        // Send welcome email for new brand signup
+        try {
+          await NotificationService.sendBrandWelcome(
+            userId,
+            session.user.first_name || 'there',
+            session.user.email!
+          );
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't fail the onboarding process if email fails
+        }
       }
     }
 

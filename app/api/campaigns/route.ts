@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { campaignSchema } from '@/lib/validations/brand';
+import { NotificationService } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +82,31 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
+    }
+
+    // Send campaign live notification if status is active
+    if (!isDraft && data) {
+      try {
+        // Get brand info for the email
+        const { data: brandInfo } = await supabaseAdmin
+          .from('users')
+          .select('first_name, email')
+          .eq('id', session.user.id)
+          .single();
+
+        if (brandInfo) {
+          await NotificationService.sendBrandCampaignLive(
+            session.user.id,
+            brandInfo.first_name || 'there',
+            brandInfo.email,
+            data.id,
+            data.title
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send campaign live email:', emailError);
+        // Don't fail the campaign creation if email fails
+      }
     }
 
     return NextResponse.json({ success: true, campaign: data });
