@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ interface Campaign {
   brand_id: string;
   campaign_goal: string[];
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   creator_count: string;
   start_date: string;
@@ -74,7 +75,7 @@ interface ActiveCampaign {
   description: string;
   image?: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   completion_date: string;
   content_items: any[];
@@ -113,6 +114,8 @@ interface ActiveProject {
 }
 
 const CreatorDashboard = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('campaigns');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -206,7 +209,7 @@ const CreatorDashboard = () => {
         id: campaign.id,
         title: campaign.title,
         brand: campaign.brand_name || 'Brand Name',
-        compensation: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
+        compensation: campaign.budget_type === 'paid' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
         location: campaign.target_audience?.location?.[0] || 'Remote',
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
           month: 'short',
@@ -230,8 +233,8 @@ const CreatorDashboard = () => {
 
     return activeCampaignsData.map(campaign => {
       // Transform content_items to tasks format
-      const tasks = campaign.content_items?.map((item: any, index: number) => ({
-        id: index + 1,
+      const tasks = campaign.content_items?.map((item: any) => ({
+        id: item.id, // Use the actual content item ID instead of index
         title: `${item.contentType} on ${item.socialChannel}`,
         description: item.description || `Create ${item.quantity} ${item.contentType} for ${item.socialChannel}`,
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -249,7 +252,7 @@ const CreatorDashboard = () => {
         id: campaign.id,
         title: campaign.title,
         brand: campaign.brand,
-        compensation: campaign.budget_type === 'cash'
+        compensation: campaign.budget_type === 'paid'
           ? `$${campaign.budget}`
           : campaign.product_service_description || 'Product/Service',
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -258,7 +261,7 @@ const CreatorDashboard = () => {
           year: 'numeric'
         }),
         status: 'in-progress' as const, // Since these are accepted campaigns
-        progress: 30, // Default progress - you can calculate this based on submissions
+        progress: 0, // Will be calculated based on actual submissions
         image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
         submissionCount: 0, // This would come from tracking submissions
         maxSubmissions: campaign.content_items?.length || 1,
@@ -304,6 +307,84 @@ const CreatorDashboard = () => {
     creatorProfile.vetting_status !== 'pending' &&
     creatorProfile.is_onboarding_complete;
 
+  // Handle URL parameters for deep linking to active projects
+  useEffect(() => {
+    const projectId = searchParams?.get('project');
+    if (projectId) {
+      // First try to find in active projects
+      if (transformedActiveProjects.length > 0) {
+        const activeProject = transformedActiveProjects.find(p => p.id === projectId);
+        if (activeProject) {
+          setSelectedProject(activeProject);
+          setActiveTab('active');
+          return;
+        }
+      }
+
+      // If not found in active projects, check if it's a campaign the creator has applied to
+      if (campaignsData && creatorApplications) {
+        const campaign = campaignsData.find(c => c.id === projectId);
+        const application = creatorApplications.find((app: any) => app.campaign_id === projectId);
+
+        if (campaign && application) {
+          // Transform campaign into project format for ActiveProjectDetails
+          const projectFromCampaign: ActiveProject = {
+            id: campaign.id,
+            title: campaign.title,
+            brand: campaign.brand_name || 'Brand Name',
+            compensation: campaign.budget_type === 'paid' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
+            deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            status: application.status === 'accepted' ? 'in-progress' as const : 'pending-review' as const,
+            progress: 0,
+            image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+            submissionCount: 0,
+            maxSubmissions: campaign.content_items?.length || 1,
+            originalCampaign: {
+              id: campaign.id,
+              title: campaign.title,
+              description: campaign.description,
+              image: campaign.image,
+              budget: campaign.budget,
+              budget_type: campaign.budget_type,
+              product_service_description: campaign.product_service_description,
+              completion_date: campaign.completion_date,
+              content_items: campaign.content_items || [],
+              target_audience: campaign.target_audience || {},
+              status: campaign.status,
+              applicationId: application.id,
+              applicationStatus: application.status,
+              appliedAt: application.created_at || new Date().toISOString(),
+              customQuote: application.custom_quote,
+              brand: campaign.brand_name || 'Brand Name',
+              daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+            },
+            tasks: campaign.content_items?.map((item: any) => ({
+              id: item.id, // Use the actual content item ID instead of index
+              title: `${item.contentType} on ${item.socialChannel}`,
+              description: item.description || `Create ${item.quantity} ${item.contentType} for ${item.socialChannel}`,
+              deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              }),
+              status: "pending",
+              type: item.contentType.toLowerCase(),
+              platform: item.socialChannel,
+              quantity: item.quantity
+            })) || []
+          };
+
+          setSelectedProject(projectFromCampaign);
+          setActiveTab('active');
+        }
+      }
+    }
+  }, [searchParams, transformedActiveProjects, campaignsData, creatorApplications]);
+
   const handleCampaignClick = (campaign: TransformedCampaign) => {
     setSelectedCampaignId(campaign.id);
   };
@@ -335,6 +416,8 @@ const CreatorDashboard = () => {
   const handleBackToDashboard = () => {
     setSelectedCampaignId(null);
     setSelectedProject(null);
+    // Clear URL parameters when going back
+    router.push('/creator/dashboard');
   };
 
   // Find the original campaign data when one is selected
@@ -437,8 +520,8 @@ const CreatorDashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Earned</p>
-                  <p className="text-2xl font-bold text-foreground">$2,400</p>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">+$500 this month</p>
+                  <p className="text-2xl font-bold text-foreground">$0</p>
+                  <p className="text-xs text-muted-foreground mt-1">Complete campaigns to earn</p>
                 </div>
                 <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
                   <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -453,20 +536,17 @@ const CreatorDashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Star Rating</p>
                   <div className="flex items-center">
-                    <p className="text-2xl font-bold text-foreground">4.8</p>
+                    <p className="text-2xl font-bold text-foreground">—</p>
                     <div className="flex ml-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${star <= 4.8
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                            }`}
+                          className="h-4 w-4 text-gray-300"
                         />
                       ))}
                     </div>
                   </div>
-                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Excellent rating</p>
+                  <p className="text-xs text-muted-foreground mt-1">No ratings yet</p>
                 </div>
                 <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
                   <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
@@ -561,7 +641,9 @@ const CreatorDashboard = () => {
                         <CardTitle className="text-lg mb-1 text-foreground group-hover:text-primary transition-colors">
                           {campaign.title}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground font-medium">{campaign.brand}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground font-medium">{campaign.brand}</p>
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
@@ -646,7 +728,7 @@ const CreatorDashboard = () => {
             title: selectedCampaign?.title || '',
             image: selectedCampaign?.image,
             brand: selectedCampaign?.brand_name || 'Brand Name',
-            compensation: selectedCampaign?.budget_type === 'cash'
+            compensation: selectedCampaign?.budget_type === 'paid'
               ? `$${selectedCampaign.budget}`
               : selectedCampaign?.product_service_description || 'Product/Service',
             deadline: new Date(selectedCampaign?.completion_date || '').toLocaleDateString('en-US', {

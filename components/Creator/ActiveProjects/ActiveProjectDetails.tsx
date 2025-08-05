@@ -102,9 +102,17 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
   const submitContent = useSubmitContent();
   const { data: submissions = [] } = useCreatorSubmissions(campaignId);
 
-  // Handle deep linking to specific messages
+  // Handle deep linking to specific tabs and messages
   useEffect(() => {
+    const tab = searchParams?.get('tab');
     const messageId = searchParams?.get('message');
+
+    // Handle tab parameter
+    if (tab && ['overview', 'messages', 'submissions'].includes(tab)) {
+      setActiveTab(tab);
+    }
+
+    // Handle message deep linking
     if (messageId && messages.length > 0) {
       // Find the message in the current messages
       const targetMessage = messages.find(msg => msg.id === messageId);
@@ -341,7 +349,18 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
 
   const getTaskStatus = (taskId: string) => {
     // Check if there's a real submission for this task from the API
-    const realSubmission = submissions.find((sub: any) => sub.taskId === taskId);
+    // Handle both new ID format (actual content item IDs) and legacy format (indices like "1", "2")
+    const realSubmission = submissions.find((sub: any) => {
+      // Direct match for new format
+      if (sub.taskId === taskId) return true;
+
+      // Legacy support: if taskId is a content item ID, try to match with legacy index
+      const taskIndex = tasks.findIndex(t => t.id.toString() === taskId);
+      if (taskIndex !== -1 && sub.taskId === (taskIndex + 1).toString()) return true;
+
+      return false;
+    });
+
     if (realSubmission) {
       return realSubmission.status === 'pending' ? 'submitted' : realSubmission.status;
     }
@@ -669,18 +688,40 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                   const taskStatus = getTaskStatus(task.id.toString());
                   const isSubmitted = taskStatus === 'submitted';
                   const isSubmitting = taskStatus === 'submitting';
+                  const isApproved = taskStatus === 'approved';
+                  const isRejected = taskStatus === 'rejected';
+
+                  // Get the actual submission for this task
+                  const realSubmission = submissions.find((sub: any) => {
+                    if (sub.taskId === task.id.toString()) return true;
+                    const taskIndex = tasks.findIndex(t => t.id.toString() === task.id.toString());
+                    if (taskIndex !== -1 && sub.taskId === (taskIndex + 1).toString()) return true;
+                    return false;
+                  });
 
                   return (
-                    <Card key={task.id} className={isSubmitted ? 'border-green-200 bg-green-50/50' : ''}>
+                    <Card key={task.id} className={isApproved ? 'border-green-200 bg-green-50/50' : isRejected ? 'border-red-200 bg-red-50/50' : isSubmitted ? 'border-yellow-200 bg-yellow-50/50' : ''}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2">
                               <CardTitle className="text-lg">{task.title}</CardTitle>
-                              {isSubmitted && (
+                              {isApproved && (
                                 <Badge className="bg-green-100 text-green-800">
                                   <CheckCircle className="h-3 w-3 mr-1" />
-                                  Submitted
+                                  Approved
+                                </Badge>
+                              )}
+                              {isRejected && (
+                                <Badge className="bg-red-100 text-red-800">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Needs Revision
+                                </Badge>
+                              )}
+                              {isSubmitted && !isApproved && !isRejected && (
+                                <Badge className="bg-yellow-100 text-yellow-800">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Under Review
                                 </Badge>
                               )}
                             </div>
@@ -692,84 +733,114 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {isSubmitted ? (
-                          <div className="text-center py-8">
-                            <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
-                            <h3 className="text-lg font-medium text-green-800 mb-2">Task Submitted Successfully!</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Your content has been submitted for review. The brand will get back to you soon.
-                            </p>
-
-                            {/* Show real submitted content from API */}
-                            {(() => {
-                              const realSubmission = submissions.find((sub: any) => sub.taskId === task.id.toString());
-                              if (realSubmission && realSubmission.assets) {
-                                return (
-                                  <div className="bg-white rounded-lg p-4 border">
-                                    <h4 className="font-medium text-sm mb-2">Submitted Content</h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                      {realSubmission.assets.map((asset: any) => (
-                                        <div key={asset.id} className="relative group">
-                                          <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                            {asset.type === 'video' ? (
-                                              <div className="relative w-full h-full">
-                                                <Image
-                                                  src={asset.thumbnail || asset.url}
-                                                  alt={asset.title}
-                                                  className="w-full h-full object-cover"
-                                                  width={100}
-                                                  height={100}
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                                                  <Video className="h-6 w-6 text-white" />
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <Image
-                                                src={asset.url}
-                                                alt={asset.title}
-                                                className="w-full h-full object-cover"
-                                                width={100}
-                                                height={100}
-                                              />
-                                            )}
-                                          </div>
-                                          <p className="text-xs text-gray-600 mt-1 truncate">{asset.title}</p>
-                                        </div>
-                                      ))}
+                        {(isSubmitted || isApproved || isRejected) && realSubmission ? (
+                          <div className="space-y-6">
+                            {/* Status Message */}
+                            <div className={`text-center py-6 rounded-lg ${isApproved ? 'bg-green-50 border border-green-200' :
+                                isRejected ? 'bg-red-50 border border-red-200' :
+                                  'bg-yellow-50 border border-yellow-200'
+                              }`}>
+                              {isApproved && (
+                                <>
+                                  <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
+                                  <h3 className="text-lg font-medium text-green-800 mb-2">Task Approved! 🎉</h3>
+                                  <p className="text-sm text-green-700">
+                                    Congratulations! Your submission has been approved by the brand.
+                                  </p>
+                                </>
+                              )}
+                              {isRejected && (
+                                <>
+                                  <AlertCircle className="h-12 w-12 mx-auto mb-4 text-red-600" />
+                                  <h3 className="text-lg font-medium text-red-800 mb-2">Revision Required</h3>
+                                  <p className="text-sm text-red-700 mb-4">
+                                    The brand has requested changes to your submission.
+                                  </p>
+                                  {realSubmission.rejectionComment && (
+                                    <div className="bg-white p-4 rounded-lg border border-red-200 text-left max-w-md mx-auto">
+                                      <p className="font-medium text-red-800 mb-2">Brand Feedback:</p>
+                                      <p className="text-sm text-red-700">{realSubmission.rejectionComment}</p>
                                     </div>
-                                    <div className="mt-3 text-left">
-                                      <p className="text-xs text-muted-foreground">
-                                        Status: <span className="capitalize">{realSubmission.status}</span>
-                                      </p>
-                                      {realSubmission.status === 'rejected' && realSubmission.rejectionComment && (
-                                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
-                                          <p className="font-medium text-red-800">Feedback:</p>
-                                          <p className="text-red-700">{realSubmission.rejectionComment}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }
+                                  )}
+                                </>
+                              )}
+                              {isSubmitted && !isApproved && !isRejected && (
+                                <>
+                                  <Clock className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+                                  <h3 className="text-lg font-medium text-yellow-800 mb-2">Under Review</h3>
+                                  <p className="text-sm text-yellow-700">
+                                    Your submission is being reviewed by the brand. You&apos;ll be notified once they provide feedback.
+                                  </p>
+                                </>
+                              )}
+                            </div>
 
-                              // Fallback to local submission data if no real submission found
-                              return (
-                                <div className="bg-white rounded-lg p-4 border">
-                                  <h4 className="font-medium text-sm mb-2">Submitted Content</h4>
-                                  <div className="space-y-2">
-                                    {taskSubmissions[task.id]?.map((submission) => (
-                                      <div key={submission.id} className="flex items-center gap-2 text-sm">
-                                        <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                        <span>{submission.name}</span>
-                                      </div>
-                                    ))}
-                                  </div>
+                            {/* Show submitted content */}
+                            {realSubmission.assets && (
+                              <div className="bg-white rounded-lg p-4 border">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-medium text-sm">Your Submission</h4>
+                                  <Badge variant="outline" className={
+                                    isApproved ? 'text-green-700 border-green-300' :
+                                      isRejected ? 'text-red-700 border-red-300' :
+                                        'text-yellow-700 border-yellow-300'
+                                  }>
+                                    {realSubmission.status}
+                                  </Badge>
                                 </div>
-                              );
-                            })()}
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {realSubmission.assets.map((asset: any) => (
+                                    <div key={asset.id} className="relative group">
+                                      <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                        {asset.type === 'video' ? (
+                                          <div className="relative w-full h-full">
+                                            <Image
+                                              src={asset.thumbnail || asset.url}
+                                              alt={asset.title}
+                                              className="w-full h-full object-cover"
+                                              width={100}
+                                              height={100}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                                              <Video className="h-6 w-6 text-white" />
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <Image
+                                            src={asset.url}
+                                            alt={asset.title}
+                                            className="w-full h-full object-cover"
+                                            width={100}
+                                            height={100}
+                                          />
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-gray-600 mt-1 truncate">{asset.title}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="mt-3 text-left">
+                                  <p className="text-xs text-muted-foreground">
+                                    Submitted on: {realSubmission.submittedDate}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Allow resubmission for rejected tasks */}
+                            {isRejected && (
+                              <div className="pt-4 border-t">
+                                <div className="text-center mb-4">
+                                  <p className="text-sm font-medium text-foreground mb-2">Ready to submit a revision?</p>
+                                  <p className="text-xs text-muted-foreground">Upload new files below to replace your previous submission</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ) : (
+                        ) : null}
+
+                        {/* Upload Section - Show for draft tasks or rejected tasks needing revision */}
+                        {((!isSubmitted && !isApproved) || isRejected) && (
                           <div className="space-y-6">
                             {/* Upload Section */}
                             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
@@ -902,10 +973,10 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                                     {isSubmitting ? (
                                       <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Submitting...
+                                        {isRejected ? 'Resubmitting...' : 'Submitting...'}
                                       </>
                                     ) : (
-                                      'Submit Task for Review'
+                                      isRejected ? 'Submit Revision' : 'Submit Task for Review'
                                     )}
                                   </Button>
                                 </div>

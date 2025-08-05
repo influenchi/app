@@ -49,11 +49,15 @@ export interface CreatorProfileData {
 export interface BrandProfileData {
   id: string;
   user_id: string;
-  company_name: string;
-  brand_description: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  company: string;
   website: string;
-  logo_url: string;
-  is_onboarding_complete: boolean;
+  brand_description: string;
+  campaign_types: string;
+  selected_plan: string;
+  is_annual: boolean;
   created_at: string;
   updated_at: string;
 }

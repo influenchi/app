@@ -17,7 +17,7 @@ interface Campaign {
   status: string;
   applicant_count: number;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   completion_date: string;
   campaign_goal: string[];
@@ -131,12 +131,13 @@ const BrandDashboard = () => {
     }
   }, [campaigns, searchParams, lastProcessedParams]);
 
-  const transformedCampaigns = campaigns.map((campaign: Campaign) => ({
+  const transformedCampaigns = campaigns.map((campaign: Campaign & { approved?: number }) => ({
     id: campaign.id,
     title: campaign.title,
     status: campaign.status,
     applications: campaign.applicant_count || 0,
-    budget: campaign.budget_type === 'cash' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
+    approved: campaign.approved || 0,
+    budget: campaign.budget_type === 'paid' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
     deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -164,7 +165,7 @@ const BrandDashboard = () => {
     totalApplications: campaigns.reduce((sum: number, c: Campaign) => sum + (c.applicant_count || 0), 0),
     hiredCreators: hiredCreatorsCount,
     totalSpend: campaigns.reduce((sum: number, c: Campaign) => {
-      if (c.budget_type === 'cash' && typeof c.budget === 'string') {
+      if (c.budget_type === 'paid' && typeof c.budget === 'string') {
         return sum + parseFloat(c.budget.replace(/[^0-9.-]+/g, ''));
       }
       return sum;
@@ -321,9 +322,9 @@ const BrandDashboard = () => {
             image: undefined, // Reset image to allow re-upload, stored as URL in DB but form expects File
             campaignGoal: editingCampaign.campaign_goal || [],
             budget: editingCampaign.budget?.replace('$', '') || '',
-            budgetType: editingCampaign.budget_type === 'cash' ? ['paid'] :
-              editingCampaign.budget_type === 'product' ? ['gifted'] :
-                editingCampaign.budget_type === 'service' ? ['gifted'] : ['paid'],
+            budgetType: editingCampaign.budget_type === 'paid' ? ['paid'] :
+              editingCampaign.budget_type === 'gifted' ? ['gifted'] :
+                editingCampaign.budget_type === 'affiliate' ? ['affiliate'] : ['paid'],
             productServiceDescription: editingCampaign.product_service_description || '',
             creatorCount: editingCampaign.creator_count || '',
             startDate: editingCampaign.start_date || '',

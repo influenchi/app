@@ -1,0 +1,227 @@
+Sheet1: Table 1
+#,Audience,Trigger (System Event),Email Subject,Timing,Purpose,Content,SendGrid Template Name,SendGrid Template ID
+1,Brand,User signs up as a brand,Welcome to Influenchi – Let’s Launch Your First Campaign,"Immediately, upon signup",Welcome email with clear CTA to post a campaign and explore creator marketplace,"Hi [Brand First Name],
+
+Welcome to Influenchi — your home for authentic UGC and travel collaborations!
+
+With Influenchi, you can launch campaigns that attract high-quality creators and storytellers, whether you're offering payment, perks, or products.
+
+It only takes a few minutes to get started — most brands launch their first campaign within 72 hours of signing up.
+
+👉 [Launch My Campaign]
+
+Need a hand setting things up? We're just a message away.
+
+Excited to have you on board,  
+— The Influenchi Team",brand_welcome_signup,d-c5f4a20f24a542aa9f9b03e83d70d443
+2,Brand,No campaign posted,Need Help Launching Your First Campaign?,"72 hours after signup, if no campaign",Nudge toward creating first campaign with inspiration/examples,"Hi [Brand First Name],
+
+Not sure where to start? We noticed you haven’t launched your first campaign yet on Influenchi.
+
+Most brands go live within 72 hours — it’s the fastest way to start receiving creator applications and building UGC for your brand.
+
+You set the offer. Creators apply. We help make it smooth.
+
+👉 [Create My First Campaign]
+
+Need support? We’re happy to guide you through your first launch.
+
+— The Influenchi Team",brand_nudge_campaign_creation, d-04cd6f9f55a1427a9e5c91d46e2f6049 
+3,Brand,Campaign created,Your Campaign “[Campaign Title]” Is Live,"Immediately, upon campaign launch","Confirm campaign is live, explain what to expect (applications, messaging, etc.)","Hi [Brand First Name],
+
+Your campaign, “[Campaign Title],” is now live on Influenchi!
+
+Travel and lifestyle creators can now view your brief and apply to collaborate. You'll receive notifications as applications come in and can review profiles or message creators right from your dashboard.
+
+👉 [View Campaign Dashboard]
+
+Great job taking the first step toward powerful creator content!
+
+— The Influenchi Team",brand_campaign_live,d-7933c6f03f9e46e6b17d7c90ebd8dccc
+4,Brand,Creator applies to campaign,[Creator Name] Applied to “[Campaign Title]”,"Immediately, upon creator application",Alert brand to view creator profile and respond to keep campaign moving,"Hi [Brand First Name],
+
+[Creator Name] just applied to your campaign, “[Campaign Title]”!
+
+Take a moment to review their profile and see the type of content they create. You can message them directly, or accept them to start working together.
+
+👉 [View Application]
+
+Responding quickly helps keep creators engaged and excited.
+
+— The Influenchi Team",brand_creator_applied,d-44b8ceb7c487433f83cc3dd293f20c2f
+5,Brand,Creator sends a message,New Message from [Creator Name] on “[Campaign Title]”,"Immediately, upon message sent",Ensure the brand sees and replies to direct messages,"Hi [Brand First Name],
+
+You received a new message from [Creator Name] about your campaign, “[Campaign Title].”
+
+👉 [View Message]
+
+Open communication keeps things moving smoothly and builds better collaborations.
+
+— The Influenchi Team",brand_message_received, d-7d255396bc4d49df9fb11df375269231
+6,Brand,Creator submits content,[Creator Name] Submitted Content for “[Campaign Title]”,"Immediately, upon submission",Notify brand that content is ready for review/approval,"Hi [Brand First Name],
+
+[Creator Name] has submitted content for your campaign, “[Campaign Title].”
+
+You can now view their submission, approve it, or request edits if needed.
+
+👉 [Review Content]
+
+Thanks for partnering with creators through Influenchi!
+
+— The Influenchi Team",brand_content_submitted,d-53029d4025754a87a0bf931fbbeb9553
+7,Brand,Creator completes campaign,Download Your Content from “[Campaign Title]”,"Immediately, upon campaign marked complete",Let brand know campaign is complete and content is ready to download,"Hi [Brand First Name],
+
+Your campaign “[Campaign Title]” is now marked complete!
+
+You can download the content directly from your dashboard and start using it across your marketing channels.
+
+👉 [Download Content]
+
+Let us know if you’d like help planning your next campaign — we're here for you.
+
+— The Influenchi Team",brand_campaign_completed,d-7e71d4c2ecbf4a66b67d2caf3b07d982 
+8,Brand,Creator leaves review,Your Creator Left You a Review,"Immediately, upon review left",Notify brand they’ve received a rating/review from the creator,"Hi [Brand First Name],
+
+[Creator Name] left you a review for your campaign, “[Campaign Title].”
+
+💬 “This brand was clear and professional — would definitely collaborate again!”
+
+You can view the full review and start building a strong profile that attracts more creators.
+
+👉 [View Review]
+
+Thanks for being a great collaborator on Influenchi!
+
+— The Influenchi Team",brand_review_received,d-17a7415547e349958881ecef5245e992
+9,Brand,No activity post campaign launch,Get More Creators on Your Campaign,5–7 days after launch with no applications,"Nudge brand to improve campaign, consider promotion or edit","Hi [Brand First Name],
+
+It looks like your campaign “[Campaign Title]” hasn’t received applications yet.
+
+Here’s how to boost visibility:
+• Adjust your title or offer
+• Add more visuals to your brief
+• Promote your campaign to featured status
+
+👉 [Edit or Boost Campaign]
+
+Need help? Our team is happy to take a look and give feedback.
+
+— The Influenchi Team",brand_campaign_boost_reminder,d-8c58d46fb3e04e96a5a441560fd64480
+10,Creator,User signs up as a creator,Welcome to [Platform Name] – Start Applying to Campaigns,"Immediately, upon signup",Welcome with CTA to complete profile and apply to open campaigns,"Hi [Creator First Name],
+
+Welcome to Influenchi — where authentic creators meet travel and lifestyle brands for collabs that fit your vibe.
+
+Here, you’ll discover paid and perk-based campaigns tailored for creators like you. Brands post briefs, and you choose the ones you’re excited about.
+
+Start exploring now and apply to your first collab in just a few clicks.
+
+👉 [Browse Campaigns]
+
+Let’s make content that works *for you*.
+
+— The Influenchi Team",creator_welcome_signup,d-ec6ad3b8ed3b437aabdd99faf2189bc1
+11,Creator,No applications submitted,Start Applying to Travel Collabs Today,"24 hours after signup, if no application",Encourage creator to take first action and explain benefits,,creator_nudge_first_application,d-f964c0b497174df99ca89a502c004913 
+12,Creator,Application submitted,You Applied to “[Campaign Title]”,"Immediately, upon applying",Confirm application and what happens next,"Hi [Creator First Name],
+
+Thanks for applying to “[Campaign Title]” from [Brand Name]!
+
+The brand has been notified and can now review your profile, message you, or accept you into the campaign. You’ll receive updates as soon as there’s movement.
+
+In the meantime, feel free to apply to more opportunities — you’re not locked in!
+
+👉 [View Other Campaigns]
+
+Let’s keep the momentum going 💪  
+— Influenchi Team",creator_application_confirmation,d-706080f8fa674bfa9c1334b6941e67d0
+13,Creator,Brand accepts creator,You’ve Been Selected for “[Campaign Title]”,"Immediately, upon selection",Notify creator they’ve been chosen and what the next steps are,"Hi [Creator First Name],
+
+Awesome news — [Brand Name] accepted your application to “[Campaign Title]”!
+
+You can now message the brand, clarify details, and begin creating content based on their campaign brief. Make sure to double-check deadlines and submission requirements.
+
+👉 [Go to Campaign Details]
+
+We can’t wait to see what you create!
+
+— The Influenchi Team",creator_accepted_to_campaign,d-f8b76be61a54418695f952305d87d5a9 
+14,Creator,Brand sends a message,New Message from [Brand Name] on “[Campaign Title]”,"Immediately, upon message sent",Encourage fast response to keep campaign momentum,"Hi [Creator First Name],
+
+[Brand Name] sent you a message regarding “[Campaign Title].”
+
+It might be a question, content request, or update — hop in to reply and keep things moving smoothly.
+
+👉 [View Message]
+
+Timely communication = stronger collabs 💬
+
+— Influenchi Team",creator_message_received,d-7e66b0f752264d66aece94060a525f29
+15,Creator,Deadline approaching,Reminder: Submit Your Content for “[Campaign Title]”,3 days before campaign deadline,Keep creators on track and avoid late submissions,"Hi [Creator First Name],
+
+A quick reminder — your content for “[Campaign Title]” is due soon.
+
+Be sure to upload your final photos, videos, or deliverables by the deadline listed in the brief.
+
+👉 [Submit Content]
+
+Need more time? Message the brand directly to request an extension.
+
+Keep shining ✨  
+— Influenchi Team",creator_submission_reminder,d-e04a7b253f4e4264a8f9badbd60c43cc
+16,Creator,Content approved,Your Content Was Approved 🎉,"Immediately, upon brand approval",Confirm content acceptance and close the loop,"Hi [Creator First Name],
+
+[Brand Name] reviewed your submission for “[Campaign Title]”.
+
+✅ If approved, you’re all set and the campaign is officially complete!  
+✏️ If edits are needed, check their notes and re-upload when ready.
+
+👉 [View Feedback]
+
+Thanks for keeping it professional — we love seeing creators thrive!
+
+— The Influenchi Team",creator_content_approved,d-ed354090743a43398ddc90429f4c7e88
+17,Creator,Campaign marked complete,Campaign Complete – Great Job!,"Immediately, upon completion",Celebrate successful campaign and prompt review,"Hi [Creator First Name],
+
+You’ve successfully wrapped up your collaboration with [Brand Name] on “[Campaign Title]” — nice work!
+
+Want to keep your momentum going? Leave a review for the brand and explore new campaigns that match your niche.
+
+👉 [Leave a Review]  
+👉 [Discover New Campaigns]
+
+We’re glad to have you in the Influenchi fam 💛
+
+— The Influenchi Team",creator_campaign_completed,d-f01022ece7a14e598e9f397a6497f2c8
+18,Creator,Brand leaves a review,You Got a Review from [Brand Name]!,"Immediately, upon review received","Share the rating and comment with the creator, boosting motivation and credibility","Hi [Creator First Name],
+
+[Brand Name] just left you a review for your work on “[Campaign Title].”
+
+💬 “Loved working with this creator! Delivered on time and the content was exactly what we were looking for.”
+
+Your reviews help boost your credibility and attract more brand collabs.
+
+👉 [View Review]
+
+You’re building a strong profile — keep it up!  
+— Influenchi Team",creator_review_received,d-9ab302ad25d34a81a028c39b004d5d29
+
+
+Sheet3: Table 1
+#,Audience,Trigger (System Event),Email Subject,SendGrid Template Name
+1,Brand,User signs up as a brand,Welcome to Influenchi – Let’s Launch Your First Campaign,brand_welcome_signup
+2,Brand,No campaign posted,Need Help Launching Your First Campaign?,brand_nudge_campaign_creation
+3,Brand,Campaign created,Your Campaign “[Campaign Title]” Is Live,brand_campaign_live
+4,Brand,Creator applies,[Creator Name] Applied to “[Campaign Title]”,brand_creator_applied
+5,Brand,Creator sends message,New Message from [Creator Name] on “[Campaign Title]”,brand_message_received
+6,Brand,Creator submits content,[Creator Name] Submitted Content for “[Campaign Title]”,brand_content_submitted
+7,Brand,Creator completes campaign,Download Your Content from “[Campaign Title]”,brand_campaign_completed
+8,Brand,Creator leaves review,Your Creator Left You a Review,brand_review_received
+9,Brand,No activity post-launch,Get More Creators on Your Campaign,brand_campaign_boost_reminder
+10,Creator,User signs up,Welcome to Influenchi – Start Applying to Campaigns,creator_welcome_signup
+11,Creator,No applications,Start Applying to Travel Collabs Today,creator_nudge_first_application
+12,Creator,Application submitted,You Applied to “[Campaign Title]”,creator_application_confirmation
+13,Creator,Brand accepts creator,You’ve Been Selected for “[Campaign Title]”,creator_accepted_to_campaign
+14,Creator,Brand sends message,New Message from [Brand Name] on “[Campaign Title]”,creator_message_received
+15,Creator,Deadline approaching,Reminder: Submit Your Content for “[Campaign Title]”,creator_submission_reminder
+16,Creator,Content approved,Your Content Was Approved 🎉,creator_content_approved
+17,Creator,Campaign marked complete,Campaign Complete – Great Job!,creator_campaign_completed
+18,Creator,Brand leaves review,You Got a Review from [Brand Name]!,creator_review_received

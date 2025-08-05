@@ -40,7 +40,7 @@ interface Campaign {
   description: string;
   status: string;
   budget: string;
-  budget_type: 'paid' | 'gifted' | 'affiliate' | 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   creator_purchase_required: boolean;
   product_ship_required: boolean;
@@ -90,10 +90,10 @@ const CampaignDetails = ({ campaign, onBack, onEdit, onDuplicate, defaultTab = '
       year: 'numeric'
     }),
 
-    // Format budget based on type - check if array contains 'paid' or if single value is 'cash'
+    // Format budget based on type - check if array contains 'paid' or if single value is 'paid'
     budget: (Array.isArray((campaign as Campaign & { budgetType?: string[] }).budgetType)
       ? (campaign as Campaign & { budgetType?: string[] }).budgetType?.includes('paid')
-      : campaign.budget_type === 'cash')
+      : campaign.budget_type === 'paid')
       ? `$${campaign.budget}`
       : campaign.budget,
 

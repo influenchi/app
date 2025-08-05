@@ -225,7 +225,7 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
       </div>
 
       <div>
-        <Label htmlFor="image">Campaign Image</Label>
+        <Label htmlFor="image">Campaign Image *</Label>
         <p className="text-sm text-muted-foreground mb-2">
           Upload a high-quality image that represents your campaign. Max {getMaxFileSizeDisplay()}, {getFileTypeDisplay()} formats supported.
         </p>

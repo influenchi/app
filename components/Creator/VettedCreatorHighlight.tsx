@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Award,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
@@ -23,6 +24,7 @@ import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
 const VettedCreatorHighlight = () => {
   const [postLink, setPostLink] = useState("");
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { currentUser, isLoading, refetch: refetchUser } = useCurrentUser();
@@ -124,8 +126,13 @@ const VettedCreatorHighlight = () => {
     );
   }
 
+  // If dismissed or already vetted, don't show
+  if (isDismissed || isVetted) {
+    return null;
+  }
+
   // If already vetted, show a different message
-  if (isVetted) {
+  if (false) { // This block is now unreachable but keeping structure
     return (
       <Card className="border-2 border-green-500/20 bg-gradient-to-r from-green-500/5 to-green-400/5">
         <CardContent className="p-6">
@@ -219,14 +226,24 @@ const VettedCreatorHighlight = () => {
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMinimized(true)}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(true)}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDismissed(true)}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 

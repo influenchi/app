@@ -68,37 +68,37 @@ export function PaginatedCampaignList({
     initialPage: 1,
   });
 
-  // Travel-related placeholder images that match campaign content
+  // Marketing and brand-related placeholder images
   const getDefaultImage = (campaign: Campaign) => {
     const title = campaign.title.toLowerCase();
 
-    // Beach/Ocean related
-    if (title.includes('beach') || title.includes('ocean') || title.includes('resort') || title.includes('coastal')) {
-      return 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=400&h=200&fit=crop'; // ocean wave at beach
+    // Social media campaigns
+    if (title.includes('instagram') || title.includes('tiktok') || title.includes('social') || title.includes('influencer')) {
+      return 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=200&fit=crop';
     }
 
-    // Mountain related
-    if (title.includes('mountain') || title.includes('alpine') || title.includes('peak') || title.includes('hiking')) {
-      return 'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=400&h=200&fit=crop'; // river between mountains under white clouds
+    // Product launches
+    if (title.includes('launch') || title.includes('product') || title.includes('brand') || title.includes('new')) {
+      return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=200&fit=crop';
     }
 
-    // Forest/Nature related
-    if (title.includes('forest') || title.includes('nature') || title.includes('wilderness') || title.includes('national park')) {
-      return 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=200&fit=crop'; // forest path
+    // Fashion/lifestyle campaigns
+    if (title.includes('fashion') || title.includes('style') || title.includes('lifestyle') || title.includes('beauty')) {
+      return 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop';
     }
 
-    // Desert/Safari related
-    if (title.includes('desert') || title.includes('safari') || title.includes('adventure') || title.includes('expedition')) {
-      return 'https://images.unsplash.com/photo-1469041797191-50ace28483c3?w=400&h=200&fit=crop'; // five camels on field
+    // Tech/digital campaigns
+    if (title.includes('tech') || title.includes('digital') || title.includes('app') || title.includes('software')) {
+      return 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=200&fit=crop';
     }
 
-    // Scenic/Landscape related
-    if (title.includes('scenic') || title.includes('landscape') || title.includes('vista') || title.includes('countryside')) {
-      return 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=200&fit=crop'; // landscape photography of mountain hit by sun rays
+    // Fitness/health campaigns
+    if (title.includes('fitness') || title.includes('health') || title.includes('wellness') || title.includes('gym')) {
+      return 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=200&fit=crop';
     }
 
-    // Default fallback - general travel image
-    return 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop'; // deer beside trees and mountain
+    // Default fallback - general marketing image
+    return 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=200&fit=crop';
   };
 
   return (

@@ -161,7 +161,12 @@ const ActiveProjectsView = ({ onProjectClick, projects }: ActiveProjectsViewProp
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Submissions: {project.submissionCount}/{project.maxSubmissions}
+                      Tasks: {project.submissionCount}/{project.maxSubmissions}
+                      {project.progress > 0 && (
+                        <span className="ml-2 text-xs font-medium text-green-600">
+                          {Math.round((project.submissionCount / project.maxSubmissions) * 100)}% complete
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

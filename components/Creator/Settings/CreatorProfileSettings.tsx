@@ -15,12 +15,12 @@ import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/
 
 const CreatorProfileSettings = () => {
   const [profileData, setProfileData] = useState({
-    displayName: "Sarah Johnson",
-    username: "@sarahcreates",
-    bio: "Lifestyle and fashion content creator passionate about sustainable living and authentic storytelling.",
-    location: "Los Angeles, CA",
-    website: "https://sarahcreates.com",
-    categories: ["Lifestyle", "Fashion", "Sustainability"]
+    displayName: "",
+    username: "",
+    bio: "",
+    location: "",
+    website: "",
+    categories: [] as string[]
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -33,6 +33,23 @@ const CreatorProfileSettings = () => {
   const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | undefined;
   const isVetted = creatorProfile?.is_vetted || false;
+
+  // Initialize profile data from current user
+  useEffect(() => {
+    if (creatorProfile) {
+      setProfileData({
+        displayName: creatorProfile.display_name || '',
+        username: creatorProfile.display_name ? `@${creatorProfile.display_name}` : '',
+        bio: creatorProfile.bio || '',
+        location: creatorProfile.location || '',
+        website: creatorProfile.website || '',
+        categories: [
+          creatorProfile.primary_niche,
+          ...(creatorProfile.secondary_niches || [])
+        ].filter(Boolean)
+      });
+    }
+  }, [creatorProfile]);
 
   // Initialize portfolio images from current user profile
   useEffect(() => {

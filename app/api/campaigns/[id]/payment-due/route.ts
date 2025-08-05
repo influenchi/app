@@ -101,19 +101,37 @@ export async function GET(
 
     // Parse campaign content requirements
     const contentRequirements = campaign.content_items || [];
-    
+
     // Check which creators have completed all their required submissions
     const creatorsDueForPayment = creatorIds.filter(creatorId => {
       const creatorSubmissions = submissions?.filter(sub => sub.creator_id === creatorId) || [];
-      
+
       // Check if creator has completed all required content items
-      const hasCompletedAllRequirements = contentRequirements.every(requirement => {
-        const matchingSubmissions = creatorSubmissions.filter(sub => 
-          sub.task_id === requirement.id &&
-          sub.content_type === requirement.contentType &&
-          sub.social_channel === requirement.socialChannel
-        );
-        
+      const hasCompletedAllRequirements = contentRequirements.every((requirement, requirementIndex) => {
+        // More flexible matching logic to handle type conversions and variations
+        const matchingSubmissions = creatorSubmissions.filter(sub => {
+          // Enhanced task ID matching to handle both new format and legacy format
+          let taskIdMatch = false;
+
+          // Direct match (new format)
+          if (String(sub.task_id) === String(requirement.id)) {
+            taskIdMatch = true;
+          }
+          // Legacy format fallback: check if task_id matches the 1-based index
+          // Legacy submissions used (index + 1), so task_id "1" should match requirement at index 0
+          else if (String(sub.task_id) === String(requirementIndex + 1)) {
+            taskIdMatch = true;
+          }
+
+          // Case-insensitive content type matching
+          const contentTypeMatch = sub.content_type?.toLowerCase() === requirement.contentType?.toLowerCase();
+
+          // Case-insensitive social channel matching
+          const socialChannelMatch = sub.social_channel?.toLowerCase() === requirement.socialChannel?.toLowerCase();
+
+          return taskIdMatch && contentTypeMatch && socialChannelMatch;
+        });
+
         const submittedQuantity = matchingSubmissions.reduce((total, sub) => total + (sub.quantity || 1), 0);
         return submittedQuantity >= (requirement.quantity || 1);
       });
@@ -125,10 +143,10 @@ export async function GET(
     const paymentData = creatorsDueForPayment.map(creatorId => {
       const creatorSubmissions = submissions?.filter(sub => sub.creator_id === creatorId) || [];
       const completionDate = Math.max(...creatorSubmissions.map(sub => new Date(sub.approved_date || sub.submitted_date).getTime()));
-      
+
       const user = users?.find(u => u.id === creatorId);
       const creatorProfile = creatorProfiles?.find(c => c.user_id === creatorId);
-      
+
       return {
         creatorId,
         creatorName: creatorProfile?.display_name || `${user?.first_name} ${user?.last_name}`,
@@ -141,9 +159,9 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       creatorsDueForPayment: paymentData,
-      campaignBudgetType: campaign.budget_type 
+      campaignBudgetType: campaign.budget_type
     });
 
   } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,13 @@ interface PaymentCreator {
   totalRequirements: number;
   budgetType: string;
   paymentStatus?: 'pending' | 'processing' | 'paid';
+  paymentMethod?: string;
+  totalEarnings?: number;
+  rating?: number;
+  completedTasks?: number;
+  totalTasks?: number;
+  submissionIds?: string[];
+  id?: string;
 }
 
 interface PaymentManagementProps {
@@ -46,48 +54,7 @@ interface PaymentManagementProps {
   campaign: any;
 }
 
-// Mock data for creators ready for payment
-const mockPaymentCreators: PaymentCreator[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    image: '/placeholder.svg',
-    email: 'sarah@example.com',
-    rating: 4.8,
-    completedTasks: 2,
-    totalTasks: 2,
-    totalEarnings: 500,
-    paymentStatus: 'pending',
-    paymentMethod: 'cash',
-    submissionIds: ['sub-1', 'sub-2']
-  },
-  {
-    id: '2',
-    name: 'Marcus Chen',
-    image: '/placeholder.svg',
-    email: 'marcus@example.com',
-    rating: 4.9,
-    completedTasks: 3,
-    totalTasks: 3,
-    totalEarnings: 0, // Product exchange
-    paymentStatus: 'pending',
-    paymentMethod: 'product',
-    submissionIds: ['sub-3', 'sub-4', 'sub-5']
-  },
-  {
-    id: '3',
-    name: 'Emma Rodriguez',
-    image: '/placeholder.svg',
-    email: 'emma@example.com',
-    rating: 4.7,
-    completedTasks: 1,
-    totalTasks: 1,
-    totalEarnings: 0, // Service exchange
-    paymentStatus: 'paid',
-    paymentMethod: 'service',
-    submissionIds: ['sub-6']
-  }
-];
+
 
 const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => {
   const [creators, setCreators] = useState<PaymentCreator[]>([]);
@@ -129,9 +96,9 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
   const filteredCreators = useMemo(() => {
     return creators.filter(creator => {
       const matchesSearch = creator.creatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          creator.email.toLowerCase().includes(searchTerm.toLowerCase());
+        creator.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || creator.paymentStatus === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [creators, searchTerm, statusFilter]);
@@ -146,27 +113,28 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
-      case 'product': return <Package className="h-4 w-4 text-purple-600" />;
-      case 'service': return <Gift className="h-4 w-4 text-blue-600" />;
+      case 'gifted': return <Package className="h-4 w-4 text-purple-600" />;
+      case 'affiliate': return <Gift className="h-4 w-4 text-blue-600" />;
       default: return <DollarSign className="h-4 w-4 text-green-600" />;
     }
   };
 
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {
-      case 'product': return 'Product Exchange';
-      case 'service': return 'Service Exchange';
+      case 'gifted': return 'Product Exchange';
+      case 'affiliate': return 'Service Exchange';
       default: return 'Cash Payment';
     }
   };
 
   const getPaymentAmount = (creator: PaymentCreator) => {
-    if (creator.paymentMethod === 'product') {
-      return 'Luxury resort stay + spa package';
-    } else if (creator.paymentMethod === 'service') {
-      return 'Guided mountain expedition + gear';
+    const paymentMethod = creator.budgetType || creator.paymentMethod;
+    if (paymentMethod === 'gifted') {
+      return 'Product/Service exchange';
+    } else if (paymentMethod === 'affiliate') {
+      return 'Affiliate commission';
     } else {
-      return `$${creator.totalEarnings}`;
+      return `$${creator.totalEarnings || 0}`;
     }
   };
 
@@ -177,9 +145,8 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`${starSize} ${
-              star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-            }`}
+            className={`${starSize} ${star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+              }`}
           />
         ))}
         <span className="text-sm text-gray-600 ml-1">{rating}</span>
@@ -193,9 +160,9 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
       return;
     }
 
-    setCreators(prev => 
-      prev.map(creator => 
-        creator.id === creatorId 
+    setCreators(prev =>
+      prev.map(creator =>
+        creator.id === creatorId
           ? { ...creator, paymentStatus: 'processing' as const }
           : creator
       )
@@ -207,9 +174,9 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
   };
 
   const handleMarkAsPaid = (creatorId: string) => {
-    setCreators(prev => 
-      prev.map(creator => 
-        creator.id === creatorId 
+    setCreators(prev =>
+      prev.map(creator =>
+        creator.id === creatorId
           ? { ...creator, paymentStatus: 'paid' as const }
           : creator
       )
@@ -224,8 +191,8 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
   };
 
   const totalPendingPayments = filteredCreators
-    .filter(c => c.paymentStatus === 'pending' && c.paymentMethod === 'cash')
-    .reduce((sum, c) => sum + c.totalEarnings, 0);
+    .filter(c => c.paymentStatus === 'pending' && c.paymentMethod === 'paid')
+    .reduce((sum, c) => sum + (c.totalEarnings || 0), 0);
 
   if (loading) {
     return (
@@ -327,7 +294,7 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -353,14 +320,14 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-600">Submissions</span>
-                    <p className="font-semibold mt-1">{creator.submissionIds.length} assets</p>
+                    <p className="font-semibold mt-1">{creator.submissionCount} assets</p>
                   </div>
                 </div>
 
                 {creator.paymentStatus === 'pending' && (
                   <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => openPaymentDialog(creator)}
                     >
@@ -372,10 +339,10 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
 
                 {creator.paymentStatus === 'processing' && (
                   <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                    <Button 
+                    <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleMarkAsPaid(creator.id)}
+                      onClick={() => handleMarkAsPaid(creator.id || '')}
                     >
                       <Check className="h-4 w-4 mr-1" />
                       Mark as Paid
@@ -399,7 +366,7 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
 
       {/* Payment Review Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg bg-white">
           <DialogHeader>
             <DialogTitle>Review Payment & Rate Creator</DialogTitle>
           </DialogHeader>
@@ -407,23 +374,23 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
                 <Avatar>
-                  <AvatarImage src={selectedCreator.image} />
-                  <AvatarFallback>{selectedCreator.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  <AvatarImage src={selectedCreator.profilePhoto || ''} />
+                  <AvatarFallback>{(selectedCreator.creatorName || '').split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{selectedCreator.name}</h3>
-                  {renderStarRating(selectedCreator.rating)}
+                  <h3 className="font-semibold">{selectedCreator.creatorName}</h3>
+                  {renderStarRating(selectedCreator.rating || 0)}
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Tasks Completed:</span>
-                  <span className="font-medium">{selectedCreator.completedTasks}/{selectedCreator.totalTasks}</span>
+                  <span className="font-medium">{selectedCreator.submissionCount || selectedCreator.completedTasks}/{selectedCreator.totalRequirements || selectedCreator.totalTasks}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Payment Method:</span>
-                  <span className="font-medium">{getPaymentMethodLabel(selectedCreator.paymentMethod)}</span>
+                  <span className="font-medium">{getPaymentMethodLabel(selectedCreator.budgetType || selectedCreator.paymentMethod || '')}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Amount Due:</span>
@@ -433,7 +400,7 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Submitted Assets:</span>
-                  <span className="font-medium">{selectedCreator.submissionIds.length}</span>
+                  <span className="font-medium">{selectedCreator.submissionCount}</span>
                 </div>
               </div>
 
@@ -441,7 +408,7 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
               <div className="space-y-4 pt-4 border-t">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-3 block">
-                    Rate this creator's performance
+                    Rate this creator&apos;s performance
                   </label>
                   <div className="flex items-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -449,9 +416,8 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}
-                        className={`p-1 transition-colors ${
-                          star <= rating ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
-                        }`}
+                        className={`p-1 transition-colors ${star <= rating ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
+                          }`}
                       >
                         <Star className="h-6 w-6 fill-current" />
                       </button>
@@ -481,7 +447,7 @@ const PaymentManagement = ({ campaignId, campaign }: PaymentManagementProps) => 
                 </Button>
                 <Button
                   className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleProcessPayment(selectedCreator.id)}
+                  onClick={() => handleProcessPayment(selectedCreator.id || '')}
                   disabled={rating === 0}
                 >
                   <CreditCard className="h-4 w-4 mr-1" />

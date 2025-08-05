@@ -69,8 +69,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 });
     }
 
+    // Filter out campaign images that may have been incorrectly added as assets
+    const assetsWithoutCampaignImages = assets?.filter(asset => {
+      // Exclude any assets with URLs that look like campaign images
+      return !asset.url.includes('campaign-images/');
+    });
+
     // Transform the data to match the AssetLibrary interface
-    const transformedAssets = assets?.map(asset => {
+    const transformedAssets = assetsWithoutCampaignImages?.map(asset => {
       const submission = asset.campaign_submissions;
       const campaign = submission.campaigns;
       const creator = submission.users;
@@ -100,7 +106,7 @@ export async function GET(request: NextRequest) {
     }) || [];
 
     // Apply client-side search filter if provided
-    const filteredAssets = search
+    const searchFilteredAssets = search
       ? transformedAssets.filter(asset =>
         asset.title.toLowerCase().includes(search.toLowerCase()) ||
         asset.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -108,7 +114,7 @@ export async function GET(request: NextRequest) {
       )
       : transformedAssets;
 
-    return NextResponse.json({ assets: filteredAssets });
+    return NextResponse.json({ assets: searchFilteredAssets });
   } catch (error) {
     console.error('Assets API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
