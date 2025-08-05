@@ -58,13 +58,13 @@ const RecentCampaigns = ({ campaigns, onCampaignClick }: RecentCampaignsProps) =
   };
 
   const getBudgetDisplay = (campaign: Campaign) => {
-    if (campaign.budgetType === 'product') {
+    if (campaign.budgetType === 'gifted') {
       return {
         icon: <Gift className="h-4 w-4" />,
         amount: campaign.budgetDescription || 'Product Exchange',
         color: 'text-purple-600'
       };
-    } else if (campaign.budgetType === 'service') {
+    } else if (campaign.budgetType === 'affiliate') {
       return {
         icon: <Wrench className="h-4 w-4" />,
         amount: campaign.budgetDescription || 'Service Exchange',
@@ -140,9 +140,9 @@ const RecentCampaigns = ({ campaigns, onCampaignClick }: RecentCampaignsProps) =
                         <span className="text-blue-600">applicants</span>
                       </div>
                       <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-green-50 text-green-700 border border-green-200">
-                        <TrendingUp className="h-4 w-4" />
-                        <span className="font-medium">{campaign.approved}</span>
-                        <span className="text-green-600">approved</span>
+                      <TrendingUp className="h-4 w-4" />
+                      <span className="font-medium">{campaign.approved || 0}</span>
+                      <span className="text-green-600">approved</span>
                       </div>
                       <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                         <Images className="h-4 w-4" />

@@ -29,7 +29,9 @@ export const brandProfileUpdateSchema = z.object({
 export const campaignSchema = z.object({
   title: z.string().min(1, "Campaign title is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
-  image: z.any().optional(),
+  image: z.any().refine((file) => file !== null && file !== undefined, {
+    message: "Campaign image is required",
+  }),
   campaignGoal: z.array(z.string()).min(1, "Please select at least one campaign goal"),
   budget: z.string().min(1, "Budget is required"),
   budgetType: z.array(z.enum(["paid", "gifted", "affiliate"])).min(1, "Please select at least one budget type"),

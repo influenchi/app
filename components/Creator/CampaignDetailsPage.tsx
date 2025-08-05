@@ -23,7 +23,7 @@ interface Campaign {
   image?: string;
   brand: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   completion_date: string;
   status: string;
@@ -117,7 +117,7 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
 
   // Transform campaign data for sidebar
   const sidebarCampaign = {
-    compensation: campaign.budget_type === 'cash'
+    compensation: campaign.budget_type === 'paid'
       ? `$${campaign.budget}`
       : campaign.product_service_description || 'Product/Service',
     budget: campaign.budget,
@@ -140,7 +140,7 @@ const CampaignDetailsPage = ({ campaign, onBack, onApply }: CampaignDetailsPageP
     title: campaign.title,
     image: campaign.image,
     brand: campaign.brand,
-    compensation: campaign.budget_type === 'cash'
+    compensation: campaign.budget_type === 'paid'
       ? `$${campaign.budget}`
       : campaign.product_service_description || 'Product/Service',
     deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {

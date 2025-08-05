@@ -12,7 +12,7 @@ interface ContentItem {
 interface Campaign {
   compensation: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   brand: string;
   content_items: ContentItem[];
   location: string;
@@ -28,7 +28,7 @@ interface CampaignSidebarProps {
 }
 
 const CampaignSidebar = ({ campaign, currentStatus, onApplyClick }: CampaignSidebarProps) => {
-  const compensationDisplay = campaign.budget_type === 'cash'
+  const compensationDisplay = campaign.budget_type === 'paid'
     ? `$${campaign.budget}`
     : `$${campaign.budget} + ${campaign.compensation}`;
 
@@ -105,7 +105,7 @@ const CampaignSidebar = ({ campaign, currentStatus, onApplyClick }: CampaignSide
       </Card>
 
       {/* Additional Requirements */}
-      {(campaign.budget_type === 'product' && (campaign.creator_purchase_required || campaign.product_ship_required)) && (
+      {(campaign.budget_type === 'gifted' && (campaign.creator_purchase_required || campaign.product_ship_required)) && (
         <Card>
           <CardHeader>
             <CardTitle>Additional Requirements</CardTitle>

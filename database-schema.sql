@@ -1,166 +1,313 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Users table (BetterAuth will handle this, but we add custom fields)
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
-  user_type VARCHAR(20) CHECK (user_type IN ('brand', 'creator')) DEFAULT 'creator',
-  company_name VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.account (
+  id text NOT NULL,
+  accountId text NOT NULL,
+  providerId text NOT NULL,
+  userId uuid NOT NULL,
+  accessToken text,
+  refreshToken text,
+  idToken text,
+  accessTokenExpiresAt timestamp without time zone,
+  refreshTokenExpiresAt timestamp without time zone,
+  scope text,
+  password text,
+  createdAt timestamp without time zone NOT NULL,
+  updatedAt timestamp without time zone NOT NULL,
+  CONSTRAINT account_pkey PRIMARY KEY (id),
+  CONSTRAINT account_userid_fkey FOREIGN KEY (userId) REFERENCES public.users(id)
 );
-
--- Brand profiles table
-CREATE TABLE IF NOT EXISTS brand_profiles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  brand_name VARCHAR(255) NOT NULL,
-  website VARCHAR(500),
-  description TEXT,
-  logo VARCHAR(500),
-  industries TEXT[] DEFAULT '{}',
-  social_media JSONB DEFAULT '{}',
-  is_onboarding_complete BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id)
+CREATE TABLE public.brands (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  email text NOT NULL,
+  company text NOT NULL,
+  website text,
+  brand_description text,
+  campaign_types text,
+  selected_plan text NOT NULL DEFAULT 'free'::text,
+  is_annual boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT brands_pkey PRIMARY KEY (id)
 );
-
--- Creator profiles table
-CREATE TABLE IF NOT EXISTS creators (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  first_name VARCHAR(100),
-  last_name VARCHAR(100),
-  email VARCHAR(255),
-  display_name VARCHAR(255) NOT NULL,
-  bio TEXT,
-  city VARCHAR(255),
-  state VARCHAR(255),
-  country VARCHAR(255),
-  profile_photo VARCHAR(500),
-  instagram VARCHAR(255),
-  tiktok VARCHAR(255),
-  youtube VARCHAR(255),
-  twitter VARCHAR(255),
-  website VARCHAR(500),
-  primary_niche VARCHAR(255),
-  secondary_niches TEXT[] DEFAULT '{}',
-  travel_style TEXT[] DEFAULT '{}',
-  work_types TEXT[] DEFAULT '{}',
-  work_images TEXT[] DEFAULT '{}',
-  total_followers VARCHAR(50),
-  primary_platform VARCHAR(50),
-  audience_info JSONB DEFAULT '{}',
-  engagement_rate VARCHAR(20),
-  portfolio_images TEXT[] DEFAULT '{}',
-  is_vetted BOOLEAN DEFAULT FALSE,
-  is_onboarding_complete BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id)
+CREATE TABLE public.campaign_applications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  campaign_id uuid,
+  creator_id uuid,
+  message text NOT NULL,
+  custom_quote character varying,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT campaign_applications_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_applications_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES public.users(id),
+  CONSTRAINT campaign_applications_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-
--- Campaigns table
-CREATE TABLE IF NOT EXISTS campaigns (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  brand_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  image VARCHAR(500),
-  campaign_goal TEXT[] DEFAULT '{}',
-  budget VARCHAR(100),
-  budget_type VARCHAR(20) CHECK (budget_type IN ('cash', 'product', 'service')) DEFAULT 'cash',
-  product_service_description TEXT,
-  creator_count VARCHAR(50),
-  start_date VARCHAR(50),
-  completion_date VARCHAR(50),
-  content_items JSONB DEFAULT '[]',
-  target_audience JSONB DEFAULT '{}',
-  requirements TEXT,
-  creator_purchase_required BOOLEAN DEFAULT FALSE,
-  product_ship_required BOOLEAN DEFAULT FALSE,
-  status VARCHAR(20) CHECK (status IN ('draft', 'active', 'paused', 'completed', 'cancelled')) DEFAULT 'draft',
-  applicant_count INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE public.campaign_edit_history (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  campaign_id uuid,
+  edited_by uuid,
+  changes jsonb,
+  edit_reason text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT campaign_edit_history_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_edit_history_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT campaign_edit_history_edited_by_fkey FOREIGN KEY (edited_by) REFERENCES public.users(id)
 );
-
--- Campaign applications table
-CREATE TABLE IF NOT EXISTS campaign_applications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  message TEXT NOT NULL,
-  custom_quote VARCHAR(255),
-  status VARCHAR(20) CHECK (status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(campaign_id, creator_id)
+CREATE TABLE public.campaign_submissions (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  campaign_id uuid,
+  creator_id uuid,
+  task_id character varying,
+  task_description text,
+  content_type character varying,
+  social_channel character varying,
+  quantity integer DEFAULT 1,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])),
+  rejection_comment text,
+  submitted_date timestamp with time zone DEFAULT now(),
+  approved_date timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT campaign_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT campaign_submissions_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES public.users(id),
+  CONSTRAINT campaign_submissions_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id)
 );
-
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_brand_profiles_user_id ON brand_profiles(user_id);
-CREATE INDEX IF NOT EXISTS idx_creators_user_id ON creators(user_id);
-CREATE INDEX IF NOT EXISTS idx_creators_primary_niche ON creators(primary_niche);
-CREATE INDEX IF NOT EXISTS idx_creators_is_vetted ON creators(is_vetted);
-CREATE INDEX IF NOT EXISTS idx_campaigns_brand_id ON campaigns(brand_id);
-CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
-CREATE INDEX IF NOT EXISTS idx_campaign_applications_campaign_id ON campaign_applications(campaign_id);
-CREATE INDEX IF NOT EXISTS idx_campaign_applications_creator_id ON campaign_applications(creator_id);
-CREATE INDEX IF NOT EXISTS idx_campaign_applications_status ON campaign_applications(status);
-
--- Set up Row Level Security (RLS)
-ALTER TABLE brand_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE creators ENABLE ROW LEVEL SECURITY;
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE campaign_applications ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for brand_profiles
-CREATE POLICY "Users can view their own brand profile" ON brand_profiles
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own brand profile" ON brand_profiles
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own brand profile" ON brand_profiles
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- RLS Policies for creators
-CREATE POLICY "Users can view their own creator profile" ON creators
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own creator profile" ON creators
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own creator profile" ON creators
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- RLS Policies for campaigns
-CREATE POLICY "Brands can view their own campaigns" ON campaigns
-  FOR SELECT USING (auth.uid() = brand_id);
-
-CREATE POLICY "Creators can view active campaigns" ON campaigns
-  FOR SELECT USING (status = 'active');
-
-CREATE POLICY "Brands can insert their own campaigns" ON campaigns
-  FOR INSERT WITH CHECK (auth.uid() = brand_id);
-
-CREATE POLICY "Brands can update their own campaigns" ON campaigns
-  FOR UPDATE USING (auth.uid() = brand_id);
-
--- RLS Policies for campaign_applications
-CREATE POLICY "Creators can view their own applications" ON campaign_applications
-  FOR SELECT USING (auth.uid() = creator_id);
-
-CREATE POLICY "Brands can view applications to their campaigns" ON campaign_applications
-  FOR SELECT USING (auth.uid() IN (SELECT brand_id FROM campaigns WHERE id = campaign_id));
-
-CREATE POLICY "Creators can insert their own applications" ON campaign_applications
-  FOR INSERT WITH CHECK (auth.uid() = creator_id);
-
-CREATE POLICY "Brands can update applications to their campaigns" ON campaign_applications
-  FOR UPDATE USING (auth.uid() IN (SELECT brand_id FROM campaigns WHERE id = campaign_id)); 
+CREATE TABLE public.campaigns (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  brand_id uuid,
+  title character varying NOT NULL,
+  description text,
+  image character varying,
+  campaign_goal ARRAY DEFAULT '{}'::text[],
+  budget character varying,
+  budget_type character varying DEFAULT 'cash'::character varying CHECK (budget_type::text = ANY (ARRAY['paid'::character varying, 'gifted'::character varying, 'affiliate'::character varying]::text[])),
+  product_service_description text,
+  creator_count character varying,
+  start_date character varying,
+  completion_date character varying,
+  content_items jsonb DEFAULT '[]'::jsonb,
+  target_audience jsonb DEFAULT '{}'::jsonb,
+  requirements text,
+  creator_purchase_required boolean DEFAULT false,
+  product_ship_required boolean DEFAULT false,
+  status character varying DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'active'::character varying, 'paused'::character varying, 'completed'::character varying, 'cancelled'::character varying, 'editing'::character varying]::text[])),
+  applicant_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  affiliate_program text,
+  original_campaign_id uuid,
+  is_template boolean DEFAULT false,
+  duplicate_count integer DEFAULT 0,
+  CONSTRAINT campaigns_pkey PRIMARY KEY (id),
+  CONSTRAINT campaigns_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.users(id),
+  CONSTRAINT campaigns_original_campaign_id_fkey FOREIGN KEY (original_campaign_id) REFERENCES public.campaigns(id)
+);
+CREATE TABLE public.contact_messages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL,
+  company text,
+  user_type text,
+  subject text NOT NULL,
+  message text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT contact_messages_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.creators (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid UNIQUE,
+  first_name character varying,
+  last_name character varying,
+  email character varying,
+  display_name character varying NOT NULL,
+  bio text,
+  city character varying,
+  state character varying,
+  country character varying,
+  profile_photo character varying,
+  instagram character varying,
+  tiktok character varying,
+  youtube character varying,
+  twitter character varying,
+  website character varying,
+  primary_niche character varying,
+  secondary_niches ARRAY DEFAULT '{}'::text[],
+  travel_style ARRAY DEFAULT '{}'::text[],
+  work_types ARRAY DEFAULT '{}'::text[],
+  work_images ARRAY DEFAULT '{}'::text[],
+  total_followers character varying,
+  primary_platform character varying,
+  audience_info jsonb DEFAULT '{}'::jsonb,
+  engagement_rate character varying,
+  portfolio_images ARRAY DEFAULT '{}'::text[],
+  is_vetted boolean DEFAULT false,
+  is_onboarding_complete boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  vetting_video_url text,
+  vetting_status character varying CHECK (vetting_status::text = ANY (ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])),
+  vetting_submitted_at timestamp with time zone,
+  vetting_reviewed_at timestamp with time zone,
+  vetting_reviewer_notes text,
+  CONSTRAINT creators_pkey PRIMARY KEY (id),
+  CONSTRAINT creators_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.message_recipients (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  message_id uuid,
+  recipient_id uuid,
+  is_read boolean DEFAULT false,
+  read_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT message_recipients_pkey PRIMARY KEY (id),
+  CONSTRAINT message_recipients_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id),
+  CONSTRAINT message_recipients_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.messages(id)
+);
+CREATE TABLE public.messages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  campaign_id uuid,
+  sender_id uuid,
+  recipient_id uuid,
+  message text NOT NULL,
+  is_broadcast boolean DEFAULT false,
+  attachments jsonb DEFAULT '[]'::jsonb,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT messages_pkey PRIMARY KEY (id),
+  CONSTRAINT messages_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id),
+  CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid,
+  type character varying NOT NULL,
+  title character varying NOT NULL,
+  message text NOT NULL,
+  data jsonb DEFAULT '{}'::jsonb,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.session (
+  id text NOT NULL,
+  expiresAt timestamp without time zone NOT NULL,
+  token text NOT NULL UNIQUE,
+  createdAt timestamp without time zone NOT NULL,
+  updatedAt timestamp without time zone NOT NULL,
+  ipAddress text,
+  userAgent text,
+  userId uuid NOT NULL,
+  CONSTRAINT session_pkey PRIMARY KEY (id),
+  CONSTRAINT session_userid_fkey FOREIGN KEY (userId) REFERENCES public.users(id)
+);
+CREATE TABLE public.submission_assets (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  submission_id uuid,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['image'::character varying, 'video'::character varying]::text[])),
+  url character varying NOT NULL,
+  thumbnail_url character varying,
+  title character varying NOT NULL,
+  description text,
+  file_size character varying,
+  dimensions character varying,
+  duration character varying,
+  tags ARRAY DEFAULT '{}'::text[],
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT submission_assets_pkey PRIMARY KEY (id),
+  CONSTRAINT submission_assets_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES public.campaign_submissions(id)
+);
+CREATE TABLE public.team_invitations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  brand_id uuid,
+  email character varying NOT NULL,
+  role character varying DEFAULT 'member'::character varying CHECK (role::text = ANY (ARRAY['admin'::character varying, 'manager'::character varying, 'member'::character varying]::text[])),
+  invitation_token character varying NOT NULL UNIQUE,
+  invited_by uuid,
+  expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval),
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'expired'::character varying, 'cancelled'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_invitations_pkey PRIMARY KEY (id),
+  CONSTRAINT team_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id),
+  CONSTRAINT team_invitations_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.team_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  brand_id uuid,
+  user_id uuid,
+  role character varying DEFAULT 'member'::character varying CHECK (role::text = ANY (ARRAY['admin'::character varying, 'manager'::character varying, 'member'::character varying]::text[])),
+  invited_by uuid,
+  invitation_token character varying,
+  invitation_expires_at timestamp with time zone,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'active'::character varying, 'inactive'::character varying]::text[])),
+  joined_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_members_pkey PRIMARY KEY (id),
+  CONSTRAINT team_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.users(id),
+  CONSTRAINT team_members_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.users(id),
+  CONSTRAINT team_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_mappings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  better_auth_id uuid NOT NULL UNIQUE,
+  uuid_id uuid NOT NULL UNIQUE,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_mappings_pkey PRIMARY KEY (id),
+  CONSTRAINT user_mappings_better_auth_id_fkey FOREIGN KEY (better_auth_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_notification_settings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid UNIQUE,
+  email_campaign_updates boolean DEFAULT true,
+  email_creator_messages boolean DEFAULT true,
+  email_payment_alerts boolean DEFAULT true,
+  email_weekly_reports boolean DEFAULT false,
+  email_marketing_emails boolean DEFAULT false,
+  push_campaign_updates boolean DEFAULT true,
+  push_creator_messages boolean DEFAULT true,
+  push_payment_alerts boolean DEFAULT true,
+  push_urgent_alerts boolean DEFAULT true,
+  desktop_browser_notifications boolean DEFAULT true,
+  desktop_sound_alerts boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_notification_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT user_notification_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email character varying NOT NULL UNIQUE,
+  name character varying,
+  email_verified boolean DEFAULT false,
+  image text,
+  first_name character varying,
+  last_name character varying,
+  user_type character varying DEFAULT 'creator'::character varying CHECK (user_type::text = ANY (ARRAY['brand'::character varying, 'creator'::character varying]::text[])),
+  company_name character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  emailVerified boolean DEFAULT false,
+  createdAt timestamp without time zone DEFAULT now(),
+  updatedAt timestamp without time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.verification (
+  id text NOT NULL,
+  identifier text NOT NULL,
+  value text NOT NULL,
+  expiresAt timestamp without time zone NOT NULL,
+  createdAt timestamp without time zone,
+  updatedAt timestamp without time zone,
+  CONSTRAINT verification_pkey PRIMARY KEY (id)
+);

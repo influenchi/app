@@ -29,7 +29,7 @@ interface Campaign {
   title: string;
   description: string;
   budget: string;
-  budget_type: 'cash' | 'product' | 'service';
+  budget_type: 'paid' | 'gifted' | 'affiliate';
   product_service_description?: string;
   status: string;
   applicant_count: number;

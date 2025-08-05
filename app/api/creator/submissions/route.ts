@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -38,21 +39,71 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You are not authorized to submit to this campaign' }, { status: 403 });
     }
 
-    // Create the submission record
-    const { data: submission, error: submissionError } = await supabaseAdmin
+    // Check if a submission already exists for this task
+    const { data: existingSubmission } = await supabaseAdmin
       .from('campaign_submissions')
-      .insert({
-        campaign_id: campaignId,
-        creator_id: session.user.id,
-        task_id: taskId,
-        task_description: taskDescription || '',
-        content_type: contentType || '',
-        social_channel: socialChannel || '',
-        quantity: quantity || assets.length,
-        status: 'pending'
-      })
-      .select()
+      .select('id, status')
+      .eq('campaign_id', campaignId)
+      .eq('creator_id', session.user.id)
+      .eq('task_id', taskId)
       .single();
+
+    let submission;
+    let submissionError;
+
+    if (existingSubmission) {
+      if (existingSubmission.status === 'approved') {
+        return NextResponse.json({
+          error: 'This task has already been approved and cannot be resubmitted'
+        }, { status: 400 });
+      }
+
+      // Update existing submission for pending/rejected tasks
+      const updateResult = await supabaseAdmin
+        .from('campaign_submissions')
+        .update({
+          task_description: taskDescription || '',
+          content_type: contentType || '',
+          social_channel: socialChannel || '',
+          quantity: quantity || assets.length,
+          status: 'pending',
+          submitted_date: new Date().toISOString(),
+          rejection_comment: null // Clear previous rejection comment
+        })
+        .eq('id', existingSubmission.id)
+        .select()
+        .single();
+
+      submission = updateResult.data;
+      submissionError = updateResult.error;
+
+      // Delete existing assets for the submission to replace with new ones
+      if (!submissionError) {
+        await supabaseAdmin
+          .from('submission_assets')
+          .delete()
+          .eq('submission_id', existingSubmission.id);
+      }
+    } else {
+      // Create new submission record
+      const insertResult = await supabaseAdmin
+        .from('campaign_submissions')
+        .insert({
+          campaign_id: campaignId,
+          creator_id: session.user.id,
+          task_id: taskId,
+          task_description: taskDescription || '',
+          content_type: contentType || '',
+          social_channel: socialChannel || '',
+          quantity: quantity || assets.length,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      submission = insertResult.data;
+      submissionError = insertResult.error;
+    }
 
     if (submissionError) {
       console.error('Submission creation error:', submissionError);
@@ -110,20 +161,29 @@ export async function POST(request: NextRequest) {
         ? `${creatorInfo.first_name} ${creatorInfo.last_name}`
         : creatorInfo.company_name || 'Creator';
 
+      const isResubmission = !!existingSubmission;
+      const notificationTitle = isResubmission
+        ? `Updated submission from ${creatorName}`
+        : `New submission from ${creatorName}`;
+      const notificationMessage = isResubmission
+        ? `${creatorName} updated their submission for "${campaignInfo.title}". ${assets.length} file(s) uploaded.`
+        : `${creatorName} submitted content for "${campaignInfo.title}". ${assets.length} file(s) uploaded.`;
+
       await supabaseAdmin
         .from('notifications')
         .insert({
           user_id: campaignInfo.brand_id,
-          type: 'submission_created',
-          title: `New submission from ${creatorName}`,
-          message: `${creatorName} submitted content for "${campaignInfo.title}". ${assets.length} file(s) uploaded.`,
+          type: isResubmission ? 'submission_updated' : 'submission_created',
+          title: notificationTitle,
+          message: notificationMessage,
           data: {
             campaign_id: campaignId,
             submission_id: submission.id,
             creator_id: session.user.id,
             creator_name: creatorName,
             task_id: taskId,
-            asset_count: assets.length
+            asset_count: assets.length,
+            is_resubmission: isResubmission
           }
         });
     }
@@ -201,7 +261,7 @@ export async function GET(request: NextRequest) {
       status: submission.status,
       submittedDate: new Date(submission.created_at).toISOString().split('T')[0],
       rejectionComment: submission.rejection_comment,
-      assets: submission.submission_assets?.map(asset => ({
+      assets: submission.submission_assets?.map((asset: any) => ({
         id: asset.id,
         type: asset.type,
         url: asset.url,

@@ -126,8 +126,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
     }
 
-    // For brand requests, add hired creators count
+    // Fetch brand profiles separately for creator view
+    const brandProfilesMap = new Map();
+    if (!forBrand && campaigns?.length > 0) {
+      const brandUserIds = campaigns.map(c => c.brand_id).filter(Boolean);
+      if (brandUserIds.length > 0) {
+        const { data: brandProfiles } = await supabaseAdmin
+          .from('brands')
+          .select('user_id, company, brand_description')
+          .in('user_id', brandUserIds);
+
+        if (brandProfiles) {
+          brandProfiles.forEach(profile => {
+            brandProfilesMap.set(profile.user_id, profile);
+          });
+        }
+      }
+    }
+
+    // For brand requests, add hired creators count and approved submissions per campaign
     let hiredCreatorsCount = 0;
+    const approvedSubmissionsByCampaign = new Map();
     if (forBrand && campaigns?.length > 0) {
       const campaignIds = campaigns.map(c => c.id);
 
@@ -141,6 +160,20 @@ export async function GET(request: NextRequest) {
       if (acceptedApplications) {
         const uniqueCreatorIds = new Set(acceptedApplications.map(app => app.creator_id));
         hiredCreatorsCount = uniqueCreatorIds.size;
+      }
+
+      // Get approved submissions count per campaign
+      const { data: approvedSubmissions } = await supabaseAdmin
+        .from('campaign_submissions')
+        .select('campaign_id')
+        .eq('status', 'approved')
+        .in('campaign_id', campaignIds);
+
+      if (approvedSubmissions) {
+        approvedSubmissions.forEach(submission => {
+          const count = approvedSubmissionsByCampaign.get(submission.campaign_id) || 0;
+          approvedSubmissionsByCampaign.set(submission.campaign_id, count + 1);
+        });
       }
     }
 
@@ -161,12 +194,11 @@ export async function GET(request: NextRequest) {
         applicationMap.set(app.campaign_id, app.status);
       });
 
-      // Add application status and brand name to each campaign
+      // Add application status and brand info to each campaign
       const campaignsWithApplicationStatus = campaigns.map(campaign => {
         const brandData = campaign.users;
-        const brandName = Array.isArray(brandData) && brandData[0]?.company_name
-          ? brandData[0].company_name
-          : 'Brand Name';
+        const brandProfile = brandProfilesMap.get(campaign.brand_id);
+        const brandName = brandProfile?.company || brandData?.company_name || 'Brand Name';
 
         return {
           ...campaign,
@@ -179,10 +211,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ campaigns: campaignsWithApplicationStatus });
     }
 
-    // Add budgetType array format for brand campaigns
+    // Add budgetType array format for brand campaigns and approved counts
     const campaignsWithMappedBudgetType = campaigns?.map(campaign => ({
       ...campaign,
-      budgetType: [campaign.budget_type || 'paid']
+      budgetType: [campaign.budget_type || 'paid'],
+      approved: forBrand ? (approvedSubmissionsByCampaign.get(campaign.id) || 0) : undefined
     }));
 
     const response = {
