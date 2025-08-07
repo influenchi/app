@@ -12,7 +12,14 @@ export const auth = betterAuth({
     ssl: {
       rejectUnauthorized: false
     },
-    connectionTimeoutMillis: 5000,
+    // Allow extra time for cross-region connects and provider jitter
+    connectionTimeoutMillis: 15000,
+    // Recycle connections periodically to avoid stale sockets
+    maxLifetimeSeconds: 300,
+    // Keep TCP connections alive to reduce SYN/FIN churn under Fluid concurrency
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+    // Reasonable idle timeout and pool size for a single function instance
     idleTimeoutMillis: 30000,
     max: 10,
     statement_timeout: 10000,
