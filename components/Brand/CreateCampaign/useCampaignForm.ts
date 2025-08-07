@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CampaignData } from "./types";
 import { showConfetti } from "./confetti";
 import { campaignSchema, CampaignFormData } from "@/lib/validations/brand";
-import { useCreateCampaign, useSaveCampaignDraft } from "@/lib/hooks/useBrand";
+import { useCreateCampaign, useSaveCampaignDraft, useUpdateCampaign } from "@/lib/hooks/useBrand";
 import { getStepValidation, validateAllSteps, StepValidation } from "./validation";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [stepValidation, setStepValidation] = useState<StepValidation>({ isValid: true, errors: [] });
   const createCampaign = useCreateCampaign();
+  const updateCampaign = useUpdateCampaign();
   const saveDraft = useSaveCampaignDraft();
 
   const form = useForm<CampaignFormData & { image?: File }>({
@@ -68,7 +69,34 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
       setHasUnsavedChanges(!!hasData);
 
       // Update current step validation
-      const validation = getStepValidation(currentStep, value as CampaignData);
+      // Coerce partial watch values to a complete CampaignData shape for validation
+      const validationInput: CampaignData = {
+        title: value.title || '',
+        description: value.description || '',
+        image: (value as any).image ?? undefined,
+        campaignGoal: value.campaignGoal || [],
+        budget: value.budget || '',
+        budgetType: value.budgetType || ['paid'],
+        productServiceDescription: value.productServiceDescription || '',
+        creatorCount: value.creatorCount || '',
+        startDate: value.startDate || '',
+        completionDate: value.completionDate || '',
+        contentItems: value.contentItems || [],
+        targetAudience: value.targetAudience || {
+          socialChannel: '',
+          audienceSize: [],
+          ageRange: [],
+          gender: '',
+          location: [],
+          ethnicity: '',
+          interests: []
+        },
+        requirements: value.requirements || '',
+        creatorPurchaseRequired: value.creatorPurchaseRequired || false,
+        productShipRequired: value.productShipRequired || false,
+        affiliateProgram: value.affiliateProgram || undefined,
+      };
+      const validation = getStepValidation(currentStep, validationInput);
       setStepValidation(validation);
     });
     return () => subscription.unsubscribe();
@@ -174,21 +202,63 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
     const formData = form.getValues();
 
     // Final validation before submission
-    const validation = validateAllSteps(formData as CampaignData);
+    const validation = validateAllSteps({
+      title: formData.title || '',
+      description: formData.description || '',
+      image: (formData as any).image ?? undefined,
+      campaignGoal: formData.campaignGoal || [],
+      budget: formData.budget || '',
+      budgetType: formData.budgetType || ['paid'],
+      productServiceDescription: formData.productServiceDescription || '',
+      creatorCount: formData.creatorCount || '',
+      startDate: formData.startDate || '',
+      completionDate: formData.completionDate || '',
+      contentItems: formData.contentItems || [],
+      targetAudience: formData.targetAudience || {
+        socialChannel: '',
+        audienceSize: [],
+        ageRange: [],
+        gender: '',
+        location: [],
+        ethnicity: '',
+        interests: []
+      },
+      requirements: formData.requirements || '',
+      creatorPurchaseRequired: formData.creatorPurchaseRequired || false,
+      productShipRequired: formData.productShipRequired || false,
+      affiliateProgram: formData.affiliateProgram || undefined,
+    });
     if (!validation.isValid) {
-      // Show validation errors
       validation.errors.forEach(error => {
         toast.error(error.message);
       });
       return;
     }
 
+    // If editing an existing campaign, perform an update instead of create
+    const existingId = (initialData as any)?.id || draftId;
+    if (existingId) {
+      updateCampaign.mutate(
+        { id: existingId, ...(formData as any), status: 'active' },
+        {
+          onSuccess: () => {
+            showConfetti();
+            setTimeout(() => {
+              onSuccess();
+            }, 600);
+          }
+        }
+      );
+      return;
+    }
+
+    // New campaign
     createCampaign.mutate(formData, {
       onSuccess: () => {
         showConfetti();
         setTimeout(() => {
           onSuccess();
-        }, 1000);
+        }, 600);
       }
     });
   };

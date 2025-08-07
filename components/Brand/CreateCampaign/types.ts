@@ -11,7 +11,7 @@ export interface ContentItem {
 export interface CampaignData {
   title: string;
   description: string;
-  image: File | null;
+  image?: File | null;
   campaignGoal: string[];
   budget: string;
   budgetType: ('paid' | 'gifted' | 'affiliate')[];

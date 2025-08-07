@@ -251,6 +251,62 @@ export function useCreateCampaign() {
   });
 }
 
+export function useUpdateCampaign() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
+
+  return useMutation({
+    mutationFn: async (
+      params: { id: string } & (CampaignFormData & { image?: File; status?: 'draft' | 'active' })
+    ) => {
+      if (!session?.user?.id) {
+        throw new Error('User session not found. Please log in again.');
+      }
+
+      const { id, image, status, ...rest } = params;
+
+      let imageUrl: string | null = null;
+
+      if (image && image instanceof File) {
+        try {
+          imageUrl = await uploadCampaignImage(image, session.user.id);
+        } catch (uploadError) {
+          const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
+          throw new Error(`Image upload failed: ${errorMessage}`);
+        }
+      }
+
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...rest,
+          imageUrl,
+          status: status || 'active',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update campaign');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['brand-campaigns'] });
+      toast.success('Campaign updated successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update campaign');
+    },
+  });
+}
+
 export function useSaveCampaignDraft() {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
