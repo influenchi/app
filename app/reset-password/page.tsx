@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
             <Label htmlFor="confirm">Confirm Password</Label>
             <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </div>
-          <Button onClick={handleSubmit} disabled={loading} className="w-full">
+          <Button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
             {loading ? 'Updating...' : 'Update Password'}
           </Button>
         </CardContent>

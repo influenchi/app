@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { useSignIn } from "@/lib/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { getSession } from "@/lib/auth-client";
+import Link from "next/link";
 
 interface LoginFormProps {
   onBack: () => void;
@@ -115,12 +117,9 @@ const LoginForm = ({ onBack, onLoginComplete }: LoginFormProps) => {
             </div>
 
             <div className="flex items-center justify-between">
-              <button
-                type="button"
-                className="text-sm text-blue-600 hover:underline"
-              >
+              <Link href="/forgot-password" prefetch={false} className="text-sm text-blue-600 hover:underline">
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             <Button
@@ -133,13 +132,13 @@ const LoginForm = ({ onBack, onLoginComplete }: LoginFormProps) => {
 
             <p className="text-sm text-gray-600 text-center">
               Don&apos;t have an account?{' '}
-              <button
+              <Button
                 type="button"
                 className="text-blue-600 hover:underline"
                 onClick={onBack}
               >
                 Sign up
-              </button>
+              </Button>
             </p>
           </form>
         </CardContent>

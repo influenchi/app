@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          <Button onClick={handleSubmit} disabled={loading} className="w-full">
+          <Button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
             {loading ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </CardContent>
