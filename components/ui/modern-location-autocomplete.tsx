@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -31,10 +32,9 @@ const ModernLocationAutocomplete = ({
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const placesLibRef = useRef<google.maps.PlacesLibrary | null>(null);
 
-  // Initialize Google Places API
   useEffect(() => {
     const initializeGooglePlaces = async () => {
       if (!process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY) {
@@ -70,18 +70,20 @@ const ModernLocationAutocomplete = ({
     try {
       const { AutocompleteSuggestion } = placesLibRef.current;
 
-      const request = {
+      const request: any = {
         input: query,
-        includedRegionCodes: ['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'PT', 'NL', 'BR', 'JP'], // Major countries
+        includedPrimaryTypes: ['locality', 'administrative_area_level_1', 'country'],
       };
 
-      const { suggestions: results } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+      const { suggestions: results } = await (AutocompleteSuggestion as any).fetchAutocompleteSuggestions(request);
 
-      // Filter to only include city/region results
-      const filteredResults = results.filter((suggestion: PlaceSuggestion) => {
+      const filteredResults = results.filter((suggestion: any) => {
         const prediction = suggestion.placePrediction;
-        // You can add more filtering logic here if needed
-        return prediction.mainText && prediction.secondaryText;
+        const types: string[] = prediction.types || [];
+        return (
+          prediction.mainText && prediction.secondaryText &&
+          (types.includes('locality') || types.includes('administrative_area_level_1') || types.includes('country'))
+        );
       });
 
       setSuggestions(filteredResults);

@@ -53,6 +53,23 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
     setImageUploadState('idle');
   };
 
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    const syntheticEvent = {
+      target: { files },
+      currentTarget: { files }
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    handleImageUpload(syntheticEvent);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   const generateAIDescription = async () => {
     if (!campaignData.title.trim()) {
       toast.error('Please enter a campaign title first to generate AI description');
@@ -231,7 +248,11 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
         </p>
         <div className="mt-2">
           <label htmlFor="image-upload" className="cursor-pointer">
-            <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${getImageUploadBorderColor()}`}>
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-all ${getImageUploadBorderColor()}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
               {campaignData.image ? (
                 <div className="relative">
                   <img

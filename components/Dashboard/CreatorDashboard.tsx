@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Search,
-  Camera,
   DollarSign,
   MapPin,
   Clock,
@@ -67,6 +66,7 @@ interface TransformedCampaign {
   description: string;
   budget: string;
   applicationStatus?: 'pending' | 'accepted' | 'rejected' | null;
+  budget_type: 'paid' | 'gifted' | 'affiliate';
 }
 
 interface ActiveCampaign {
@@ -126,6 +126,16 @@ const CreatorDashboard = () => {
 
   const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | null;
+
+  // Force creator onboarding completion
+  useEffect(() => {
+    if (currentUser?.user?.user_type === 'creator') {
+      const profile = currentUser.profile as CreatorProfileData | null;
+      if (profile && !profile.is_onboarding_complete) {
+        router.replace('/creator/onboarding');
+      }
+    }
+  }, [currentUser, router]);
 
   // Fetch all active campaigns
   const { data: campaignsData, isLoading: campaignsLoading } = useQuery({
@@ -223,6 +233,7 @@ const CreatorDashboard = () => {
         description: campaign.description,
         budget: campaign.budget,
         applicationStatus: campaign.applicationStatus || applicationStatusMap[campaign.id] || null,
+        budget_type: campaign.budget_type,
       };
     });
   }, [campaignsData, applicationStatusMap]);
@@ -556,7 +567,7 @@ const CreatorDashboard = () => {
           </Card>
         </div>
 
-        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg inline-flex">
+        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('campaigns')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'campaigns'
@@ -656,7 +667,9 @@ const CreatorDashboard = () => {
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center text-sm text-muted-foreground">
                         <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                        <span className="font-medium text-foreground">${campaign.budget} &bull; {campaign.compensation}</span>
+                        <span className="font-medium text-foreground">
+                          {campaign.budget_type === 'paid' ? `$${campaign.budget}` : campaign.compensation}
+                        </span>
                       </div>
 
                       <div className="flex items-center text-sm text-muted-foreground">
@@ -669,10 +682,7 @@ const CreatorDashboard = () => {
                         Application Deadline: {campaign.deadline}
                       </div>
 
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Camera className="h-4 w-4 mr-2" />
-                        {campaign.deliverables}
-                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">{campaign.deliverables}</div>
                     </div>
 
                     <Button
@@ -688,12 +698,9 @@ const CreatorDashboard = () => {
             </div>
 
             {filteredCampaigns.length === 0 && (
-              <div className="text-center py-12">
-                <div className="text-muted-foreground">
-                  <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">No collabs found</p>
-                  <p className="text-sm">Try adjusting your filters or search terms</p>
-                </div>
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg">No collabs found</p>
+                <p className="text-sm">Try adjusting your filters or search terms</p>
               </div>
             )}
           </>
@@ -709,12 +716,9 @@ const CreatorDashboard = () => {
             ) : transformedActiveProjects.length > 0 ? (
               <ActiveProjectsView onProjectClick={handleProjectClick} projects={transformedActiveProjects} />
             ) : (
-              <div className="text-center py-12">
-                <div className="text-muted-foreground">
-                  <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">No active collaborations</p>
-                  <p className="text-sm">You&apos;ll see accepted campaigns here</p>
-                </div>
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-lg">No active collaborations</p>
+                <p className="text-sm">You&apos;ll see accepted campaigns here</p>
               </div>
             )}
           </div>

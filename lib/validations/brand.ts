@@ -42,11 +42,29 @@ export const campaignSchema = z.object({
   contentItems: z.array(z.object({
     id: z.string(),
     socialChannel: z.string().min(1, "Social channel is required"),
-    contentType: z.string().min(1, "Content type is required"),
+    contentType: z.string().optional(),
     quantity: z.number().min(1),
     description: z.string().optional(),
     customTitle: z.string().optional(),
-  })),
+  })).superRefine((items, ctx) => {
+    items.forEach((item, index) => {
+      const isOther = item.socialChannel === 'Other';
+      if (!isOther && (!item.contentType || item.contentType.trim() === '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Content item ${index + 1}: Content type is required`,
+          path: [index, 'contentType']
+        });
+      }
+      if (isOther && (!item.customTitle || item.customTitle.trim() === '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Content item ${index + 1}: Task title is required for Other`,
+          path: [index, 'customTitle']
+        });
+      }
+    });
+  }),
   targetAudience: z.object({
     socialChannel: z.string().optional(),
     audienceSize: z.array(z.string()),

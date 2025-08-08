@@ -28,6 +28,27 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    sendResetPassword: async ({ user, url, token }) => {
+      // Use SendGrid templated email
+      try {
+        await (await import('./email')).sendEmail({
+          to: user.email,
+          subject: 'Reset your password',
+          template: 'password_reset',
+          templateData: {
+            userId: user.id,
+            reset_url: url,
+            token,
+            email: user.email,
+          }
+        });
+      } catch (err) {
+        console.error('Failed sending reset password email', err);
+      }
+    },
+    onPasswordReset: async ({ user }) => {
+      console.log(`Password reset for user ${user.email}`);
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days

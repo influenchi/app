@@ -46,8 +46,12 @@ export const validateStep2 = (data: CampaignData): StepValidation => {
       if (!item.socialChannel) {
         errors.push({ field: `contentItems[${index}].socialChannel`, message: `Content item ${index + 1}: Social channel is required` });
       }
-      if (!item.contentType) {
+      const isOther = item.socialChannel === 'Other';
+      if (!isOther && !item.contentType) {
         errors.push({ field: `contentItems[${index}].contentType`, message: `Content item ${index + 1}: Content type is required` });
+      }
+      if (isOther && !item.customTitle?.trim()) {
+        errors.push({ field: `contentItems[${index}].customTitle`, message: `Content item ${index + 1}: Task title is required for Other` });
       }
       if (!item.quantity || item.quantity < 1) {
         errors.push({ field: `contentItems[${index}].quantity`, message: `Content item ${index + 1}: Quantity must be at least 1` });

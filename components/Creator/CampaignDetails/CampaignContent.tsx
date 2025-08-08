@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import Image from "next/image";
 
 interface CampaignContentProps {
@@ -35,17 +35,14 @@ const CampaignContent = ({ campaign }: CampaignContentProps) => {
           <CardTitle>Campaign Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed">{campaign.description}</p>
+          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{campaign.description}</p>
         </CardContent>
       </Card>
 
       {/* Content Requirements */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Camera className="h-5 w-5 mr-2" />
-            Content Requirements
-          </CardTitle>
+          <CardTitle className="flex items-center">Content Requirements</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

@@ -31,9 +31,8 @@ export const EMAIL_TEMPLATES = {
   creator_content_approved: 'd-ed354090743a43398ddc90429f4c7e88',
   creator_campaign_completed: 'd-f01022ece7a14e598e9f397a6497f2c8',
   creator_review_received: 'd-9ab302ad25d34a81a028c39b004d5d29',
-
-  // Team invitation
   team_invitation: 'd-5760643a3fdd4a47a027212884bbf17b',
+  password_reset: 'd-e16a0812b2974f4e82bdc5adbaee8f14',
 } as const;
 
 export type EmailTemplate = keyof typeof EMAIL_TEMPLATES;
