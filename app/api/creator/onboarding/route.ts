@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         const audienceLocationStr = formData.get('audienceLocation') as string;
         const engagementRate = formData.get('engagementRate') as string;
         const portfolioImagesStr = formData.get('portfolioImages') as string;
+        const brandsWorkedWithStr = formData.get('brandsWorkedWith') as string | null;
 
         const secondaryNiches = secondaryNichesStr ? JSON.parse(secondaryNichesStr) : [];
         const travelStyle = travelStyleStr ? JSON.parse(travelStyleStr) : [];
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
         const audienceAge = audienceAgeStr ? JSON.parse(audienceAgeStr) : [];
         const audienceLocation = audienceLocationStr ? JSON.parse(audienceLocationStr) : [];
         const portfolioImages = portfolioImagesStr ? JSON.parse(portfolioImagesStr) : [];
+        const brandsWorkedWith = brandsWorkedWithStr ? JSON.parse(brandsWorkedWithStr) : [];
 
         // Check for profile image URL from form data (already uploaded)
         if (profileImageUrlFromForm) {
@@ -98,7 +100,8 @@ export async function POST(request: NextRequest) {
           audienceGender,
           audienceLocation,
           engagementRate,
-          portfolioImages
+          portfolioImages,
+          brandsWorkedWith
         };
 
       } catch (formDataError) {
@@ -130,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Validating data...');
-    const validatedData = creatorOnboardingSchema.parse(body);
+    const validatedData = creatorOnboardingSchema.parse(body as unknown as Record<string, unknown>);
     console.log('Data validation successful');
 
     const userId = session.user.id;
@@ -205,7 +208,7 @@ export async function POST(request: NextRequest) {
 
       if (insertResult.data && !error) {
         console.log('Creator profile created:', insertResult.data.id);
-        
+
         // Send welcome email for new creator signup
         try {
           await NotificationService.sendCreatorWelcome(

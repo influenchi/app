@@ -145,6 +145,7 @@ CREATE TABLE public.creators (
   audience_info jsonb DEFAULT '{}'::jsonb,
   engagement_rate character varying,
   portfolio_images ARRAY DEFAULT '{}'::text[],
+  brands_worked_with jsonb DEFAULT '[]'::jsonb,
   is_vetted boolean DEFAULT false,
   is_onboarding_complete boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),

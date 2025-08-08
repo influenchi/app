@@ -9,7 +9,6 @@ import { CheckCircle, ArrowRight, ArrowLeft, Loader2, Upload } from "lucide-reac
 import BasicInfoStep from "./Onboarding/BasicInfoStep";
 import SocialProfilesStep from "./Onboarding/SocialProfilesStep";
 import CreatorNicheStep from "./Onboarding/CreatorNicheStep";
-import AudienceInfoStep from "./Onboarding/AudienceInfoStep";
 import PortfolioStep from "./Onboarding/PortfolioStep";
 import { CreatorProfileData } from "./types";
 import { creatorOnboardingSchema, CreatorOnboardingFormData } from "@/lib/validations/creator";
@@ -93,15 +92,14 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     currentStep === 1
   );
 
-  const totalSteps = 5;
+  const totalSteps = 4;
   const progress = (currentStep / totalSteps) * 100;
 
   const steps = [
     { number: 1, title: "Basic Information", component: BasicInfoStep },
     { number: 2, title: "Social Profiles", component: SocialProfilesStep },
     { number: 3, title: "Niche & Style", component: CreatorNicheStep },
-    { number: 4, title: "Audience Insights", component: AudienceInfoStep },
-    { number: 5, title: "Portfolio Showcase", component: PortfolioStep }
+    { number: 4, title: "Portfolio Showcase", component: PortfolioStep }
   ];
 
   const handleNext = async () => {

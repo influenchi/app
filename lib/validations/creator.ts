@@ -29,6 +29,14 @@ export const creatorOnboardingSchema = z.object({
   audienceLocation: z.array(z.string()).optional(),
   engagementRate: z.string().optional(),
   portfolioImages: z.array(z.any()).optional(),
+  brandsWorkedWith: z
+    .array(
+      z.object({
+        name: z.string().min(1, "Brand name is required"),
+        url: z.string().url().optional().or(z.literal("")),
+      })
+    )
+    .optional(),
 });
 
 export const creatorProfileUpdateSchema = z.object({

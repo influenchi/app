@@ -252,6 +252,32 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
     }
   };
 
+  const handleDropFiles = (taskId: string, event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      const newSubmissions = Array.from(files).map(file => ({
+        id: Date.now() + Math.random(),
+        file,
+        name: file.name,
+        description: '',
+        tags: [],
+        status: 'draft',
+        uploadedAt: new Date().toISOString()
+      }));
+      setTaskSubmissions(prev => ({
+        ...prev,
+        [taskId]: [...(prev[taskId] || []), ...newSubmissions]
+      }));
+    }
+  };
+
+  const handleDragOverUpload = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   const handleSubmitTask = async (taskId: string) => {
     const taskSubmissionsData = taskSubmissions[taskId];
     if (!taskSubmissionsData || taskSubmissionsData.length === 0) {
@@ -737,8 +763,8 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                           <div className="space-y-6">
                             {/* Status Message */}
                             <div className={`text-center py-6 rounded-lg ${isApproved ? 'bg-green-50 border border-green-200' :
-                                isRejected ? 'bg-red-50 border border-red-200' :
-                                  'bg-yellow-50 border border-yellow-200'
+                              isRejected ? 'bg-red-50 border border-red-200' :
+                                'bg-yellow-50 border border-yellow-200'
                               }`}>
                               {isApproved && (
                                 <>
@@ -843,7 +869,11 @@ const ActiveProjectDetails = ({ project, onBack }: ActiveProjectDetailsProps) =>
                         {((!isSubmitted && !isApproved) || isRejected) && (
                           <div className="space-y-6">
                             {/* Upload Section */}
-                            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                            <div
+                              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center"
+                              onDrop={(e) => handleDropFiles(task.id.toString(), e)}
+                              onDragOver={handleDragOverUpload}
+                            >
                               <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                               <p className="text-sm font-medium mb-2">Upload content for this task</p>
                               <p className="text-xs text-muted-foreground mb-4">

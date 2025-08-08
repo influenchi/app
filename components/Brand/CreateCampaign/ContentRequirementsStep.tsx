@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { CampaignData, ContentItem } from "./types";
 import { socialChannels, contentTypesBySocial } from "./constants";
 
@@ -40,10 +40,7 @@ const ContentRequirementsStep = ({ campaignData, onUpdate }: ContentRequirements
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold flex items-center">
-        <Camera className="h-5 w-5 mr-2" />
-        Tasks / Requirements
-      </h3>
+      <h3 className="text-lg font-semibold">Tasks / Requirements</h3>
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -60,8 +57,8 @@ const ContentRequirementsStep = ({ campaignData, onUpdate }: ContentRequirements
               <div className="grid grid-cols-3 gap-3 flex-1">
                 <div>
                   <Label>Social Channel</Label>
-                  <Select 
-                    value={item.socialChannel} 
+                  <Select
+                    value={item.socialChannel}
                     onValueChange={(value) => updateContentItem(item.id, 'socialChannel', value)}
                   >
                     <SelectTrigger>
@@ -88,8 +85,8 @@ const ContentRequirementsStep = ({ campaignData, onUpdate }: ContentRequirements
                 ) : (
                   <div>
                     <Label>Content Type</Label>
-                    <Select 
-                      value={item.contentType} 
+                    <Select
+                      value={item.contentType}
                       onValueChange={(value) => updateContentItem(item.id, 'contentType', value)}
                       disabled={!item.socialChannel || item.socialChannel === 'Other'}
                     >
@@ -115,16 +112,16 @@ const ContentRequirementsStep = ({ campaignData, onUpdate }: ContentRequirements
                   />
                 </div>
               </div>
-              <Button 
-                onClick={() => removeContentItem(item.id)} 
-                size="sm" 
+              <Button
+                onClick={() => removeContentItem(item.id)}
+                size="sm"
                 variant="ghost"
                 className="ml-2"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div>
               <Label>Description & Requirements</Label>
               <Textarea
@@ -138,10 +135,7 @@ const ContentRequirementsStep = ({ campaignData, onUpdate }: ContentRequirements
         ))}
 
         {campaignData.contentItems.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <Camera className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-            <p>Add tasks to specify what you need</p>
-          </div>
+          <div className="text-center py-8 text-gray-500">Add tasks to specify what you need</div>
         )}
       </div>
     </div>

@@ -6,7 +6,6 @@ import BillingEscrowSettings from "./Settings/BillingEscrowSettings";
 import TeamManagementSettings from "./Settings/TeamManagementSettings";
 import AccountSettings from "./Settings/AccountSettings";
 import NotificationSettings from "./Settings/NotificationSettings";
-import SecuritySettings from "./Settings/SecuritySettings";
 import SubscriptionSettings from "./Settings/SubscriptionSettings";
 
 const BrandSettings = () => {
@@ -26,16 +25,14 @@ const BrandSettings = () => {
         return <TeamManagementSettings />;
       case 'notifications':
         return <NotificationSettings />;
-      case 'security':
-        return <SecuritySettings />;
       default:
         return <BrandProfileSettings />;
     }
   };
 
   return (
-    <BrandSettingsLayout 
-      activeSection={activeSection} 
+    <BrandSettingsLayout
+      activeSection={activeSection}
       onSectionChange={setActiveSection}
     >
       {renderSettingsContent()}

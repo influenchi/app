@@ -2,11 +2,10 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { 
-  User, 
-  CreditCard, 
-  Bell, 
-  Shield, 
+import {
+  User,
+  CreditCard,
+  Bell,
   LogOut
 } from "lucide-react";
 
@@ -20,7 +19,7 @@ const settingsNavigation = [
   { id: 'profile', label: 'Creator Profile', icon: User },
   { id: 'payment', label: 'Payment & Earnings', icon: CreditCard },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'account', label: 'Account Settings', icon: Shield },
+  // Account Settings disabled for now
 ];
 
 const CreatorSettingsLayout = ({ children, activeSection, onSectionChange }: CreatorSettingsLayoutProps) => {
@@ -56,9 +55,9 @@ const CreatorSettingsLayout = ({ children, activeSection, onSectionChange }: Cre
                     </Button>
                   );
                 })}
-                
+
                 <Separator className="my-4" />
-                
+
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-destructive hover:text-destructive"

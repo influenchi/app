@@ -10,7 +10,9 @@ export const {
   signUp,
   signOut,
   useSession: baseUseSession,
-  getSession
+  getSession,
+  requestPasswordReset,
+  resetPassword
 } = authClient;
 
 // Type-safe useSession hook

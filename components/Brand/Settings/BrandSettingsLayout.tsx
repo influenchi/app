@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -8,7 +8,6 @@ import {
   Building2,
   Users,
   Bell,
-  Shield,
   LogOut,
   Crown,
   Wallet
@@ -27,7 +26,6 @@ const settingsNavigation = [
   { id: 'subscription', label: 'Subscription', icon: Crown },
   { id: 'team', label: 'Team Management', icon: Users },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'security', label: 'Security', icon: Shield },
 ];
 
 const BrandSettingsLayout = ({ children, activeSection, onSectionChange }: BrandSettingsLayoutProps) => {
