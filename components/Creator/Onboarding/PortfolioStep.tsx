@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, X, Upload, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, X, Upload, Loader2, CheckCircle, AlertTriangle, Video } from "lucide-react";
 import { CreatorProfileData } from "../types";
 import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ interface PortfolioImage {
 
 const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [portfolioImages, setPortfolioImages] = useState<PortfolioImage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -129,9 +130,8 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
     event.stopPropagation();
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
+  const triggerFileInput = () => { fileInputRef.current?.click(); };
+  const triggerVideoInput = () => { videoInputRef.current?.click(); };
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -246,37 +246,40 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
         </div>
 
         {/* Hidden File Input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageUpload}
-          className="hidden"
-          disabled={isProcessing || portfolioImages.length >= 5}
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" disabled={isProcessing || portfolioImages.length >= 5} />
+        <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={handleImageUpload} className="hidden" disabled={isProcessing || portfolioImages.length >= 5} />
 
         {/* Upload Instructions */}
         <div className="text-center mb-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={triggerFileInput}
-            disabled={portfolioImages.length >= 5 || isProcessing}
-            className="mb-4"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-2" />
-                {portfolioImages.length === 0 ? 'Upload Your First Image' : 'Add More Images'}
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2 justify-center mb-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={triggerFileInput}
+              disabled={portfolioImages.length >= 5 || isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  {portfolioImages.length === 0 ? 'Upload Images' : 'Add Images'}
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={triggerVideoInput}
+              disabled={portfolioImages.length >= 5 || isProcessing}
+            >
+              <Video className="h-4 w-4 mr-2" />
+              Add Videos
+            </Button>
+          </div>
           <p className="text-sm text-gray-500">
             {portfolioImages.length} of 5 images selected
           </p>

@@ -11,16 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, CreditCard, Building, Plus, AlertCircle, TrendingUp } from "lucide-react";
 
 const PaymentSettings = () => {
-  const [paymentMethods, setPaymentMethods] = useState([
-    { id: 1, type: 'bank', name: 'Chase Bank ****1234', isDefault: true },
-    { id: 2, type: 'paypal', name: 'sarah@example.com', isDefault: false }
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
   const [earnings] = useState({
-    totalEarnings: 12450.50,
-    pendingPayments: 2340.75,
-    thisMonth: 3890.25,
-    lastPayout: 1950.00
+    totalEarnings: 0,
+    pendingPayments: 0,
+    thisMonth: 0,
+    lastPayout: 0
   });
 
   const [taxInfo, setTaxInfo] = useState({
@@ -102,30 +99,12 @@ const PaymentSettings = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {paymentMethods.map((method) => (
-            <div key={method.id} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center space-x-3">
-                {method.type === 'bank' ? (
-                  <Building className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
-                )}
-                <div>
-                  <div className="font-medium">{method.name}</div>
-                  <div className="text-sm text-muted-foreground capitalize">{method.type}</div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {method.isDefault && (
-                  <Badge variant="secondary">Default</Badge>
-                )}
-                <Button variant="outline" size="sm">
-                  Edit
-                </Button>
-              </div>
+          {paymentMethods.length === 0 && (
+            <div className="text-center p-6 text-muted-foreground">
+              No payment methods yet
             </div>
-          ))}
-          
+          )}
+
           <Button onClick={handleAddPaymentMethod} variant="outline" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add Payment Method

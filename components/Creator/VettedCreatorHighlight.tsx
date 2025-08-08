@@ -15,8 +15,7 @@ import {
   TrendingUp,
   Award,
   ChevronDown,
-  ChevronUp,
-  X
+  ChevronUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
@@ -24,7 +23,7 @@ import { useCurrentUser, CreatorProfileData } from "@/lib/hooks/useCurrentUser";
 const VettedCreatorHighlight = () => {
   const [postLink, setPostLink] = useState("");
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  // Dismiss disabled; only minimization supported
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { currentUser, isLoading, refetch: refetchUser } = useCurrentUser();
@@ -127,7 +126,7 @@ const VettedCreatorHighlight = () => {
   }
 
   // If dismissed or already vetted, don't show
-  if (isDismissed || isVetted) {
+  if (isVetted) {
     return null;
   }
 
@@ -235,14 +234,7 @@ const VettedCreatorHighlight = () => {
             >
               <ChevronUp className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsDismissed(true)}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {/* Dismiss removed to force visibility; users can only minimize */}
           </div>
         </div>
       </CardHeader>

@@ -38,6 +38,22 @@ export function validateImageFile(file: File): { isValid: boolean; error?: strin
   return { isValid: true };
 }
 
+export function validateMediaFile(file: File): { isValid: boolean; error?: string } {
+  if (!file) return { isValid: false, error: 'No file selected' };
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      isValid: false,
+      error: `File size must be less than ${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
+    };
+  }
+  const isImage = file.type.startsWith('image/');
+  const isVideo = file.type.startsWith('video/');
+  if (!isImage && !isVideo) {
+    return { isValid: false, error: `File type not supported. Please upload images or videos.` };
+  }
+  return { isValid: true };
+}
+
 export function getFileTypeDisplay(): string {
   return Object.values(ALLOWED_FILE_TYPES).join(', ');
 }
@@ -293,14 +309,15 @@ export async function uploadPortfolioImages(
     const validationErrors: string[] = [];
 
     for (const file of files) {
-      const validation = validateImageFile(file);
+      const validation = validateMediaFile(file);
       if (!validation.isValid) {
         validationErrors.push(`${file.name}: ${validation.error}`);
         continue;
       }
 
+      // Only compress images; skip videos
       let processedFile = file;
-      if (file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+      if (file.type.startsWith('image/') && file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
         processedFile = await compressImage(file);
       }
       processedFiles.push(processedFile);
@@ -315,7 +332,7 @@ export async function uploadPortfolioImages(
       formData.append('files', file);
     });
 
-    console.log(` Uploading ${processedFiles.length} portfolio images...`);
+    console.log(` Uploading ${processedFiles.length} portfolio media files...`);
 
     const response = await fetch('/api/upload/portfolio-images', {
       method: 'POST',

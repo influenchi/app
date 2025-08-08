@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { validateImageFile } from '@/lib/utils/storageUtils';
+import { validateMediaFile } from '@/lib/utils/storageUtils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         size: file.size
       });
 
-      const validation = validateImageFile(file);
+      const validation = validateMediaFile(file);
       if (!validation.isValid) {
         errors.push(`${file.name}: ${validation.error}`);
         continue;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
         console.log(` Uploading file ${i + 1} to Supabase Storage:`, filePath);
 
-        const { data, error } = await supabaseAdmin.storage
+        const { error } = await supabaseAdmin.storage
           .from('uploads')
           .upload(filePath, buffer, {
             contentType: file.type,
