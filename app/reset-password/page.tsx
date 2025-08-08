@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { resetPassword } from '@/lib/auth-client';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -46,25 +46,56 @@ export default function ResetPasswordPage() {
   };
 
   return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="password">New Password</Label>
+          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="confirm">Confirm Password</Label>
+          <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </div>
+        <Button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+          {loading ? 'Updating...' : 'Update Password'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ResetPasswordSkeleton() {
+  return (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>Reset Password</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="password">New Password</Label>
+          <Input id="password" type="password" disabled />
+        </div>
+        <div>
+          <Label htmlFor="confirm">Confirm Password</Label>
+          <Input id="confirm" type="password" disabled />
+        </div>
+        <Button disabled className="w-full bg-blue-600 hover:bg-blue-700">
+          Loading...
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Reset Password</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="password">New Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="confirm">Confirm Password</Label>
-            <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-          </div>
-          <Button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
-            {loading ? 'Updating...' : 'Update Password'}
-          </Button>
-        </CardContent>
-      </Card>
+      <Suspense fallback={<ResetPasswordSkeleton />}>
+        <ResetPasswordForm />
+      </Suspense>
     </div>
   );
 }
