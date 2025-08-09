@@ -54,29 +54,23 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     }
   });
 
-  // Auto-fill form data from session when available
+  // Auto-fill form data from session when available (and preserve values provided at signup)
   useEffect(() => {
-    if (session?.user) {
-      // Auto-fill firstName if available from session
-      if (session.user.first_name && !form.getValues('firstName')) {
-        form.setValue('firstName', session.user.first_name, { shouldValidate: true });
+    if (!session?.user) return;
+    const s = session.user as any;
+    const setIfEmpty = (field: keyof CreatorOnboardingFormData, value?: string) => {
+      const current = form.getValues(field as any) as string | undefined;
+      if (!current && value) {
+        form.setValue(field as any, value, { shouldValidate: true });
       }
-
-      // Auto-fill lastName if available from session
-      if (session.user.last_name && !form.getValues('lastName')) {
-        form.setValue('lastName', session.user.last_name, { shouldValidate: true });
-      }
-
-      // Auto-suggest displayName based on firstName and lastName (replace spaces with underscores)
-      if (session.user.first_name && session.user.last_name && !form.getValues('displayName')) {
-        const suggestedDisplayName = `${session.user.first_name} ${session.user.last_name}`
-          .trim()
-          .replace(/\s+/g, '_'); // Replace spaces with underscores for standard username formatting
-        if (suggestedDisplayName) {
-          form.setValue('displayName', suggestedDisplayName, { shouldValidate: true });
-        }
-      }
+    };
+    setIfEmpty('firstName', s.first_name);
+    setIfEmpty('lastName', s.last_name);
+    if (!form.getValues('displayName') && (s.first_name || s.last_name)) {
+      const suggested = `${s.first_name || ''} ${s.last_name || ''}`.trim().replace(/\s+/g, '_');
+      if (suggested) form.setValue('displayName', suggested, { shouldValidate: true });
     }
+    // If signup captured website/company for creators in future, add here similarly
   }, [session, form]);
 
   const creatorOnboarding = useCreatorOnboarding();
@@ -158,10 +152,15 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     creatorOnboarding.mutate(formData, {
       onSuccess: () => {
         setIsSubmitting(false);
-        // Small delay to ensure session is refreshed before navigation
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('justOnboarded', '1');
+          }
+        } catch { }
+        // Small delay to allow refetches to settle
         setTimeout(() => {
           onComplete();
-        }, 500);
+        }, 200);
       },
       onError: () => {
         setIsSubmitting(false);
