@@ -12,6 +12,7 @@ export interface CampaignData {
   title: string;
   description: string;
   image?: File | null;
+  existingImageUrl?: string;
   campaignGoal: string[];
   budget: string;
   budgetType: ('paid' | 'gifted' | 'affiliate')[];

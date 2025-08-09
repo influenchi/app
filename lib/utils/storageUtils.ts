@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 // File validation constants
-export const ALLOWED_FILE_TYPES = {
+export const ALLOWED_IMAGE_TYPES = {
   'image/png': 'PNG',
   'image/jpeg': 'JPEG',
   'image/jpg': 'JPG',
@@ -10,8 +10,20 @@ export const ALLOWED_FILE_TYPES = {
   'image/svg+xml': 'SVG'
 } as const;
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-export const RECOMMENDED_MAX_SIZE = 1024 * 1024; // 1MB for compression
+export const ALLOWED_VIDEO_TYPES = {
+  'video/mp4': 'MP4',
+  'video/webm': 'WebM',
+  'video/quicktime': 'MOV'
+} as const;
+
+// Vercel has a 4.5MB limit for API routes, so we set practical limits below that
+export const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB for images (leaves room for metadata)
+export const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos (use direct-to-storage uploads)
+export const RECOMMENDED_IMAGE_SIZE = 1024 * 1024; // 1MB for compression target
+
+// Cost-efficient settings for Supabase Storage
+export const COMPRESSION_QUALITY = 0.85; // Good quality vs size balance
+export const MAX_IMAGE_DIMENSION = 1920; // Max width/height for images
 
 export function validateImageFile(file: File): { isValid: boolean; error?: string } {
   if (!file) {
@@ -19,16 +31,16 @@ export function validateImageFile(file: File): { isValid: boolean; error?: strin
   }
 
   // Check file size
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > MAX_IMAGE_SIZE) {
     return {
       isValid: false,
-      error: `File size must be less than ${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
+      error: `Image must be less than ${Math.round(MAX_IMAGE_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
     };
   }
 
   // Check file type
-  if (!Object.keys(ALLOWED_FILE_TYPES).includes(file.type)) {
-    const allowedTypes = Object.values(ALLOWED_FILE_TYPES).join(', ');
+  if (!Object.keys(ALLOWED_IMAGE_TYPES).includes(file.type)) {
+    const allowedTypes = Object.values(ALLOWED_IMAGE_TYPES).join(', ');
     return {
       isValid: false,
       error: `File type not supported. Please use: ${allowedTypes}. Your file type: ${file.type || 'Unknown'}`
@@ -40,30 +52,63 @@ export function validateImageFile(file: File): { isValid: boolean; error?: strin
 
 export function validateMediaFile(file: File): { isValid: boolean; error?: string } {
   if (!file) return { isValid: false, error: 'No file selected' };
-  if (file.size > MAX_FILE_SIZE) {
-    return {
-      isValid: false,
-      error: `File size must be less than ${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
-    };
-  }
+
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
+
+  // Check file size based on type
+  if (isImage && file.size > MAX_IMAGE_SIZE) {
+    return {
+      isValid: false,
+      error: `Image must be less than ${Math.round(MAX_IMAGE_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
+    };
+  }
+
+  if (isVideo && file.size > MAX_VIDEO_SIZE) {
+    return {
+      isValid: false,
+      error: `Video must be less than ${Math.round(MAX_VIDEO_SIZE / (1024 * 1024))}MB. Your file is ${Math.round(file.size / (1024 * 1024) * 10) / 10}MB.`
+    };
+  }
+
+  // Check file type
+  if (isImage && !Object.keys(ALLOWED_IMAGE_TYPES).includes(file.type)) {
+    const allowedTypes = Object.values(ALLOWED_IMAGE_TYPES).join(', ');
+    return {
+      isValid: false,
+      error: `Image type not supported. Please use: ${allowedTypes}`
+    };
+  }
+
+  if (isVideo && !Object.keys(ALLOWED_VIDEO_TYPES).includes(file.type)) {
+    const allowedTypes = Object.values(ALLOWED_VIDEO_TYPES).join(', ');
+    return {
+      isValid: false,
+      error: `Video type not supported. Please use: ${allowedTypes}`
+    };
+  }
+
   if (!isImage && !isVideo) {
     return { isValid: false, error: `File type not supported. Please upload images or videos.` };
   }
+
   return { isValid: true };
 }
 
 export function getFileTypeDisplay(): string {
-  return Object.values(ALLOWED_FILE_TYPES).join(', ');
+  return Object.values(ALLOWED_IMAGE_TYPES).join(', ');
+}
+
+export function getVideoTypeDisplay(): string {
+  return Object.values(ALLOWED_VIDEO_TYPES).join(', ');
 }
 
 export function getMaxFileSizeDisplay(): string {
-  return `${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB`;
+  return `${Math.round(MAX_IMAGE_SIZE / (1024 * 1024))}MB for images, ${Math.round(MAX_VIDEO_SIZE / (1024 * 1024))}MB for videos`;
 }
 
 // Helper function to compress images before upload (skip SVG files)
-export async function compressImage(file: File, maxWidth: number = 800, quality: number = 0.8): Promise<File> {
+export async function compressImage(file: File, maxWidth: number = MAX_IMAGE_DIMENSION, quality: number = COMPRESSION_QUALITY): Promise<File> {
   // Don't compress SVG files
   if (file.type === 'image/svg+xml') {
     return file;
@@ -75,11 +120,24 @@ export async function compressImage(file: File, maxWidth: number = 800, quality:
     const img = new Image();
 
     img.onload = () => {
-      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
+      // Calculate new dimensions while maintaining aspect ratio
+      let width = img.width;
+      let height = img.height;
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      if (width > maxWidth || height > maxWidth) {
+        if (width > height) {
+          height = (height / width) * maxWidth;
+          width = maxWidth;
+        } else {
+          width = (width / height) * maxWidth;
+          height = maxWidth;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      ctx.drawImage(img, 0, 0, width, height);
 
       canvas.toBlob((blob) => {
         const compressedFile = new File([blob!], file.name, {
@@ -118,7 +176,7 @@ export async function uploadBrandLogo(
 
     // Compress image if it's too large (but skip SVG)
     let processedFile = file;
-    if (file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+    if (file.size > RECOMMENDED_IMAGE_SIZE && file.type !== 'image/svg+xml') {
       processedFile = await compressImage(file);
     }
 
@@ -240,7 +298,7 @@ export async function uploadCreatorProfileImage(
     }
 
     let processedFile = file;
-    if (file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+    if (file.size > RECOMMENDED_IMAGE_SIZE && file.type !== 'image/svg+xml') {
       processedFile = await compressImage(file);
     }
 
@@ -317,51 +375,60 @@ export async function uploadPortfolioImages(
 
       // Only compress images; skip videos
       let processedFile = file;
-      if (file.type.startsWith('image/') && file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+      if (file.type.startsWith('image/') && file.size > RECOMMENDED_IMAGE_SIZE && file.type !== 'image/svg+xml') {
         processedFile = await compressImage(file);
       }
       processedFiles.push(processedFile);
     }
 
     if (processedFiles.length === 0) {
-      throw new Error('No valid images to upload');
+      throw new Error('No valid media to upload');
     }
 
-    const formData = new FormData();
-    processedFiles.forEach(file => {
-      formData.append('files', file);
-    });
+    console.log(`Uploading ${processedFiles.length} portfolio media files via signed URLs...`);
 
-    console.log(` Uploading ${processedFiles.length} portfolio media files...`);
+    const urls: string[] = [];
+    const serverErrors: string[] = [];
 
-    const response = await fetch('/api/upload/portfolio-images', {
-      method: 'POST',
-      body: formData,
-      credentials: 'include'
-    });
+    for (const file of processedFiles) {
+      try {
+        const signedRes = await fetch(`/api/upload/signed-url?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}&prefix=${encodeURIComponent('creator-portfolios')}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (!signedRes.ok) {
+          const err = await signedRes.json().catch(() => ({}));
+          serverErrors.push(err.error || `Failed to get signed URL for ${file.name}`);
+          continue;
+        }
+        const { path, token } = await signedRes.json();
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-      console.error('Upload API error:', errorData);
+        const { error } = await supabase.storage
+          .from('uploads')
+          .uploadToSignedUrl(path, token, file, { contentType: file.type });
 
-      if (response.status === 401) {
-        throw new Error('Please log in to upload files');
+        if (error) {
+          serverErrors.push(`${file.name}: ${error.message}`);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+        urls.push(urlData.publicUrl);
+      } catch (e) {
+        console.error('Signed upload error:', e);
+        serverErrors.push(`Failed to upload ${file.name}`);
       }
-
-      throw new Error(errorData.error || 'Upload failed. Please try again.');
     }
-
-    const result = await response.json();
 
     console.log('Portfolio upload complete:', {
-      successCount: result.urls?.length || 0,
-      errorCount: result.errors?.length || 0,
+      successCount: urls.length,
+      errorCount: validationErrors.length + serverErrors.length,
       userId
     });
 
     return {
-      urls: result.urls || [],
-      errors: [...validationErrors, ...(result.errors || [])]
+      urls,
+      errors: [...validationErrors, ...serverErrors]
     };
 
   } catch (err) {
@@ -392,7 +459,7 @@ export async function uploadCampaignImage(
     }
 
     let processedFile = file;
-    if (file.size > RECOMMENDED_MAX_SIZE && file.type !== 'image/svg+xml') {
+    if (file.size > RECOMMENDED_IMAGE_SIZE && file.type !== 'image/svg+xml') {
       processedFile = await compressImage(file);
     }
 

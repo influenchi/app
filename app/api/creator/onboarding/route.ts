@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
       audience_info: audienceInfo,
       engagement_rate: validatedData.engagementRate || null,
       portfolio_images: validatedData.portfolioImages || [],
+      work_images: validatedData.portfolioImages || [],
       is_onboarding_complete: true,
       updated_at: new Date().toISOString()
     };

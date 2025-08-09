@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/ui/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Upload, Sparkles, Loader, X, Check } from "lucide-react";
@@ -231,13 +232,10 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
             {isGeneratingDescription ? 'Generating...' : 'Use AI'}
           </Button>
         </div>
-        <Textarea
-          id="description"
+        <RichTextEditor
           value={campaignData.description}
-          onChange={(e) => onUpdate('description', e.target.value)}
-          placeholder="Describe what you're looking for, your brand, and campaign goals..."
-          rows={4}
-          className="mt-1"
+          onChange={(html) => onUpdate('description', html)}
+          placeholder="Describe what you're looking for, your brand, goals, and requirements..."
         />
       </div>
 
@@ -271,6 +269,15 @@ const CampaignBasicsStep = ({ campaignData, onUpdate, onToggleCampaignGoal }: Ca
                   </Button>
                   <p className="text-sm text-green-600 font-medium">{campaignData.image.name}</p>
                   <p className="text-xs text-muted-foreground">Click to change image</p>
+                </div>
+              ) : campaignData.existingImageUrl ? (
+                <div className="relative">
+                  <img
+                    src={campaignData.existingImageUrl}
+                    alt="Campaign preview"
+                    className="max-h-32 mx-auto rounded mb-2"
+                  />
+                  <p className="text-xs text-muted-foreground">Existing image. Upload to replace.</p>
                 </div>
               ) : (
                 <div>

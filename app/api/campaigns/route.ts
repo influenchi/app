@@ -155,8 +155,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
     }
 
-    // Fetch brand profiles separately for creator view
-    const brandProfilesMap = new Map();
+    // Fetch brand profiles separately for creator view (name + optional logo)
+    const brandProfilesMap = new Map<string, { company?: string | null; logo?: string | null }>();
     if (!forBrand && campaigns?.length > 0) {
       const brandUserIds = campaigns.map(c => c.brand_id).filter(Boolean);
       if (brandUserIds.length > 0) {
@@ -167,7 +167,13 @@ export async function GET(request: NextRequest) {
 
         if (brandProfiles) {
           brandProfiles.forEach(profile => {
-            brandProfilesMap.set(profile.user_id, profile);
+            let logoUrl: string | null = null;
+            const desc = profile.brand_description || '';
+            if (desc.includes('[LOGO:')) {
+              const match = desc.match(/\[LOGO:([^\]]+)\]/);
+              if (match) logoUrl = match[1];
+            }
+            brandProfilesMap.set(profile.user_id, { company: profile.company, logo: logoUrl });
           });
         }
       }
@@ -228,11 +234,13 @@ export async function GET(request: NextRequest) {
         const brandData = campaign.users;
         const brandProfile = brandProfilesMap.get(campaign.brand_id);
         const brandName = brandProfile?.company || brandData?.company_name || 'Brand Name';
+        const brandLogo = brandProfile?.logo || null;
 
         return {
           ...campaign,
           applicationStatus: applicationMap.get(campaign.id) || null,
           brand_name: brandName,
+          brand_logo: brandLogo,
           budgetType: [campaign.budget_type || 'paid']
         };
       });

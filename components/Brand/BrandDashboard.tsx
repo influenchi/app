@@ -319,7 +319,8 @@ const BrandDashboard = () => {
           initialData={{
             title: editingCampaign.title,
             description: editingCampaign.description,
-            image: undefined, // Reset image to allow re-upload, stored as URL in DB but form expects File
+            image: undefined,
+            existingImageUrl: editingCampaign.image || undefined,
             campaignGoal: editingCampaign.campaign_goal || [],
             budget: editingCampaign.budget?.replace('$', '') || '',
             budgetType: editingCampaign.budget_type === 'paid' ? ['paid'] :

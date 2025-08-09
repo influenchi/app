@@ -25,12 +25,13 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   const updateCampaign = useUpdateCampaign();
   const saveDraft = useSaveCampaignDraft();
 
-  const form = useForm<CampaignFormData & { image?: File }>({
+  const form = useForm<CampaignFormData & { image?: File; existingImageUrl?: string }>({
     resolver: zodResolver(campaignSchema),
     defaultValues: {
       title: '',
       description: '',
       image: undefined,
+      existingImageUrl: (initialData as any)?.existingImageUrl || undefined,
       campaignGoal: [],
       budget: '',
       budgetType: ['paid'],
