@@ -1,11 +1,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Share2, ArrowLeft } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Campaign {
   title: string;
   brand: string;
   daysLeft: number;
+  brand_logo?: string;
 }
 
 interface CampaignHeaderProps {
@@ -33,7 +35,13 @@ const CampaignHeader = ({ campaign, currentStatus, onBack, onShare, getStatusCol
       <div className="flex flex-col md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-1">{campaign.title}</h1>
-          <p className="text-lg text-muted-foreground">{campaign.brand}</p>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={campaign.brand_logo || '/placeholder.svg'} />
+              <AvatarFallback className="text-[10px]">{(campaign.brand?.[0] || 'B').toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <p className="text-lg text-muted-foreground">{campaign.brand}</p>
+          </div>
         </div>
         <div className="mt-4 md:mt-0 flex flex-col items-start md:items-end">
           <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentStatus)}`}>
