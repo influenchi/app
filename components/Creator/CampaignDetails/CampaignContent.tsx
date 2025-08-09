@@ -35,7 +35,10 @@ const CampaignContent = ({ campaign }: CampaignContentProps) => {
           <CardTitle>Campaign Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{campaign.description}</p>
+          <div
+            className="prose prose-sm max-w-none text-muted-foreground"
+            dangerouslySetInnerHTML={{ __html: campaign.description }}
+          />
         </CardContent>
       </Card>
 

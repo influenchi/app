@@ -26,6 +26,7 @@ import CreatorApplicationModal from "../Creator/CreatorApplicationModal";
 import { useToast } from "@/hooks/use-toast";
 import { showConfetti } from "@/components/Brand/CreateCampaign/confetti";
 import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Campaign {
   id: string;
@@ -50,12 +51,14 @@ interface Campaign {
   created_at: string;
   applicationStatus?: 'pending' | 'accepted' | 'rejected' | null;
   brand_name?: string;
+  brand_logo?: string; // optional brand logo url if provided by API
 }
 
 interface TransformedCampaign {
   id: string;
   title: string;
   brand: string;
+  brand_logo?: string;
   compensation: string;
   location: any;
   deadline: string;
@@ -127,11 +130,11 @@ const CreatorDashboard = () => {
   const { currentUser } = useCurrentUser();
   const creatorProfile = currentUser?.profile as CreatorProfileData | null;
 
-  // Force creator onboarding completion
+  // Force creator onboarding completion (if missing or incomplete)
   useEffect(() => {
     if (currentUser?.user?.user_type === 'creator') {
       const profile = currentUser.profile as CreatorProfileData | null;
-      if (profile && !profile.is_onboarding_complete) {
+      if (!profile || !profile.is_onboarding_complete) {
         router.replace('/creator/onboarding');
       }
     }
@@ -181,7 +184,6 @@ const CreatorDashboard = () => {
       const data = await response.json();
       return data.campaigns as ActiveCampaign[];
     }
-    // Removed enabled condition - fetch in background for speed
   });
 
   // Create a map of campaign IDs to application status
@@ -219,6 +221,7 @@ const CreatorDashboard = () => {
         id: campaign.id,
         title: campaign.title,
         brand: campaign.brand_name || 'Brand Name',
+        brand_logo: (campaign as any).brand_logo || undefined,
         compensation: campaign.budget_type === 'paid' ? `$${campaign.budget}` : campaign.product_service_description || 'Product/Service',
         location: campaign.target_audience?.location?.[0] || 'Remote',
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -228,7 +231,7 @@ const CreatorDashboard = () => {
         }),
         deliverables,
         status: campaign.applicationStatus ? 'applied' : 'active',
-        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&h=600&fit=crop",
         daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
         description: campaign.description,
         budget: campaign.budget,
@@ -243,9 +246,8 @@ const CreatorDashboard = () => {
     if (!activeCampaignsData) return [];
 
     return activeCampaignsData.map(campaign => {
-      // Transform content_items to tasks format
       const tasks = campaign.content_items?.map((item: any) => ({
-        id: item.id, // Use the actual content item ID instead of index
+        id: item.id,
         title: `${item.contentType} on ${item.socialChannel}`,
         description: item.description || `Create ${item.quantity} ${item.contentType} for ${item.socialChannel}`,
         deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -271,10 +273,10 @@ const CreatorDashboard = () => {
           day: 'numeric',
           year: 'numeric'
         }),
-        status: 'in-progress' as const, // Since these are accepted campaigns
-        progress: 0, // Will be calculated based on actual submissions
-        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
-        submissionCount: 0, // This would come from tracking submissions
+        status: 'in-progress' as const,
+        progress: 0,
+        image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&h=600&fit=crop",
+        submissionCount: 0,
         maxSubmissions: campaign.content_items?.length || 1,
         originalCampaign: campaign,
         budget: campaign.budget,
@@ -312,17 +314,14 @@ const CreatorDashboard = () => {
 
   const newCampaignsCount = transformedCampaigns.filter(c => !c.applicationStatus).length;
 
-  // Check if creator should see vetting highlight
   const shouldShowVettingHighlight = creatorProfile &&
     !creatorProfile.is_vetted &&
     creatorProfile.vetting_status !== 'pending' &&
     creatorProfile.is_onboarding_complete;
 
-  // Handle URL parameters for deep linking to active projects
   useEffect(() => {
     const projectId = searchParams?.get('project');
     if (projectId) {
-      // First try to find in active projects
       if (transformedActiveProjects.length > 0) {
         const activeProject = transformedActiveProjects.find(p => p.id === projectId);
         if (activeProject) {
@@ -332,13 +331,11 @@ const CreatorDashboard = () => {
         }
       }
 
-      // If not found in active projects, check if it's a campaign the creator has applied to
       if (campaignsData && creatorApplications) {
         const campaign = campaignsData.find(c => c.id === projectId);
         const application = creatorApplications.find((app: any) => app.campaign_id === projectId);
 
         if (campaign && application) {
-          // Transform campaign into project format for ActiveProjectDetails
           const projectFromCampaign: ActiveProject = {
             id: campaign.id,
             title: campaign.title,
@@ -351,7 +348,7 @@ const CreatorDashboard = () => {
             }),
             status: application.status === 'accepted' ? 'in-progress' as const : 'pending-review' as const,
             progress: 0,
-            image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=200&fit=crop",
+            image: campaign.image || "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&h=600&fit=crop",
             submissionCount: 0,
             maxSubmissions: campaign.content_items?.length || 1,
             originalCampaign: {
@@ -374,7 +371,7 @@ const CreatorDashboard = () => {
               daysLeft: Math.ceil((new Date(campaign.completion_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
             },
             tasks: campaign.content_items?.map((item: any) => ({
-              id: item.id, // Use the actual content item ID instead of index
+              id: item.id,
               title: `${item.contentType} on ${item.socialChannel}`,
               description: item.description || `Create ${item.quantity} ${item.contentType} for ${item.socialChannel}`,
               deadline: new Date(campaign.completion_date).toLocaleDateString('en-US', {
@@ -417,7 +414,6 @@ const CreatorDashboard = () => {
   };
 
   const handleProjectClick = (project: ActiveProject) => {
-    // Find the full project data with original campaign
     const fullProject = transformedActiveProjects.find(p => p.id === project.id);
     if (fullProject) {
       setSelectedProject(fullProject);
@@ -427,11 +423,9 @@ const CreatorDashboard = () => {
   const handleBackToDashboard = () => {
     setSelectedCampaignId(null);
     setSelectedProject(null);
-    // Clear URL parameters when going back
     router.push('/creator/dashboard');
   };
 
-  // Find the original campaign data when one is selected
   const selectedCampaign = selectedCampaignId
     ? campaignsData?.find(campaign => campaign.id === selectedCampaignId)
     : null;
@@ -487,14 +481,12 @@ const CreatorDashboard = () => {
           <p className="text-muted-foreground">Discover amazing brand partnerships and grow your influence</p>
         </div>
 
-        {/* Only show vetting highlight if conditions are met */}
         {shouldShowVettingHighlight && (
           <div className="mb-8">
             <VettedCreatorHighlight />
           </div>
         )}
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="border-border">
             <CardContent className="p-6">
@@ -550,10 +542,7 @@ const CreatorDashboard = () => {
                     <p className="text-2xl font-bold text-foreground">—</p>
                     <div className="flex ml-2">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className="h-4 w-4 text-gray-300"
-                        />
+                        <Star key={star} className="h-4 w-4 text-gray-300" />
                       ))}
                     </div>
                   </div>
@@ -568,22 +557,10 @@ const CreatorDashboard = () => {
         </div>
 
         <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab('campaigns')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'campaigns'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-              }`}
-          >
+          <button onClick={() => setActiveTab('campaigns')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'campaigns' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             Browse Collabs
           </button>
-          <button
-            onClick={() => setActiveTab('active')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'active'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-              }`}
-          >
+          <button onClick={() => setActiveTab('active')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'active' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             Active Collabs ({acceptedApplicationsCount})
           </button>
         </div>
@@ -593,13 +570,7 @@ const CreatorDashboard = () => {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search collabs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent"
-                />
+                <input type="text" placeholder="Search collabs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent" />
               </div>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -619,13 +590,13 @@ const CreatorDashboard = () => {
               {filteredCampaigns.map((campaign) => (
                 <Card key={campaign.id} className="hover:shadow-lg transition-all cursor-pointer border-border group" onClick={() => handleCampaignClick(campaign)}>
                   <div className="relative">
-                    <div className="aspect-[2/1] overflow-hidden rounded-t-lg">
+                    <div className="relative aspect-[2/1] overflow-hidden rounded-t-lg">
                       <Image
                         src={campaign.image}
                         alt={campaign.title}
-                        width={100}
-                        height={100}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fill
+                        sizes="(min-width: 1024px) 50vw, 100vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                     <div className="absolute top-3 right-3 flex gap-2">
@@ -653,6 +624,12 @@ const CreatorDashboard = () => {
                           {campaign.title}
                         </CardTitle>
                         <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={campaign.brand_logo || '/placeholder.svg'} />
+                            <AvatarFallback className="text-[10px]">
+                              {(campaign.brand?.[0] || 'B').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <p className="text-sm text-muted-foreground font-medium">{campaign.brand}</p>
                         </div>
                       </div>

@@ -88,6 +88,34 @@ export async function POST(
       .update({ applicant_count: (campaign.applicant_count || 0) + 1 })
       .eq('id', campaignId);
 
+    // Create in-app notification for the brand
+    try {
+      const { data: campaignInfoForNotif } = await supabaseAdmin
+        .from('campaigns')
+        .select('title, brand_id')
+        .eq('id', campaignId)
+        .single();
+
+      if (campaignInfoForNotif) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: campaignInfoForNotif.brand_id,
+            type: 'application_created',
+            title: 'New campaign application',
+            message: `A creator applied to "${campaignInfoForNotif.title}"`,
+            data: {
+              campaign_id: campaignId,
+              application_id: newApplication.id,
+              creator_id: session.user.id
+            },
+            is_read: false
+          });
+      }
+    } catch (notifErr) {
+      console.error('Failed to create in-app notification for application:', notifErr);
+    }
+
     // Send notification emails
     try {
       // Get campaign and brand info

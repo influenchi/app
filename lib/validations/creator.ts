@@ -22,8 +22,9 @@ export const creatorOnboardingSchema = z.object({
   secondaryNiches: z.array(z.string()).optional(),
   travelStyle: z.array(z.string()).min(1, "Please select at least one travel style"),
   contentTypes: z.array(z.string()).min(1, "Please select at least one content type"),
-  totalFollowers: z.string().min(1, "Total followers is required"),
-  primaryPlatform: z.string().min(1, "Primary platform is required"),
+  // Make optional to match current UI; can enforce later in settings
+  totalFollowers: z.string().optional().or(z.literal("")),
+  primaryPlatform: z.string().optional().or(z.literal("")),
   audienceAge: z.array(z.string()).optional(),
   audienceGender: z.string().optional(),
   audienceLocation: z.array(z.string()).optional(),

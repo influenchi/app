@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, User, MapPin, X, Info, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import ModernSingleLocationAutocomplete from "@/components/ui/modern-single-location-autocomplete";
 import { CreatorProfileData } from "../types";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { validateImageFile, getFileTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,10 +21,20 @@ interface BasicInfoStepProps {
 
 const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check display name availability
   const displayNameCheck = useDisplayNameCheck(profileData.displayName, true);
+
+  // Create URL for profile image when it changes
+  useEffect(() => {
+    if (profileData.profileImage && !imagePreview) {
+      const url = URL.createObjectURL(profileData.profileImage);
+      setProfileImageUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [profileData.profileImage, imagePreview]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,6 +51,11 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result as string);
+      // Clear the profile image URL when we have a new preview
+      if (profileImageUrl) {
+        URL.revokeObjectURL(profileImageUrl);
+        setProfileImageUrl(null);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -48,6 +63,10 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
   const handleRemoveImage = () => {
     onUpdateData('profileImage', null);
     setImagePreview(null);
+    if (profileImageUrl) {
+      URL.revokeObjectURL(profileImageUrl);
+      setProfileImageUrl(null);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -62,8 +81,11 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
       <div className="space-y-6">
         {/* Profile Picture */}
         <div className="flex items-center space-x-6">
-          <Avatar className="h-24 w-24">
-            <AvatarImage src={imagePreview || (profileData.profileImage ? URL.createObjectURL(profileData.profileImage) : "")} />
+          <Avatar className="h-24 w-24 flex-shrink-0">
+            <AvatarImage
+              src={imagePreview || profileImageUrl || ""}
+              className="object-cover"
+            />
             <AvatarFallback className="text-xl bg-orange-100 text-orange-600">
               <User className="h-8 w-8" />
             </AvatarFallback>

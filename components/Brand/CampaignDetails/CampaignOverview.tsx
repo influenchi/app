@@ -17,7 +17,10 @@ const CampaignOverview = ({ campaign }: CampaignOverviewProps) => {
           <CardTitle>Campaign Description</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-700">{campaign.description}</p>
+          <div
+            className="prose prose-sm max-w-none text-gray-700"
+            dangerouslySetInnerHTML={{ __html: campaign.description }}
+          />
         </CardContent>
       </Card>
 
