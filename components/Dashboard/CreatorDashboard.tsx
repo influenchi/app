@@ -134,8 +134,13 @@ const CreatorDashboard = () => {
   useEffect(() => {
     if (currentUser?.user?.user_type === 'creator') {
       const profile = currentUser.profile as CreatorProfileData | null;
-      if (!profile || !profile.is_onboarding_complete) {
+      const justOnboarded = typeof window !== 'undefined' ? localStorage.getItem('justOnboarded') === '1' : false;
+      if ((!profile || !profile.is_onboarding_complete) && !justOnboarded) {
         router.replace('/creator/onboarding');
+      }
+      if (justOnboarded) {
+        // Clear the flag so future visits use DB state
+        try { localStorage.removeItem('justOnboarded'); } catch { }
       }
     }
   }, [currentUser, router]);
