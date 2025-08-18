@@ -152,6 +152,13 @@ export async function POST(request: NextRequest) {
       location: validatedData.audienceLocation || []
     };
 
+    // Get the processed portfolio images from form data (URLs) or JSON data
+    const portfolioImages = contentType?.includes('multipart/form-data')
+      ? (body as Record<string, unknown>).portfolioImages || []
+      : validatedData.portfolioImages || [];
+
+    console.log('Portfolio images to save:', portfolioImages);
+
     const profileData = {
       first_name: validatedData.firstName,
       last_name: validatedData.lastName,
@@ -174,8 +181,8 @@ export async function POST(request: NextRequest) {
       primary_platform: validatedData.primaryPlatform || null,
       audience_info: audienceInfo,
       engagement_rate: validatedData.engagementRate || null,
-      portfolio_images: validatedData.portfolioImages || [],
-      work_images: validatedData.portfolioImages || [],
+      portfolio_images: portfolioImages,
+      work_images: portfolioImages,
       is_onboarding_complete: true,
       updated_at: new Date().toISOString()
     };
