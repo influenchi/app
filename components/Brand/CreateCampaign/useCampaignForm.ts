@@ -106,7 +106,7 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   // Load initial data if editing
   useEffect(() => {
     if (initialData) {
-      console.log('Loading initial data for editing:', initialData);
+
       form.reset({
         title: initialData.title || '',
         description: initialData.description || '',
@@ -165,11 +165,11 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   };
 
   const handleSave = () => {
-    console.log('Saving campaign as draft:', campaignData);
+
     const formData = form.getValues();
     saveDraft.mutate({ ...formData, id: draftId || undefined }, {
       onSuccess: (result) => {
-        console.log('Draft saved successfully:', result);
+
         if (result.campaign?.id && !draftId) {
           setDraftId(result.campaign.id);
         }
@@ -182,11 +182,11 @@ export const useCampaignForm = ({ initialData, onSuccess, onClose }: UseCampaign
   const handleClose = () => {
     // Auto-save as draft if there are unsaved changes
     if (hasUnsavedChanges && !createCampaign.isPending) {
-      console.log('Auto-saving draft before close...');
+
       const formData = form.getValues();
       saveDraft.mutate({ ...formData, id: draftId || undefined }, {
         onSuccess: () => {
-          console.log('Auto-draft saved successfully');
+
           if (onClose) onClose();
         },
         onError: () => {

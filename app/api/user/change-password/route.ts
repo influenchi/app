@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      console.log('Password changed successfully for user:', session.user.id);
       return NextResponse.json({
         success: true,
         message: "Password changed successfully"

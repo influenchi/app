@@ -11,13 +11,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Running scheduled notification check...');
-    
     // Run the delayed notification checks
     await NotificationService.checkAndSendDelayedNotifications();
-    
-    console.log('Scheduled notification check completed');
-    
+
     return NextResponse.json({ 
       success: true, 
       message: 'Delayed notifications processed successfully' 
@@ -39,9 +35,7 @@ export async function GET(request: NextRequest) {
     if (process.env.NODE_ENV !== 'development') {
       return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
     }
-    
-    console.log('Running scheduled notification check (dev mode)...');
-    
+
     await NotificationService.checkAndSendDelayedNotifications();
     
     return NextResponse.json({ 

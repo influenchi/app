@@ -66,31 +66,20 @@ export function useBrandOnboarding() {
 
   return useMutation({
     mutationFn: async (data: BrandOnboardingData) => {
-      console.log(' Starting brand onboarding mutation...');
-      console.log(' Raw input data:', {
-        brandName: data.brandName,
-        website: data.website,
-        description: data.description?.substring(0, 50) + '...',
-        industries: data.industries,
-        socialMedia: data.socialMedia,
-        hasLogoFile: !!data.logoFile
-      });
 
       // Ensure we have a user session
       if (!session?.user?.id) {
         throw new Error('User session not found. Please log in again.');
       }
 
-      console.log(' User session validated:', session.user.id);
-
       let logoUrl: string | null = null;
 
       // Handle file upload separately for better error handling
       if (data.logoFile) {
-        console.log(' Processing logo file upload...');
+
         try {
           logoUrl = await uploadBrandLogo(data.logoFile, session.user.id);
-          console.log('Logo uploaded successfully:', logoUrl);
+
         } catch (uploadError) {
           const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
           console.error('Logo upload failed:', errorMessage);
@@ -106,17 +95,11 @@ export function useBrandOnboarding() {
         payload.logoUrl = logoUrl;
       }
 
-      console.log(' Sending clean JSON payload:', {
-        ...payload,
-        description: payload.description?.substring(0, 50) + '...',
-        logoUrl: payload.logoUrl ? 'provided' : 'not provided'
-      });
-
       // Test JSON serialization before sending
       let jsonString: string;
       try {
         jsonString = JSON.stringify(payload);
-        console.log('JSON serialization successful, length:', jsonString.length);
+
       } catch (serializationError) {
         console.error('JSON serialization failed:', serializationError);
         throw new Error('Failed to prepare request data');
@@ -132,8 +115,6 @@ export function useBrandOnboarding() {
         body: jsonString,
       });
 
-      console.log('Response status:', response.status);
-
       if (!response.ok) {
         let errorMessage = 'Failed to complete onboarding';
         try {
@@ -148,7 +129,7 @@ export function useBrandOnboarding() {
       }
 
       const result = await response.json();
-      console.log('Brand onboarding completed successfully');
+
       return result;
     },
     onSuccess: () => {
@@ -324,7 +305,7 @@ export function useSaveCampaignDraft() {
         try {
           imageUrl = await uploadCampaignImage(data.image, session.user.id);
         } catch (uploadError) {
-          console.warn('Draft image upload failed, saving without image:', uploadError);
+
           // For drafts, we don't fail if image upload fails
         }
       }

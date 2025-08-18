@@ -23,7 +23,7 @@ const WithdrawDialog = ({ open, onOpenChange }: WithdrawDialogProps) => {
   const [amount, setAmount] = useState("");
 
   const handleWithdraw = () => {
-    console.log('Withdrawing funds:', { amount, method: withdrawMethod });
+
     onOpenChange(false);
   };
 

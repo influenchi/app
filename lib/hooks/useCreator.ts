@@ -10,19 +10,10 @@ export function useCreatorOnboarding() {
 
   return useMutation({
     mutationFn: async (data: CreatorOnboardingFormData) => {
-      console.log(' Starting creator onboarding mutation...');
-      console.log(' Raw input data:', {
-        ...data,
-        bio: data.bio?.substring(0, 50) + '...',
-        hasProfileImage: !!data.profileImage,
-        portfolioImageCount: data.portfolioImages?.length || 0
-      });
 
       if (!session?.user?.id) {
         throw new Error('User session not found. Please log in again.');
       }
-
-      console.log(' User session validated:', session.user.id);
 
       let profileImageUrl: string | null = null;
       let portfolioImageUrls: string[] = [];
@@ -31,13 +22,13 @@ export function useCreatorOnboarding() {
       if (data.profileImage) {
         if (typeof data.profileImage === 'string') {
           profileImageUrl = data.profileImage;
-          console.log('Profile image URL received from form:', profileImageUrl);
+
         } else if (data.profileImage instanceof File) {
           // Fallback for File objects (shouldn't happen with immediate upload)
-          console.log('⚠️ Processing profile image upload (fallback)...');
+
           try {
             profileImageUrl = await uploadCreatorProfileImage(data.profileImage, session.user.id);
-            console.log('Profile image uploaded successfully (fallback):', profileImageUrl);
+
           } catch (uploadError) {
             const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
             console.error('Profile image upload failed:', errorMessage);
@@ -48,17 +39,14 @@ export function useCreatorOnboarding() {
 
       // Handle portfolio images - now they're pre-uploaded URLs only
       if (data.portfolioImages && data.portfolioImages.length > 0) {
-        console.log(` Processing ${data.portfolioImages.length} portfolio items...`);
 
         // All items should now be URLs since upload happens in PortfolioStep
         portfolioImageUrls = data.portfolioImages.filter((item): item is string => typeof item === 'string');
 
-        console.log(`Found ${portfolioImageUrls.length} portfolio image URLs`);
-
         // Log any unexpected file objects (shouldn't happen now)
         const unexpectedFiles = data.portfolioImages.filter(item => item instanceof File);
         if (unexpectedFiles.length > 0) {
-          console.warn(`Unexpected File objects found: ${unexpectedFiles.length} - these should have been uploaded already`);
+
         }
       }
 
@@ -74,10 +62,7 @@ export function useCreatorOnboarding() {
       const hasFiles = hasProfileImageFile || hasPortfolioFiles;
 
       if (hasFiles) {
-        console.log('⚠️ Found File objects in form data - should be URLs with immediate upload:', {
-          hasProfileImageFile,
-          hasPortfolioFiles
-        });
+
       }
 
       let response;
@@ -121,8 +106,6 @@ export function useCreatorOnboarding() {
         // Portfolio images (URLs only)
         formData.append('portfolioImages', JSON.stringify(portfolioImageUrls));
 
-        console.log(' Sending FormData to API with uploaded URLs...');
-
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
           credentials: 'include',
@@ -137,8 +120,6 @@ export function useCreatorOnboarding() {
           portfolioImages: portfolioImageUrls, // Use uploaded URLs
           website: formattedWebsite
         };
-
-        console.log(' Sending JSON payload to API...');
 
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
@@ -252,8 +233,6 @@ export function useSubmitContent() {
 
       const { files, descriptions, tags, ...submissionData } = data;
 
-      console.log('Starting content submission process...');
-
       // First, upload all the files
       const uploadResult = await uploadSubmissionAssets(
         files,
@@ -262,7 +241,7 @@ export function useSubmitContent() {
       );
 
       if (uploadResult.errors && uploadResult.errors.length > 0) {
-        console.warn('Some files failed to upload:', uploadResult.errors);
+
         toast.warning(`Some files failed to upload: ${uploadResult.errors.join(', ')}`);
       }
 
@@ -276,8 +255,6 @@ export function useSubmitContent() {
         description: descriptions[index] || descriptions[asset.name] || '',
         tags: tags[index] || tags[asset.name] || []
       }));
-
-      console.log('Creating submission with uploaded assets...');
 
       // Create the submission
       const response = await fetch('/api/creator/submissions', {

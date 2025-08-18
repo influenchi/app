@@ -61,7 +61,7 @@ const TeamManagementSettings = () => {
   const [deletingMember, setDeletingMember] = useState<any>(null);
 
   const handleInviteUser = () => {
-    console.log('Inviting user:', inviteData);
+
     setInviteData({ email: "", role: "" });
   };
 

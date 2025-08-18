@@ -8,17 +8,15 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    console.log('Campaign duplication request for campaign:', id);
 
     // Get the current user session
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session || !session.user) {
-      console.log('No session found in duplicate request');
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = session.user;
-    console.log('Duplicate request from user:', user.id, 'for campaign:', id);
 
     // Fetch the original campaign
     const { data: originalCampaign, error: fetchError } = await supabaseAdmin
@@ -59,7 +57,6 @@ export async function POST(
       }, { status: 500 });
     }
 
-    console.log('Campaign duplicated successfully:', newCampaign.id);
     return NextResponse.json({
       message: "Campaign duplicated successfully",
       campaign: newCampaign

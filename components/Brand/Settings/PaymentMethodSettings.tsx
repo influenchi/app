@@ -63,18 +63,18 @@ const PaymentMethodSettings = () => {
 
   const handleAddCard = () => {
     // TODO: Implement add card functionality
-    console.log('Adding new card:', newCard);
+
     setNewCard({ number: "", expiry: "", cvc: "", name: "", zipCode: "" });
   };
 
   const handleDeleteCard = (cardId: number) => {
     // TODO: Implement delete card functionality
-    console.log('Deleting card:', cardId);
+
   };
 
   const handleSetDefault = (cardId: number) => {
     // TODO: Implement set default card functionality
-    console.log('Setting default card:', cardId);
+
   };
 
   const getCardIcon = (brand: string) => {

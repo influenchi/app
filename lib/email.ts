@@ -46,7 +46,6 @@ interface EmailData {
 
 export async function sendEmail({ to, subject, template, templateData }: EmailData) {
   try {
-    console.log(`📧 Attempting to send email: ${template} to ${to}`);
 
     // Check user's email notification preferences
     const { data: settings } = await supabaseAdmin
@@ -59,13 +58,12 @@ export async function sendEmail({ to, subject, template, templateData }: EmailDa
     if (settings) {
       const shouldSkip = checkEmailPreferences(template, settings);
       if (shouldSkip) {
-        console.log(`Email skipped due to user preferences: ${template} to ${to}`);
+
         return { success: true, skipped: true };
       }
     }
 
     const templateId = EMAIL_TEMPLATES[template];
-    console.log(`🎯 Using template ID: ${templateId}`);
 
     const msg = {
       to,
@@ -78,19 +76,8 @@ export async function sendEmail({ to, subject, template, templateData }: EmailDa
       },
     };
 
-    console.log(`📨 SendGrid message config:`, {
-      to: msg.to,
-      from: msg.from,
-      templateId: msg.templateId,
-      hasData: !!msg.dynamicTemplateData
-    });
-
     const result = await sgMail.send(msg);
 
-    console.log(`✅ Email sent successfully: ${template} to ${to}`, {
-      statusCode: result[0]?.statusCode,
-      messageId: result[0]?.headers?.['x-message-id']
-    });
     return { success: true, messageId: result[0]?.headers?.['x-message-id'] };
   } catch (error: any) {
     console.error(`❌ Failed to send email: ${template} to ${to}`, {

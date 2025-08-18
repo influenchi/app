@@ -40,7 +40,7 @@ const NotificationSettings = () => {
 
   const handleSave = () => {
     // TODO: Implement save functionality
-    console.log('Saving notification settings:', notifications);
+
   };
 
   return (

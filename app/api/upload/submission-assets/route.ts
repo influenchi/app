@@ -42,12 +42,6 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      console.log(`Processing submission asset ${i + 1}:`, {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      });
-
       // Validate file type and size
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
@@ -71,8 +65,6 @@ export async function POST(request: NextRequest) {
         const fileExt = file.name.split('.').pop();
         const fileName = `submission-${session.user.id}-${campaignId}-${taskId}-${Date.now()}-${i}.${fileExt}`;
         const filePath = `submission-assets/${fileName}`;
-
-        console.log(`Uploading submission asset ${i + 1} to Supabase Storage:`, filePath);
 
         const { data, error } = await supabaseAdmin.storage
           .from('uploads')
@@ -113,21 +105,12 @@ export async function POST(request: NextRequest) {
         }
 
         uploadResults.push(result);
-        console.log(`Submission asset ${i + 1} uploaded successfully:`, urlData.publicUrl);
 
       } catch (fileError) {
         console.error(`Error processing submission asset ${i + 1}:`, fileError);
         errors.push(`${file.name}: Processing failed`);
       }
     }
-
-    console.log('Submission assets upload complete:', {
-      successful: uploadResults.length,
-      failed: errors.length,
-      campaignId,
-      taskId,
-      creatorId: session.user.id
-    });
 
     return NextResponse.json({
       assets: uploadResults,

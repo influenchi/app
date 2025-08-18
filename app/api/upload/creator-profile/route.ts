@@ -5,7 +5,6 @@ import { validateImageFile, MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '@/lib/util
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Creator profile image upload request received');
 
     const session = await auth.api.getSession({ headers: request.headers });
 
@@ -14,20 +13,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Session validated for user:', session.user.id);
-
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
-
-    console.log(' File details:', {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
 
     const validation = validateImageFile(file);
     if (!validation.isValid) {
@@ -40,8 +31,6 @@ export async function POST(request: NextRequest) {
     const fileExt = file.name.split('.').pop();
     const fileName = `creator-profile-${session.user.id}-${Date.now()}.${fileExt}`;
     const filePath = `creator-profiles/${fileName}`;
-
-    console.log(' Uploading to Supabase Storage:', filePath);
 
     const { data, error } = await supabaseAdmin.storage
       .from('uploads')
@@ -62,11 +51,6 @@ export async function POST(request: NextRequest) {
     const { data: urlData } = supabaseAdmin.storage
       .from('uploads')
       .getPublicUrl(filePath);
-
-    console.log('Upload successful:', {
-      path: data.path,
-      publicUrl: urlData.publicUrl
-    });
 
     return NextResponse.json({
       url: urlData.publicUrl,

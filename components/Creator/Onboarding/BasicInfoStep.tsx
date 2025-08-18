@@ -47,8 +47,6 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('🖼️ BasicInfoStep: Profile image selected:', file.name, file.size);
-
     const validation = validateImageFile(file);
     if (!validation.isValid) {
       toast.error(validation.error || 'Invalid file');
@@ -69,7 +67,6 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
     }
 
     try {
-      console.log('🖼️ BasicInfoStep: Starting profile image upload...');
 
       // Upload to dedicated profile image endpoint
       const formData = new FormData();
@@ -81,15 +78,12 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
         body: formData,
       });
 
-      console.log('🖼️ BasicInfoStep: Upload response:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorResp = await response.json();
         throw new Error(errorResp.error || 'Upload failed');
       }
 
       const result: { url?: string; path?: string } = await response.json();
-      console.log('🖼️ BasicInfoStep: Upload result:', result);
 
       if (result.url) {
         // Clean up preview blob and use uploaded URL
@@ -100,7 +94,6 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
         // Update form with URL instead of File
         onUpdateData('profileImage', result.url);
 
-        console.log('🖼️ BasicInfoStep: Profile image uploaded successfully:', result.url);
         toast.success('Profile image uploaded successfully!');
       } else {
         throw new Error('No URL returned from upload');
@@ -116,7 +109,6 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
   };
 
   const handleRemoveImage = () => {
-    console.log('🖼️ BasicInfoStep: Removing profile image');
 
     onUpdateData('profileImage', null);
 

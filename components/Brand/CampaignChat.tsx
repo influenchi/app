@@ -79,11 +79,7 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
 
   // Debug state changes
   useEffect(() => {
-    console.log('Dialog state changed:', {
-      showCreatorProfile,
-      selectedCreatorProfile: selectedCreatorProfile?.display_name || null,
-      loadingProfile
-    });
+
   }, [showCreatorProfile, selectedCreatorProfile, loadingProfile]);
   const [newMessage, setNewMessage] = useState('');
   const [announcementMessage, setAnnouncementMessage] = useState('');
@@ -101,7 +97,7 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
       const response = await fetch(`/api/campaigns/${campaignId}/participants`);
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(`Participants endpoint not found for campaign ${campaignId}`);
+
           return [];
         }
         throw new Error('Failed to fetch participants');
@@ -216,14 +212,11 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
   };
 
   const handleViewProfile = async (creatorId: string) => {
-    console.log('View Profile clicked for creator:', creatorId);
-    console.log('Available participants:', participants);
-    console.log('Selected creator data:', selectedCreatorData);
 
     setLoadingProfile(true);
     try {
       // Fetch creator profile via API route (server-side to bypass RLS)
-      console.log('Fetching creator profile via API...');
+
       const response = await fetch(`/api/creator/profile/${creatorId}`, {
         headers: {
           'Accept': 'application/json',
@@ -231,8 +224,6 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
         }
       });
       const result = await response.json();
-
-      console.log('API response:', { status: response.status, result });
 
       if (!response.ok) {
         console.error('API error:', result);
@@ -246,7 +237,6 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
         return;
       }
 
-      console.log('Successfully fetched creator profile:', result.profile);
       setSelectedCreatorProfile(result.profile);
       setShowCreatorProfile(true);
     } catch (error) {
@@ -375,9 +365,7 @@ const CampaignChat = ({ campaignId, messageId: propMessageId }: CampaignChatProp
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log('View Profile button clicked!');
-                    console.log('Selected creator ID:', selectedCreator);
-                    console.log('Selected creator data:', selectedCreatorData);
+
                     if (selectedCreator) {
                       handleViewProfile(selectedCreator);
                     } else {

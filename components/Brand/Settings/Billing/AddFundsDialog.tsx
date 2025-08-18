@@ -24,7 +24,7 @@ const AddFundsDialog = ({ open, onOpenChange }: AddFundsDialogProps) => {
   const [amount, setAmount] = useState("");
 
   const handleAddFunds = () => {
-    console.log('Adding funds:', { amount, method: fundingMethod });
+
     onOpenChange(false);
   };
 

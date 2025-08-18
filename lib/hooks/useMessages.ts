@@ -60,7 +60,7 @@ export function useMessages(campaignId: string) {
       const response = await fetch(`/api/messages/campaign/${campaignId}`);
       if (!response.ok) {
         if (response.status === 404) {
-          console.warn(`Messages endpoint not found for campaign ${campaignId}`);
+
           return [];
         }
         throw new Error('Failed to fetch messages');

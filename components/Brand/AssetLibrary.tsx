@@ -113,7 +113,7 @@ const AssetLibrary = ({
     if (selectedAsset) {
       const tagsArray = newTags.split(',').map(tag => tag.trim()).filter(tag => tag);
       // In real app, you'd update the asset tags here
-      console.log('Saving tags for asset:', selectedAsset.id, tagsArray);
+
     }
     setShowTagDialog(false);
     setNewTags('');

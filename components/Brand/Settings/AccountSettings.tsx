@@ -76,7 +76,7 @@ const AccountSettings = () => {
 
   const handleDeleteAccount = () => {
     // TODO: Implement account deletion
-    console.log('Delete account requested');
+
     toast.error('Account deletion is not yet implemented');
   };
 

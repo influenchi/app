@@ -134,8 +134,6 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
       const formData = form.getValues();
       const portfolioImages = formData.portfolioImages || [];
 
-      console.log('🎯 Step 4 validation: Portfolio images from form:', portfolioImages);
-
       // Check if there are any portfolio images
       if (portfolioImages.length === 0) {
         toast.error('Please add at least one portfolio image or video to showcase your work');
@@ -147,15 +145,13 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
         typeof img === 'string' && img.startsWith('http')
       );
 
-      console.log('🎯 Step 4 validation: Valid URLs found:', validUrls.length, 'out of', portfolioImages.length);
-
       if (validUrls.length === 0) {
         toast.error('Portfolio images are required. Please add at least one image or video.');
         return;
       }
 
       if (validUrls.length < portfolioImages.length) {
-        console.log('🎯 Step 4 validation: Some items are not valid URLs:', portfolioImages.filter(img => typeof img !== 'string' || !img.startsWith('http')));
+
         toast.error('Some portfolio items failed to upload properly. Please try uploading them again.');
         return;
       }
@@ -177,38 +173,31 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
   const handleSubmit = () => {
     const formData = form.getValues();
 
-    console.log('🚀 handleSubmit: Full form data:', formData);
-    console.log('🚀 handleSubmit: Portfolio images from form:', formData.portfolioImages);
-    console.log('🚀 handleSubmit: Profile image from form:', formData.profileImage);
-
     // Both profile and portfolio images should now be pre-uploaded URLs
     const hasProfileImageFile = formData.profileImage instanceof File;
 
     // Log if we unexpectedly have File objects (shouldn't happen with immediate upload)
     if (hasProfileImageFile) {
-      console.warn('🚨 handleSubmit: Profile image is still a File object - should be URL with immediate upload');
+
     }
 
     // Final validation - ensure portfolio images are valid URLs (they should be since uploaded immediately)
     const portfolioImages = formData.portfolioImages || [];
-    console.log('🚀 handleSubmit: Portfolio images after null check:', portfolioImages);
 
     const validPortfolioUrls = portfolioImages.filter((img): img is string =>
       typeof img === 'string' && img.startsWith('http')
     );
 
-    console.log('🚀 handleSubmit: Valid portfolio URLs:', validPortfolioUrls);
-
     // This should not happen anymore since images are uploaded immediately
     if (validPortfolioUrls.length === 0) {
-      console.log('🚨 handleSubmit: No valid portfolio URLs found - this should not happen with immediate upload!');
+
       toast.error('Portfolio images are required. Please add at least one image or video.');
       return;
     }
 
     // Check if all portfolio items are valid URLs
     if (validPortfolioUrls.length < portfolioImages.length) {
-      console.log('🚨 handleSubmit: Some portfolio items are not valid URLs:', portfolioImages.filter(img => typeof img !== 'string' || !img.startsWith('http')));
+
       toast.error('Some portfolio items failed to upload. Please try uploading them again.');
       return;
     }
@@ -217,11 +206,6 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
     setIsSubmitting(true);
 
     // Log what we're submitting
-    console.log('🚀 handleSubmit: Submitting with:', {
-      hasProfileImage,
-      portfolioUrlCount: validPortfolioUrls.length,
-      portfolioUrls: validPortfolioUrls.slice(0, 2) // Log first 2 URLs for debugging
-    });
 
     creatorOnboarding.mutate(formData, {
       onSuccess: () => {
@@ -243,7 +227,7 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
   };
 
   const updateProfileData = useCallback((field: string, value: unknown) => {
-    console.log('🔄 CreatorOnboarding: updateProfileData called:', { field, value });
+
     form.setValue(field as keyof CreatorOnboardingFormData, value, {
       shouldValidate: true,
       shouldDirty: true,

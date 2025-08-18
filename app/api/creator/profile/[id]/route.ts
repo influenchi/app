@@ -16,15 +16,11 @@ export async function GET(
     }
 
     const { id: creatorUserId } = await params;
-    console.log('Fetching creator profile for user_id:', creatorUserId);
 
     const { data: allCreators, error: countError } = await supabaseAdmin
       .from('creators')
       .select('id, user_id, display_name')
       .eq('user_id', creatorUserId);
-
-    console.log('Debug - All creators found:', allCreators);
-    console.log('Debug - Count error:', countError);
 
     const { data: creatorData, error } = await supabaseAdmin
       .from('creators')
@@ -53,15 +49,13 @@ export async function GET(
       `)
       .eq('user_id', creatorUserId);
 
-    console.log('Creator profile query result:', { creatorData, error });
-
     if (error) {
       console.error('Database error:', error);
       return NextResponse.json({ error: "Creator profile not found" }, { status: 404 });
     }
 
     if (!creatorData || creatorData.length === 0) {
-      console.log('No creator profile found for user_id:', creatorUserId);
+
       return NextResponse.json({ error: "Creator profile not found" }, { status: 404 });
     }
 

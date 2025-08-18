@@ -25,7 +25,7 @@ const settingsNavigation = [
 const CreatorSettingsLayout = ({ children, activeSection, onSectionChange }: CreatorSettingsLayoutProps) => {
   const handleLogout = () => {
     // TODO: Implement logout functionality
-    console.log('Logout clicked');
+
   };
 
   return (

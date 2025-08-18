@@ -23,26 +23,26 @@ const AccountSettings = () => {
 
   const handleSaveEmail = () => {
     // TODO: Implement save email functionality
-    console.log('Saving email:', accountData.email);
+
     setIsEditingEmail(false);
   };
 
   const handleSavePhone = () => {
     // TODO: Implement save phone functionality
-    console.log('Saving phone:', accountData.phone);
+
     setIsEditingPhone(false);
   };
 
   const handleChangePassword = () => {
     // TODO: Implement change password functionality
-    console.log('Changing password');
+
     setIsChangingPassword(false);
     setAccountData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
   };
 
   const handleDeleteAccount = () => {
     // TODO: Implement account deletion
-    console.log('Delete account requested');
+
   };
 
   const handleInputChange = (field: string, value: string) => {

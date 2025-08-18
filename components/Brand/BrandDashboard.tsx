@@ -84,12 +84,6 @@ const BrandDashboard = () => {
     },
   });
 
-  console.log(' BrandDashboard render:', {
-    selectedCampaign: selectedCampaign?.title || 'none',
-    searchParams: searchParams?.toString(),
-    campaignsLoaded: campaigns.length > 0
-  });
-
   // Handle URL parameters for deep linking - process when params actually change
   useEffect(() => {
     if (campaigns.length > 0) {
@@ -99,24 +93,16 @@ const BrandDashboard = () => {
         message: searchParams?.get('message'),
       };
 
-      console.log('URL params check:', {
-        currentParams,
-        lastProcessedParams,
-        campaignsLength: campaigns.length
-      });
-
       // Check if URL parameters have actually changed
       const hasParamsChanged =
         currentParams.campaign !== lastProcessedParams.campaign ||
         currentParams.tab !== lastProcessedParams.tab ||
         currentParams.message !== lastProcessedParams.message;
 
-      console.log('Params changed:', hasParamsChanged);
-
       // Only process if params changed and we have a campaign ID
       if (hasParamsChanged && currentParams.campaign) {
         const campaign = campaigns.find((c: Campaign) => c.id === currentParams.campaign);
-        console.log('Found campaign for deep link:', campaign?.title);
+
         if (campaign) {
           setSelectedCampaign(campaign);
         }
@@ -124,7 +110,7 @@ const BrandDashboard = () => {
       }
       // If no campaign ID in URL but we had one before, clear the state
       else if (hasParamsChanged && !currentParams.campaign && lastProcessedParams.campaign) {
-        console.log('Clearing campaign selection');
+
         setSelectedCampaign(null);
         setLastProcessedParams(currentParams);
       }
@@ -180,19 +166,18 @@ const BrandDashboard = () => {
   };
 
   const handleViewCampaign = (campaign: any) => {
-    console.log('View campaign clicked:', campaign);
+
     // Find the original campaign data by ID (use actualId if available)
     const campaignId = campaign.actualId || campaign.id;
     const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
-    console.log('Looking for campaign with ID:', campaignId);
-    console.log('Original campaign found:', originalCampaign);
+
     if (originalCampaign) {
       setSelectedCampaign(originalCampaign);
     }
   };
 
   const handleEditCampaign = (campaign: any) => {
-    console.log('Edit campaign clicked:', campaign);
+
     // Find the original campaign data by ID (use actualId if available)
     const campaignId = campaign.actualId || campaign.id;
     const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
@@ -203,7 +188,7 @@ const BrandDashboard = () => {
   };
 
   const handleDeleteCampaign = (campaign: any) => {
-    console.log('Delete campaign clicked:', campaign);
+
     const campaignId = campaign.actualId || campaign.id;
 
     if (confirm('Are you sure you want to delete this draft campaign? This action cannot be undone.')) {
@@ -261,7 +246,7 @@ const BrandDashboard = () => {
             router.push('/brand/dashboard');
           }}
           onEdit={() => {
-            console.log("Edit campaign:", selectedCampaign.id);
+
             setEditingCampaign(selectedCampaign);
             setShowEditModal(true);
           }}
@@ -278,10 +263,10 @@ const BrandDashboard = () => {
           campaigns={campaigns}
           transformedCampaigns={transformedCampaigns}
           onCampaignClick={(campaign: any) => {
-            console.log('Campaign clicked:', campaign);
+
             const campaignId = campaign.actualId || campaign.id;
             const originalCampaign = campaigns.find((c: Campaign) => c.id === campaignId);
-            console.log('Original campaign found:', originalCampaign);
+
             if (originalCampaign) {
               setSelectedCampaign(originalCampaign);
             }
@@ -297,7 +282,7 @@ const BrandDashboard = () => {
         <CreateCampaignModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
-            console.log('Campaign creation successful');
+
             setShowCreateModal(false);
           }}
         />
@@ -310,7 +295,7 @@ const BrandDashboard = () => {
             setEditingCampaign(null);
           }}
           onSuccess={() => {
-            console.log('Campaign edit successful');
+
             setShowEditModal(false);
             setEditingCampaign(null);
             // Refresh campaigns data

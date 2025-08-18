@@ -56,28 +56,22 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   useEffect(() => {
     // Always sync URLs back to the parent form whenever local state changes
     const urls = portfolioImages.map(img => img.url).filter(Boolean);
-    console.log('🎯 PortfolioStep: Updating form with URLs:', urls);
-    console.log('🎯 PortfolioStep: Portfolio images state:', portfolioImages);
+
     onUpdateData('portfolioImages', urls);
   }, [portfolioImages, onUpdateData]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🎪 PortfolioStep: handleImageUpload called');
 
     const files = event.target.files;
-    console.log('🎪 PortfolioStep: Files from input:', files?.length || 0);
 
     if (!files || files.length === 0) {
-      console.log('🎪 PortfolioStep: No files selected, returning');
+
       return;
     }
 
     setIsProcessing(true);
     const remainingSlots = 5 - portfolioImages.length;
     const filesToProcess = Array.from(files).slice(0, remainingSlots);
-
-    console.log('🎪 PortfolioStep: Processing files:', filesToProcess.map(f => f.name));
-    console.log('🎪 PortfolioStep: Current portfolio count:', portfolioImages.length, 'remaining slots:', remainingSlots);
 
     const validFiles: File[] = [];
     const tempImages: PortfolioImage[] = [];
@@ -106,7 +100,6 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
 
     try {
       // Upload each file individually so each item gets its URL asap
-      console.log('📁 PortfolioStep: Starting per-file uploads:', validFiles.map(f => f.name));
 
       const startingIndex = portfolioImages.length;
 
@@ -114,15 +107,12 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
         try {
           const formData = new FormData();
           formData.append('files', file);
-          console.log('📁 PortfolioStep: Uploading single file:', file.name, 'to index', targetIndex);
 
           const response = await fetch('/api/upload/portfolio-images', {
             method: 'POST',
             credentials: 'include',
             body: formData,
           });
-
-          console.log('📁 PortfolioStep: Single upload response:', response.status, response.statusText);
 
           if (!response.ok) {
             const errorResp = await response.json();
@@ -152,7 +142,7 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
               }
               return updated;
             });
-            console.log('📁 PortfolioStep: Uploaded and set URL for index', targetIndex, url);
+
             toast.success(`${file.name} uploaded`);
           } else {
             setPortfolioImages(prev => {
@@ -162,7 +152,7 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
               }
               return updated;
             });
-            console.warn('📁 PortfolioStep: Upload returned no URL for', file.name, 'error:', err);
+
             toast.error(`${file.name}: ${err || 'Upload failed'}`);
           }
         } catch (singleErr) {
@@ -214,10 +204,7 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
     event.preventDefault();
     event.stopPropagation();
 
-    console.log('🎪 PortfolioStep: Files dropped');
-
     const files = event.dataTransfer.files;
-    console.log('🎪 PortfolioStep: Dropped files:', files.length, Array.from(files).map(f => f.name));
 
     if (files.length > 0) {
       const syntheticEvent = {

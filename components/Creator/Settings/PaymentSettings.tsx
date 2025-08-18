@@ -31,7 +31,7 @@ const PaymentSettings = () => {
 
   const handleAddPaymentMethod = () => {
     // TODO: Implement add payment method
-    console.log('Add payment method');
+
   };
 
   const handleTaxInfoChange = (field: string, value: string) => {
@@ -40,7 +40,7 @@ const PaymentSettings = () => {
 
   const handleSaveTaxInfo = () => {
     // TODO: Implement save tax info
-    console.log('Saving tax info:', taxInfo);
+
     setIsEditingTax(false);
   };
 

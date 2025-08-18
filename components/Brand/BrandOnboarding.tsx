@@ -51,7 +51,7 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
   // Reset store on component mount to ensure fresh start for new brand onboarding
   useEffect(() => {
     if (!hasInitialized) {
-      console.log('Resetting brand onboarding store for fresh start');
+
       resetStore();
       form.reset({
         brandName: '',
@@ -112,7 +112,6 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
   };
 
   const handleSubmit = () => {
-    console.log(' Preparing brand onboarding submission...');
 
     const formValues = form.getValues();
 
@@ -131,14 +130,9 @@ const BrandOnboarding = ({ onComplete }: BrandOnboardingProps) => {
       logoFile: logoFile // File object - handled separately by the hook
     };
 
-    console.log(' Submission data prepared:', {
-      ...submissionData,
-      logoFile: logoFile ? `File: ${logoFile.name}` : 'No file'
-    });
-
     brandOnboarding.mutate(submissionData, {
       onSuccess: () => {
-        console.log('Brand onboarding successful, cleaning up...');
+
         resetStore();
         // Small delay to ensure session is refreshed before navigation
         setTimeout(() => {

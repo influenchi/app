@@ -63,11 +63,6 @@ interface CampaignDetailsProps {
 }
 
 const CampaignDetails = ({ campaign, onBack, onEdit, onDuplicate, defaultTab = 'details', messageId }: CampaignDetailsProps) => {
-  console.log('CampaignDetails render:', {
-    campaignTitle: campaign.title,
-    defaultTab,
-    messageId
-  });
 
   // Transform campaign data to match component expectations
   const transformedCampaign = {

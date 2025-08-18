@@ -47,7 +47,7 @@ export const auth = betterAuth({
       }
     },
     onPasswordReset: async ({ user }) => {
-      console.log(`Password reset for user ${user.email}`);
+
     },
   },
   session: {

@@ -8,27 +8,22 @@ import { NotificationService } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Brand onboarding request received');
 
     const session = await auth.api.getSession({ headers: request.headers });
 
     if (!session) {
-      console.log('No session found');
+
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Session found for user:', session.user.id);
-
     // Debug request details
     const contentType = request.headers.get('content-type');
-    console.log(' Content-Type:', contentType);
 
     let body: Record<string, unknown> = {};
     let logoUrl: string | null = null;
 
     // Handle both FormData and JSON requests
     if (contentType?.includes('multipart/form-data')) {
-      console.log(' Processing FormData request...');
 
       try {
         const formData = await request.formData();
@@ -41,26 +36,17 @@ export async function POST(request: NextRequest) {
         const socialMediaStr = formData.get('socialMedia') as string;
         const logoFile = formData.get('logo') as File | null;
 
-        console.log(' FormData fields extracted:', {
-          brandName,
-          website: website || 'empty',
-          description: description?.substring(0, 50) + '...',
-          industriesStr,
-          socialMediaStr,
-          hasLogoFile: !!logoFile
-        });
-
         // Parse JSON strings from FormData
         const industries = industriesStr ? JSON.parse(industriesStr) : [];
         const socialMedia = socialMediaStr ? JSON.parse(socialMediaStr) : {};
 
         // Handle file upload if present
         if (logoFile) {
-          console.log(' Processing logo file from FormData...');
+
           try {
             const { uploadBrandLogo } = await import('@/lib/utils/storageUtils');
             logoUrl = await uploadBrandLogo(logoFile, session.user.id);
-            console.log('Logo uploaded successfully:', logoUrl);
+
           } catch (uploadError) {
             console.error('Logo upload failed:', uploadError);
             return NextResponse.json({ error: 'Failed to upload logo' }, { status: 500 });
@@ -86,12 +72,9 @@ export async function POST(request: NextRequest) {
       }
 
     } else if (contentType?.includes('application/json')) {
-      console.log(' Processing JSON request...');
 
       try {
         const jsonData = await request.json();
-        console.log('JSON parsed successfully');
-        console.log(' Request data keys:', Object.keys(jsonData));
 
         body = jsonData;
         logoUrl = jsonData.logoUrl || null;
@@ -112,25 +95,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('Validating data...');
     const validatedData = brandOnboardingSchema.parse({
       brandName: body.brandName,
       website: body.website,
       description: body.description,
       industries: body.industries,
       socialMedia: body.socialMedia,
-    });
-
-    console.log('Data validation successful');
-    console.log('  Logo URL:', logoUrl ? 'provided' : 'not provided');
-
-    console.log(' Saving to database...');
-    console.log(' User ID from Better Auth:', session.user.id);
-    console.log(' User data:', {
-      email: session.user.email,
-      firstName: session.user.first_name,
-      lastName: session.user.last_name,
-      companyName: session.user.company_name
     });
 
     // Better Auth now uses users table with UUIDs directly!
@@ -165,7 +135,7 @@ export async function POST(request: NextRequest) {
       error = updateResult.error;
 
       if (!error) {
-        console.log('Brand profile updated:', existingBrand.id);
+
       }
     } else {
       // Create new brand profile with proper user_id reference
@@ -193,7 +163,6 @@ export async function POST(request: NextRequest) {
       error = insertResult.error;
 
       if (insertResult.data && !error) {
-        console.log('Brand profile created:', insertResult.data.id);
 
         // Send welcome email for new brand signup
         try {
@@ -233,7 +202,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Brand onboarding completed successfully');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Brand onboarding error:', error);

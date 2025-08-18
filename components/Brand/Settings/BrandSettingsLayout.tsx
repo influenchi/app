@@ -31,7 +31,7 @@ const settingsNavigation = [
 const BrandSettingsLayout = ({ children, activeSection, onSectionChange }: BrandSettingsLayoutProps) => {
   const handleLogout = () => {
     // TODO: Implement logout functionality
-    console.log('Logout clicked');
+
   };
 
   return (

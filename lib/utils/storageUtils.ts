@@ -159,14 +159,6 @@ export async function uploadBrandLogo(
 ): Promise<string> {
   void onProgress; // Parameter kept for API consistency
   try {
-    console.log('Upload attempt details:', {
-      betterAuthUserId: userId,
-      fileDetails: {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      }
-    });
 
     // Validate file
     const validation = validateImageFile(file);
@@ -187,8 +179,6 @@ export async function uploadBrandLogo(
     // Create FormData for API upload
     const formData = new FormData();
     formData.append('file', processedFile);
-
-    console.log(' Uploading via secure API endpoint...');
 
     // Upload via API endpoint (works for both Supabase and Better Auth users)
     const response = await fetch('/api/upload/brand-logo', {
@@ -216,12 +206,6 @@ export async function uploadBrandLogo(
     }
 
     const result = await response.json();
-
-    console.log('Upload successful:', {
-      publicUrl: result.url,
-      path: result.path,
-      userId
-    });
 
     return result.url;
 
@@ -283,14 +267,6 @@ export async function uploadCreatorProfileImage(
 ): Promise<string> {
   void onProgress; // Parameter kept for API consistency
   try {
-    console.log('Upload attempt details:', {
-      betterAuthUserId: userId,
-      fileDetails: {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      }
-    });
 
     const validation = validateImageFile(file);
     if (!validation.isValid) {
@@ -304,8 +280,6 @@ export async function uploadCreatorProfileImage(
 
     const formData = new FormData();
     formData.append('file', processedFile);
-
-    console.log(' Uploading via secure API endpoint...');
 
     const response = await fetch('/api/upload/creator-profile', {
       method: 'POST',
@@ -332,12 +306,6 @@ export async function uploadCreatorProfileImage(
 
     const result = await response.json();
 
-    console.log('Upload successful:', {
-      publicUrl: result.url,
-      path: result.path,
-      userId
-    });
-
     return result.url;
 
   } catch (err) {
@@ -353,14 +321,7 @@ export async function uploadPortfolioImages(
 ): Promise<{ urls: string[]; errors?: string[] }> {
   void onProgress; // Parameter kept for API consistency
   try {
-    console.log('Portfolio upload attempt:', {
-      userId,
-      fileCount: files.length,
-      files: files.map(f => ({
-        name: f.name,
-        type: f.type,
-        size: f.size
-      }))
+
     });
 
     const processedFiles: File[] = [];
@@ -384,8 +345,6 @@ export async function uploadPortfolioImages(
     if (processedFiles.length === 0) {
       throw new Error('No valid media to upload');
     }
-
-    console.log(`Uploading ${processedFiles.length} portfolio media files via signed URLs...`);
 
     const urls: string[] = [];
     const serverErrors: string[] = [];
@@ -420,12 +379,6 @@ export async function uploadPortfolioImages(
       }
     }
 
-    console.log('Portfolio upload complete:', {
-      successCount: urls.length,
-      errorCount: validationErrors.length + serverErrors.length,
-      userId
-    });
-
     return {
       urls,
       errors: [...validationErrors, ...serverErrors]
@@ -444,14 +397,6 @@ export async function uploadCampaignImage(
 ): Promise<string> {
   void onProgress; // Parameter kept for API consistency
   try {
-    console.log('Campaign image upload attempt:', {
-      betterAuthUserId: userId,
-      fileDetails: {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      }
-    });
 
     const validation = validateImageFile(file);
     if (!validation.isValid) {
@@ -465,8 +410,6 @@ export async function uploadCampaignImage(
 
     const formData = new FormData();
     formData.append('file', processedFile);
-
-    console.log(' Uploading via secure API endpoint...');
 
     const response = await fetch('/api/upload/campaign-image', {
       method: 'POST',
@@ -492,12 +435,6 @@ export async function uploadCampaignImage(
     }
 
     const result = await response.json();
-
-    console.log('Campaign image upload successful:', {
-      publicUrl: result.url,
-      path: result.path,
-      userId
-    });
 
     return result.url;
 
@@ -527,15 +464,7 @@ export async function uploadSubmissionAssets(
   // onProgress parameter is unused but kept for API consistency
   void onProgress;
   try {
-    console.log('Submission assets upload attempt:', {
-      campaignId,
-      taskId,
-      fileCount: files.length,
-      files: files.map(f => ({
-        name: f.name,
-        type: f.type,
-        size: f.size
-      }))
+
     });
 
     if (files.length === 0) {
@@ -548,8 +477,6 @@ export async function uploadSubmissionAssets(
     });
     formData.append('campaignId', campaignId);
     formData.append('taskId', taskId);
-
-    console.log(`Uploading ${files.length} submission assets...`);
 
     const response = await fetch('/api/upload/submission-assets', {
       method: 'POST',
@@ -575,13 +502,6 @@ export async function uploadSubmissionAssets(
     }
 
     const result = await response.json();
-
-    console.log('Submission assets upload complete:', {
-      successCount: result.assets?.length || 0,
-      errorCount: result.errors?.length || 0,
-      campaignId,
-      taskId
-    });
 
     return {
       assets: result.assets || [],

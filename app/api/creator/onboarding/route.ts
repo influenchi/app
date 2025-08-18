@@ -6,7 +6,6 @@ import { NotificationService } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Creator onboarding request received');
 
     const session = await auth.api.getSession({ headers: request.headers });
 
@@ -14,14 +13,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('Session validated for user:', session.user.id);
-
     const contentType = request.headers.get('content-type');
     let body: Record<string, unknown>;
     let profileImageUrl: string | null = null;
 
     if (contentType?.includes('multipart/form-data')) {
-      console.log(' Processing FormData request...');
 
       try {
         const formData = await request.formData();
@@ -65,14 +61,14 @@ export async function POST(request: NextRequest) {
         // Check for profile image URL from form data (already uploaded)
         if (profileImageUrlFromForm) {
           profileImageUrl = profileImageUrlFromForm;
-          console.log('Using pre-uploaded profile image URL:', profileImageUrl);
+
         } else if (profileImageFile) {
           // Fallback to file upload if file is provided
-          console.log(' Processing profile image from FormData...');
+
           try {
             const { uploadCreatorProfileImage } = await import('@/lib/utils/storageUtils');
             profileImageUrl = await uploadCreatorProfileImage(profileImageFile, session.user.id);
-            console.log('Profile image uploaded successfully:', profileImageUrl);
+
           } catch (uploadError) {
             console.error('Profile image upload failed:', uploadError);
             return NextResponse.json({ error: 'Failed to upload profile image' }, { status: 500 });
@@ -113,7 +109,6 @@ export async function POST(request: NextRequest) {
       }
 
     } else if (contentType?.includes('application/json')) {
-      console.log(' Processing JSON request...');
 
       try {
         const jsonData = await request.json();
@@ -132,9 +127,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('Validating data...');
     const validatedData = creatorOnboardingSchema.parse(body as unknown as Record<string, unknown>);
-    console.log('Data validation successful');
 
     const userId = session.user.id;
 
@@ -156,8 +149,6 @@ export async function POST(request: NextRequest) {
     const portfolioImages = contentType?.includes('multipart/form-data')
       ? (body as Record<string, unknown>).portfolioImages || []
       : validatedData.portfolioImages || [];
-
-    console.log('Portfolio images to save:', portfolioImages);
 
     const profileData = {
       first_name: validatedData.firstName,
@@ -188,7 +179,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (existingCreator) {
-      console.log('Updating existing creator profile...');
+
       const updateResult = await supabaseAdmin
         .from('creators')
         .update(profileData)
@@ -197,10 +188,10 @@ export async function POST(request: NextRequest) {
       error = updateResult.error;
 
       if (!error) {
-        console.log('Creator profile updated:', existingCreator.id);
+
       }
     } else {
-      console.log('Creating new creator profile...');
+
       const insertResult = await supabaseAdmin
         .from('creators')
         .insert({
@@ -215,7 +206,6 @@ export async function POST(request: NextRequest) {
       error = insertResult.error;
 
       if (insertResult.data && !error) {
-        console.log('Creator profile created:', insertResult.data.id);
 
         // Send welcome email for new creator signup
         try {
@@ -253,7 +243,6 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Creator onboarding completed successfully');
     return NextResponse.json({ success: true });
 
   } catch (error) {
