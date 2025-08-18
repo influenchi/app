@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Upload, User, MapPin, X, Info, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Upload, User, X, Info, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import ModernSingleLocationAutocomplete from "@/components/ui/modern-single-location-autocomplete";
 import { CreatorProfileData } from "../types";
 import { useRef, useState, useEffect } from "react";
@@ -22,23 +22,32 @@ interface BasicInfoStepProps {
 const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check display name availability
   const displayNameCheck = useDisplayNameCheck(profileData.displayName, true);
 
-  // Create URL for profile image when it changes
+  // Handle existing profile image URL or File
   useEffect(() => {
-    if (profileData.profileImage && !imagePreview) {
+    if (typeof profileData.profileImage === 'string') {
+      // It's already an uploaded URL
+      setProfileImageUrl(profileData.profileImage);
+      setImagePreview(null);
+    } else if (profileData.profileImage instanceof File && !imagePreview) {
+      // It's a File object, create preview
       const url = URL.createObjectURL(profileData.profileImage);
-      setProfileImageUrl(url);
+      setImagePreview(url);
       return () => URL.revokeObjectURL(url);
     }
   }, [profileData.profileImage, imagePreview]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    console.log('🖼️ BasicInfoStep: Profile image selected:', file.name, file.size);
 
     const validation = validateImageFile(file);
     if (!validation.isValid) {
@@ -46,27 +55,81 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
       return;
     }
 
-    onUpdateData('profileImage', file);
+    // Set uploading state and show preview
+    setIsUploading(true);
+    setUploadError(null);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-      // Clear the profile image URL when we have a new preview
-      if (profileImageUrl) {
-        URL.revokeObjectURL(profileImageUrl);
-        setProfileImageUrl(null);
+    // Create immediate preview
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+
+    // Clear any existing profile image URL
+    if (profileImageUrl) {
+      setProfileImageUrl(null);
+    }
+
+    try {
+      console.log('🖼️ BasicInfoStep: Starting profile image upload...');
+
+      // Upload to dedicated profile image endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload/creator-profile', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      console.log('🖼️ BasicInfoStep: Upload response:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorResp = await response.json();
+        throw new Error(errorResp.error || 'Upload failed');
       }
-    };
-    reader.readAsDataURL(file);
+
+      const result: { url?: string; path?: string } = await response.json();
+      console.log('🖼️ BasicInfoStep: Upload result:', result);
+
+      if (result.url) {
+        // Clean up preview blob and use uploaded URL
+        URL.revokeObjectURL(previewUrl);
+        setImagePreview(null);
+        setProfileImageUrl(result.url);
+
+        // Update form with URL instead of File
+        onUpdateData('profileImage', result.url);
+
+        console.log('🖼️ BasicInfoStep: Profile image uploaded successfully:', result.url);
+        toast.success('Profile image uploaded successfully!');
+      } else {
+        throw new Error('No URL returned from upload');
+      }
+
+    } catch (error) {
+      console.error('🖼️ BasicInfoStep: Profile image upload error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload profile image');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRemoveImage = () => {
+    console.log('🖼️ BasicInfoStep: Removing profile image');
+
     onUpdateData('profileImage', null);
-    setImagePreview(null);
-    if (profileImageUrl) {
-      URL.revokeObjectURL(profileImageUrl);
-      setProfileImageUrl(null);
+
+    // Clean up preview blob if it exists
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
     }
+
+    // Clear uploaded URL (don't revoke as it's not a blob)
+    setProfileImageUrl(null);
+    setUploadError(null);
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -81,15 +144,32 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
       <div className="space-y-6">
         {/* Profile Picture */}
         <div className="flex items-center space-x-6">
-          <Avatar className="h-24 w-24 flex-shrink-0">
-            <AvatarImage
-              src={imagePreview || profileImageUrl || ""}
-              className="object-cover"
-            />
-            <AvatarFallback className="text-xl bg-orange-100 text-orange-600">
-              <User className="h-8 w-8" />
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 flex-shrink-0">
+              <AvatarImage
+                src={profileImageUrl || imagePreview || ""}
+                className="object-cover"
+              />
+              <AvatarFallback className="text-xl bg-orange-100 text-orange-600">
+                <User className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
+            {isUploading && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                <Loader2 className="h-6 w-6 text-white animate-spin" />
+              </div>
+            )}
+            {profileImageUrl && !isUploading && (
+              <div className="absolute -top-2 -right-2 bg-green-600 text-white p-1 rounded-full">
+                <CheckCircle className="h-4 w-4" />
+              </div>
+            )}
+            {uploadError && !isUploading && (
+              <div className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full">
+                <XCircle className="h-4 w-4" />
+              </div>
+            )}
+          </div>
           <div>
             <input
               ref={fileInputRef}
@@ -97,6 +177,7 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
               accept="image/*"
               onChange={handleFileSelect}
               className="hidden"
+              disabled={isUploading}
             />
             <div className="flex items-center gap-2">
               <Button
@@ -104,16 +185,27 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Photo
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Photo
+                  </>
+                )}
               </Button>
-              {(imagePreview || profileData.profileImage) && (
+              {(imagePreview || profileImageUrl || profileData.profileImage) && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveImage}
+                  disabled={isUploading}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -122,6 +214,16 @@ const BasicInfoStep = ({ profileData, onUpdateData }: BasicInfoStepProps) => {
             <p className="text-sm text-muted-foreground mt-1">
               Supported: {getFileTypeDisplay()}, max {getMaxFileSizeDisplay()}
             </p>
+            {uploadError && (
+              <p className="text-sm text-red-600 mt-1">
+                {uploadError}
+              </p>
+            )}
+            {profileImageUrl && !uploadError && (
+              <p className="text-sm text-green-600 mt-1">
+                ✓ Image uploaded successfully
+              </p>
+            )}
           </div>
         </div>
 

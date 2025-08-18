@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreatorOnboardingFormData, CreatorApplicationFormData } from '@/lib/validations/creator';
 import { toast } from 'sonner';
-import { uploadCreatorProfileImage, uploadPortfolioImages, uploadSubmissionAssets } from '@/lib/utils/storageUtils';
+import { uploadCreatorProfileImage, uploadSubmissionAssets } from '@/lib/utils/storageUtils';
 import { useSession } from '@/lib/hooks/useAuth';
 
 export function useCreatorOnboarding() {
@@ -27,60 +27,38 @@ export function useCreatorOnboarding() {
       let profileImageUrl: string | null = null;
       let portfolioImageUrls: string[] = [];
 
-      // Handle profile image upload
-      if (data.profileImage && data.profileImage instanceof File) {
-        console.log(' Processing profile image upload...');
-        try {
-          profileImageUrl = await uploadCreatorProfileImage(data.profileImage, session.user.id);
-          console.log('Profile image uploaded successfully:', profileImageUrl);
-        } catch (uploadError) {
-          const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
-          console.error('Profile image upload failed:', errorMessage);
-          throw new Error(`Profile image upload failed: ${errorMessage}`);
+      // Handle profile image - should now be a URL string (uploaded immediately in BasicInfoStep)
+      if (data.profileImage) {
+        if (typeof data.profileImage === 'string') {
+          profileImageUrl = data.profileImage;
+          console.log('Profile image URL received from form:', profileImageUrl);
+        } else if (data.profileImage instanceof File) {
+          // Fallback for File objects (shouldn't happen with immediate upload)
+          console.log('⚠️ Processing profile image upload (fallback)...');
+          try {
+            profileImageUrl = await uploadCreatorProfileImage(data.profileImage, session.user.id);
+            console.log('Profile image uploaded successfully (fallback):', profileImageUrl);
+          } catch (uploadError) {
+            const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
+            console.error('Profile image upload failed:', errorMessage);
+            throw new Error(`Profile image upload failed: ${errorMessage}`);
+          }
         }
       }
 
-      // Handle portfolio images - separate files from URLs
+      // Handle portfolio images - now they're pre-uploaded URLs only
       if (data.portfolioImages && data.portfolioImages.length > 0) {
         console.log(` Processing ${data.portfolioImages.length} portfolio items...`);
 
-        const portfolioFiles: File[] = [];
-        const existingUrls: string[] = [];
+        // All items should now be URLs since upload happens in PortfolioStep
+        portfolioImageUrls = data.portfolioImages.filter((item): item is string => typeof item === 'string');
 
-        // Separate files from URLs
-        data.portfolioImages.forEach(item => {
-          if (item instanceof File) {
-            portfolioFiles.push(item);
-          } else if (typeof item === 'string') {
-            existingUrls.push(item);
-          }
-        });
+        console.log(`Found ${portfolioImageUrls.length} portfolio image URLs`);
 
-        console.log(` Found ${portfolioFiles.length} new files and ${existingUrls.length} existing URLs`);
-
-        // Upload new files if any
-        if (portfolioFiles.length > 0) {
-          try {
-            const result = await uploadPortfolioImages(portfolioFiles, session.user.id);
-
-            if (result.errors && result.errors.length > 0) {
-              console.warn('Some portfolio images failed:', result.errors);
-              result.errors.forEach(error => toast.error(error));
-            }
-
-            // Combine new uploads with existing URLs
-            portfolioImageUrls = [...existingUrls, ...result.urls];
-            console.log(`Portfolio images uploaded: ${result.urls.length} new, ${existingUrls.length} existing`);
-          } catch (uploadError) {
-            const errorMessage = uploadError instanceof Error ? uploadError.message : 'Unknown upload error';
-            console.error('Portfolio upload failed:', errorMessage);
-            // Don't throw here - we can still save the profile with existing images
-            toast.error(`Some portfolio images failed to upload: ${errorMessage}`);
-            portfolioImageUrls = existingUrls; // Use only existing URLs
-          }
-        } else {
-          // No new files, just use existing URLs
-          portfolioImageUrls = existingUrls;
+        // Log any unexpected file objects (shouldn't happen now)
+        const unexpectedFiles = data.portfolioImages.filter(item => item instanceof File);
+        if (unexpectedFiles.length > 0) {
+          console.warn(`Unexpected File objects found: ${unexpectedFiles.length} - these should have been uploaded already`);
         }
       }
 
@@ -90,8 +68,17 @@ export function useCreatorOnboarding() {
         formattedWebsite = `https://${formattedWebsite}`;
       }
 
-      const hasFiles = (data.profileImage instanceof File) ||
-        (data.portfolioImages && data.portfolioImages.some(img => img instanceof File));
+      // Check if we still have any File objects (shouldn't happen with immediate upload)
+      const hasProfileImageFile = (data.profileImage instanceof File);
+      const hasPortfolioFiles = data.portfolioImages?.some(img => img instanceof File);
+      const hasFiles = hasProfileImageFile || hasPortfolioFiles;
+
+      if (hasFiles) {
+        console.log('⚠️ Found File objects in form data - should be URLs with immediate upload:', {
+          hasProfileImageFile,
+          hasPortfolioFiles
+        });
+      }
 
       let response;
 
@@ -105,7 +92,7 @@ export function useCreatorOnboarding() {
         formData.append('bio', data.bio);
         formData.append('location', data.location);
 
-        // Profile image URL (not the file, since we already uploaded it)
+        // Profile image URL (should be pre-uploaded from BasicInfoStep)
         if (profileImageUrl) {
           formData.append('profileImageUrl', profileImageUrl);
         }
@@ -124,8 +111,8 @@ export function useCreatorOnboarding() {
         formData.append('contentTypes', JSON.stringify(data.contentTypes || []));
 
         // Audience info
-        formData.append('totalFollowers', data.totalFollowers);
-        formData.append('primaryPlatform', data.primaryPlatform);
+        formData.append('totalFollowers', data.totalFollowers || '');
+        formData.append('primaryPlatform', data.primaryPlatform || '');
         formData.append('audienceAge', JSON.stringify(data.audienceAge || []));
         formData.append('audienceGender', data.audienceGender || '');
         formData.append('audienceLocation', JSON.stringify(data.audienceLocation || []));
@@ -142,12 +129,12 @@ export function useCreatorOnboarding() {
           body: formData,
         });
       } else {
-        // No files, send as JSON
+        // No files (should be the normal case with immediate upload), send as JSON
         const payload = {
           ...data,
-          profileImage: undefined,
-          profileImageUrl,
-          portfolioImages: portfolioImageUrls,
+          profileImage: undefined, // Remove File object
+          profileImageUrl, // Use uploaded URL
+          portfolioImages: portfolioImageUrls, // Use uploaded URLs
           website: formattedWebsite
         };
 

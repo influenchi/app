@@ -57,17 +57,25 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
   // Auto-fill form data from session when available (and preserve values provided at signup)
   useEffect(() => {
     if (!session?.user) return;
-    const s = session.user as any;
+
+    // Type-safe access to user properties
+    const user = session.user as unknown as {
+      first_name?: string;
+      last_name?: string;
+    };
+
     const setIfEmpty = (field: keyof CreatorOnboardingFormData, value?: string) => {
-      const current = form.getValues(field as any) as string | undefined;
-      if (!current && value) {
-        form.setValue(field as any, value, { shouldValidate: true });
+      const current = form.getValues(field);
+      if ((!current || current === '') && value) {
+        form.setValue(field, value, { shouldValidate: true });
       }
     };
-    setIfEmpty('firstName', s.first_name);
-    setIfEmpty('lastName', s.last_name);
-    if (!form.getValues('displayName') && (s.first_name || s.last_name)) {
-      const suggested = `${s.first_name || ''} ${s.last_name || ''}`.trim().replace(/\s+/g, '_');
+
+    setIfEmpty('firstName', user.first_name);
+    setIfEmpty('lastName', user.last_name);
+
+    if (!form.getValues('displayName') && (user.first_name || user.last_name)) {
+      const suggested = `${user.first_name || ''} ${user.last_name || ''}`.trim().replace(/\s+/g, '_');
       if (suggested) form.setValue('displayName', suggested, { shouldValidate: true });
     }
     // If signup captured website/company for creators in future, add here similarly
@@ -121,7 +129,37 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
       }
     }
 
-    // Final step validation happens here
+    // Step 4 - Portfolio validation (portfolio images are required and should be URLs)
+    if (currentStep === 4) {
+      const formData = form.getValues();
+      const portfolioImages = formData.portfolioImages || [];
+
+      console.log('🎯 Step 4 validation: Portfolio images from form:', portfolioImages);
+
+      // Check if there are any portfolio images
+      if (portfolioImages.length === 0) {
+        toast.error('Please add at least one portfolio image or video to showcase your work');
+        return;
+      }
+
+      // Since images are uploaded immediately in PortfolioStep, they should all be URLs
+      const validUrls = portfolioImages.filter((img): img is string =>
+        typeof img === 'string' && img.startsWith('http')
+      );
+
+      console.log('🎯 Step 4 validation: Valid URLs found:', validUrls.length, 'out of', portfolioImages.length);
+
+      if (validUrls.length === 0) {
+        toast.error('Portfolio images are required. Please add at least one image or video.');
+        return;
+      }
+
+      if (validUrls.length < portfolioImages.length) {
+        console.log('🎯 Step 4 validation: Some items are not valid URLs:', portfolioImages.filter(img => typeof img !== 'string' || !img.startsWith('http')));
+        toast.error('Some portfolio items failed to upload properly. Please try uploading them again.');
+        return;
+      }
+    }
 
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
@@ -139,15 +177,51 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
   const handleSubmit = () => {
     const formData = form.getValues();
 
-    // Check if there are files to upload
-    const hasProfileImage = formData.profileImage instanceof File;
-    const hasPortfolioFiles = formData.portfolioImages?.some(img => img instanceof File);
+    console.log('🚀 handleSubmit: Full form data:', formData);
+    console.log('🚀 handleSubmit: Portfolio images from form:', formData.portfolioImages);
+    console.log('🚀 handleSubmit: Profile image from form:', formData.profileImage);
 
+    // Both profile and portfolio images should now be pre-uploaded URLs
+    const hasProfileImageFile = formData.profileImage instanceof File;
 
-
-    if (hasProfileImage || hasPortfolioFiles) {
-      setIsSubmitting(true);
+    // Log if we unexpectedly have File objects (shouldn't happen with immediate upload)
+    if (hasProfileImageFile) {
+      console.warn('🚨 handleSubmit: Profile image is still a File object - should be URL with immediate upload');
     }
+
+    // Final validation - ensure portfolio images are valid URLs (they should be since uploaded immediately)
+    const portfolioImages = formData.portfolioImages || [];
+    console.log('🚀 handleSubmit: Portfolio images after null check:', portfolioImages);
+
+    const validPortfolioUrls = portfolioImages.filter((img): img is string =>
+      typeof img === 'string' && img.startsWith('http')
+    );
+
+    console.log('🚀 handleSubmit: Valid portfolio URLs:', validPortfolioUrls);
+
+    // This should not happen anymore since images are uploaded immediately
+    if (validPortfolioUrls.length === 0) {
+      console.log('🚨 handleSubmit: No valid portfolio URLs found - this should not happen with immediate upload!');
+      toast.error('Portfolio images are required. Please add at least one image or video.');
+      return;
+    }
+
+    // Check if all portfolio items are valid URLs
+    if (validPortfolioUrls.length < portfolioImages.length) {
+      console.log('🚨 handleSubmit: Some portfolio items are not valid URLs:', portfolioImages.filter(img => typeof img !== 'string' || !img.startsWith('http')));
+      toast.error('Some portfolio items failed to upload. Please try uploading them again.');
+      return;
+    }
+
+    // Set loading state
+    setIsSubmitting(true);
+
+    // Log what we're submitting
+    console.log('🚀 handleSubmit: Submitting with:', {
+      hasProfileImage,
+      portfolioUrlCount: validPortfolioUrls.length,
+      portfolioUrls: validPortfolioUrls.slice(0, 2) // Log first 2 URLs for debugging
+    });
 
     creatorOnboarding.mutate(formData, {
       onSuccess: () => {
@@ -169,6 +243,7 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
   };
 
   const updateProfileData = useCallback((field: string, value: unknown) => {
+    console.log('🔄 CreatorOnboarding: updateProfileData called:', { field, value });
     form.setValue(field as keyof CreatorOnboardingFormData, value, {
       shouldValidate: true,
       shouldDirty: true,
@@ -184,6 +259,22 @@ const CreatorOnboarding = ({ onComplete }: CreatorOnboardingProps) => {
 
     if (currentStep === 1) {
       return displayNameCheck.isChecking || displayNameCheck.available === false;
+    }
+
+    if (currentStep === 4) {
+      const formData = form.getValues();
+      const portfolioImages = formData.portfolioImages || [];
+
+      // Disable if no portfolio images
+      if (portfolioImages.length === 0) return true;
+
+      // Since images are uploaded immediately, check for valid URLs only
+      const validUrls = portfolioImages.filter((img): img is string =>
+        typeof img === 'string' && img.startsWith('http')
+      );
+
+      // Disable if no valid URLs or if some items are invalid
+      if (validUrls.length === 0 || validUrls.length < portfolioImages.length) return true;
     }
 
     return false;

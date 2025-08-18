@@ -42,10 +42,10 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
           const mediaType = guessMediaTypeFromUrl(item);
           return { url: item, preview: item, mediaType };
         } else if (item instanceof File) {
-          const mediaType = item.type.startsWith('video/') ? 'video' : 'image';
+          const mediaType: 'image' | 'video' = item.type.startsWith('video/') ? 'video' : 'image';
           return { file: item, preview: URL.createObjectURL(item), mediaType };
         }
-        return { preview: '', mediaType: 'image' };
+        return { preview: '', mediaType: 'image' as const };
       }).filter(img => img.preview);
 
       setPortfolioImages(images);
@@ -54,21 +54,35 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   }, [profileData.portfolioImages, hasInitialized]);
 
   useEffect(() => {
-    if (!hasInitialized) return;
-    const filesAndUrls = portfolioImages.map(img => img.file || img.url).filter(Boolean);
-    onUpdateData('portfolioImages', filesAndUrls);
-  }, [portfolioImages, hasInitialized, onUpdateData]);
+    // Always sync URLs back to the parent form whenever local state changes
+    const urls = portfolioImages.map(img => img.url).filter(Boolean);
+    console.log('🎯 PortfolioStep: Updating form with URLs:', urls);
+    console.log('🎯 PortfolioStep: Portfolio images state:', portfolioImages);
+    onUpdateData('portfolioImages', urls);
+  }, [portfolioImages, onUpdateData]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🎪 PortfolioStep: handleImageUpload called');
+
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    console.log('🎪 PortfolioStep: Files from input:', files?.length || 0);
+
+    if (!files || files.length === 0) {
+      console.log('🎪 PortfolioStep: No files selected, returning');
+      return;
+    }
 
     setIsProcessing(true);
     const remainingSlots = 5 - portfolioImages.length;
     const filesToProcess = Array.from(files).slice(0, remainingSlots);
 
-    const newImages: PortfolioImage[] = [];
+    console.log('🎪 PortfolioStep: Processing files:', filesToProcess.map(f => f.name));
+    console.log('🎪 PortfolioStep: Current portfolio count:', portfolioImages.length, 'remaining slots:', remainingSlots);
 
+    const validFiles: File[] = [];
+    const tempImages: PortfolioImage[] = [];
+
+    // Validate files and create temporary previews
     for (const file of filesToProcess) {
       const validation = validateMediaFile(file);
       if (!validation.isValid) {
@@ -76,14 +90,102 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
         continue;
       }
 
-      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      const mediaType: 'image' | 'video' = file.type.startsWith('video/') ? 'video' : 'image';
       const preview = URL.createObjectURL(file);
-      newImages.push({ file, preview, mediaType, isUploading: false });
+      tempImages.push({ file, preview, mediaType, isUploading: true });
+      validFiles.push(file);
     }
 
-    if (newImages.length > 0) {
-      setPortfolioImages(prev => [...prev, ...newImages]);
-      toast.success(`${newImages.length} media item(s) added. They will be uploaded when you complete your profile.`);
+    if (tempImages.length === 0) {
+      setIsProcessing(false);
+      return;
+    }
+
+    // Add images with uploading state
+    setPortfolioImages(prev => [...prev, ...tempImages]);
+
+    try {
+      // Upload each file individually so each item gets its URL asap
+      console.log('📁 PortfolioStep: Starting per-file uploads:', validFiles.map(f => f.name));
+
+      const startingIndex = portfolioImages.length;
+
+      const uploadSingleFile = async (file: File, targetIndex: number) => {
+        try {
+          const formData = new FormData();
+          formData.append('files', file);
+          console.log('📁 PortfolioStep: Uploading single file:', file.name, 'to index', targetIndex);
+
+          const response = await fetch('/api/upload/portfolio-images', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+          });
+
+          console.log('📁 PortfolioStep: Single upload response:', response.status, response.statusText);
+
+          if (!response.ok) {
+            const errorResp = await response.json();
+            throw new Error(errorResp.error || 'Upload failed');
+          }
+
+          const result: { urls?: string[]; errors?: string[] } = await response.json();
+          const url = Array.isArray(result.urls) && result.urls.length > 0 ? result.urls[0] : undefined;
+          const err = Array.isArray(result.errors) && result.errors.length > 0 ? result.errors[0] : undefined;
+
+          if (url) {
+            setPortfolioImages(prev => {
+              const updated = [...prev];
+              if (updated[targetIndex]) {
+                // Clean up blob URL since we now have the real URL
+                if (updated[targetIndex].file && updated[targetIndex].preview.startsWith('blob:')) {
+                  URL.revokeObjectURL(updated[targetIndex].preview);
+                }
+                // Use the uploaded URL as both the url and the preview
+                updated[targetIndex] = {
+                  ...updated[targetIndex],
+                  url,
+                  preview: url, // Use uploaded URL as preview
+                  isUploading: false,
+                  error: undefined
+                };
+              }
+              return updated;
+            });
+            console.log('📁 PortfolioStep: Uploaded and set URL for index', targetIndex, url);
+            toast.success(`${file.name} uploaded`);
+          } else {
+            setPortfolioImages(prev => {
+              const updated = [...prev];
+              if (updated[targetIndex]) {
+                updated[targetIndex] = { ...updated[targetIndex], isUploading: false, error: err || 'Upload failed' };
+              }
+              return updated;
+            });
+            console.warn('📁 PortfolioStep: Upload returned no URL for', file.name, 'error:', err);
+            toast.error(`${file.name}: ${err || 'Upload failed'}`);
+          }
+        } catch (singleErr) {
+          console.error('📁 PortfolioStep: Single file upload error for', file.name, singleErr);
+          setPortfolioImages(prev => {
+            const updated = [...prev];
+            if (updated[targetIndex]) {
+              updated[targetIndex] = { ...updated[targetIndex], isUploading: false, error: 'Upload failed' };
+            }
+            return updated;
+          });
+          toast.error(`${file.name}: Upload failed`);
+        }
+      };
+
+      // Sequential uploads to keep network stable and UI predictable
+      for (let i = 0; i < validFiles.length; i++) {
+        await uploadSingleFile(validFiles[i], startingIndex + i);
+      }
+
+    } catch (error) {
+      console.error('Portfolio upload error (batch):', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload media items');
     }
 
     setIsProcessing(false);
@@ -95,9 +197,13 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   const removeImage = (index: number) => {
     setPortfolioImages(prev => {
       const newImages = [...prev];
-      if (newImages[index].file && newImages[index].preview) {
-        URL.revokeObjectURL(newImages[index].preview);
+      const imageToRemove = newImages[index];
+
+      // Clean up blob URL if it was created locally (not an uploaded URL)
+      if (imageToRemove.file && imageToRemove.preview && imageToRemove.preview.startsWith('blob:')) {
+        URL.revokeObjectURL(imageToRemove.preview);
       }
+
       newImages.splice(index, 1);
       return newImages;
     });
@@ -108,7 +214,11 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
     event.preventDefault();
     event.stopPropagation();
 
+    console.log('🎪 PortfolioStep: Files dropped');
+
     const files = event.dataTransfer.files;
+    console.log('🎪 PortfolioStep: Dropped files:', files.length, Array.from(files).map(f => f.name));
+
     if (files.length > 0) {
       const syntheticEvent = {
         target: { files },
@@ -130,7 +240,8 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   useEffect(() => {
     return () => {
       portfolioImages.forEach(img => {
-        if (img.file && img.preview) {
+        // Only revoke blob URLs, not uploaded URLs
+        if (img.file && img.preview && img.preview.startsWith('blob:')) {
           URL.revokeObjectURL(img.preview);
         }
       });
@@ -182,23 +293,24 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
                     <>
                       {image.mediaType === 'video' ? (
                         <video
-                          src={image.preview}
+                          src={image.url || image.preview} // Use uploaded URL if available
                           className="w-full h-full object-cover"
                           muted
                           playsInline
                           loop
                           controls
                           onError={() => {
+                            console.error('Video failed to load:', image.url || image.preview);
                             toast.error('Video failed to load');
                           }}
                         />
                       ) : (
                         <img
-                          src={image.preview}
+                          src={image.url || image.preview} // Use uploaded URL if available
                           alt={`Portfolio ${index + 1}`}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            console.error('Image failed to load:', image.preview);
+                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                            console.error('Image failed to load:', image.url || image.preview);
                             e.currentTarget.src = '/placeholder.svg';
                           }}
                         />
@@ -283,9 +395,14 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
           <p className="text-sm text-gray-500">
             {portfolioImages.length} of 5 items selected
           </p>
-          {portfolioImages.length > 0 && portfolioImages.some(img => img.file) && (
+          {portfolioImages.some(img => img.isUploading) && (
             <p className="text-xs text-muted-foreground mt-1">
-              Items will be uploaded when you complete your profile
+              Uploading items...
+            </p>
+          )}
+          {portfolioImages.some(img => img.error) && (
+            <p className="text-xs text-red-600 mt-1">
+              Some items failed to upload. Please try again.
             </p>
           )}
         </div>
