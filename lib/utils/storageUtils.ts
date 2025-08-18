@@ -321,9 +321,6 @@ export async function uploadPortfolioImages(
 ): Promise<{ urls: string[]; errors?: string[] }> {
   void onProgress; // Parameter kept for API consistency
   try {
-
-    });
-
     const processedFiles: File[] = [];
     const validationErrors: string[] = [];
 
@@ -464,9 +461,6 @@ export async function uploadSubmissionAssets(
   // onProgress parameter is unused but kept for API consistency
   void onProgress;
   try {
-
-    });
-
     if (files.length === 0) {
       throw new Error('No files provided for upload');
     }
