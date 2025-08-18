@@ -1,12 +1,14 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, X, Upload, Loader2, CheckCircle, AlertTriangle, Video } from "lucide-react";
+import { Plus, X, Upload, Loader2, CheckCircle, AlertTriangle, Video, Building2 } from "lucide-react";
 import { CreatorProfileData } from "../types";
 import { validateMediaFile, getFileTypeDisplay, getVideoTypeDisplay, getMaxFileSizeDisplay } from "@/lib/utils/storageUtils";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PortfolioStepProps {
   profileData: CreatorProfileData;
@@ -22,6 +24,17 @@ interface PortfolioImage {
   error?: string;
 }
 
+interface BrandWorkedWith {
+  id: string;
+  name: string;
+  url?: string;
+  logo?: string;
+  logoFile?: File;
+  logoPreview?: string;
+  isUploading?: boolean;
+  error?: string;
+}
+
 function guessMediaTypeFromUrl(url: string): 'image' | 'video' {
   const lower = url.toLowerCase();
   if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')) return 'video';
@@ -31,7 +44,9 @@ function guessMediaTypeFromUrl(url: string): 'image' | 'video' {
 const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const brandLogoInputRef = useRef<HTMLInputElement>(null);
   const [portfolioImages, setPortfolioImages] = useState<PortfolioImage[]>([]);
+  const [brandsWorkedWith, setBrandsWorkedWith] = useState<BrandWorkedWith[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -54,11 +69,37 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
   }, [profileData.portfolioImages, hasInitialized]);
 
   useEffect(() => {
+    // Initialize brands from profile data
+    if (profileData.brandsWorkedWith && profileData.brandsWorkedWith.length > 0) {
+      const brands: BrandWorkedWith[] = profileData.brandsWorkedWith.map((brand, index) => ({
+        id: `brand-${index}`,
+        name: brand.name,
+        url: brand.url || '',
+        logo: brand.logo || '',
+      }));
+      setBrandsWorkedWith(brands);
+    }
+  }, [profileData.brandsWorkedWith]);
+
+
+
+  useEffect(() => {
     // Always sync URLs back to the parent form whenever local state changes
     const urls = portfolioImages.map(img => img.url).filter(Boolean);
-
     onUpdateData('portfolioImages', urls);
   }, [portfolioImages, onUpdateData]);
+
+  // Helper function to sync brands to parent (deferred to avoid setState during render)
+  const syncBrands = useCallback((brands: BrandWorkedWith[]) => {
+    setTimeout(() => {
+      const brandsData = brands.map(brand => ({
+        name: brand.name,
+        url: brand.url,
+        logo: brand.logo,
+      }));
+      onUpdateData('brandsWorkedWith', brandsData);
+    }, 0);
+  }, [onUpdateData]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
@@ -223,6 +264,140 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
 
   const triggerFileInput = () => { fileInputRef.current?.click(); };
   const triggerVideoInput = () => { videoInputRef.current?.click(); };
+
+  // Brand management functions
+  const addBrand = () => {
+    const newBrand: BrandWorkedWith = {
+      id: `brand-${Date.now()}`,
+      name: '',
+      url: '',
+    };
+    setBrandsWorkedWith(prev => {
+      const updated = [...prev, newBrand];
+      syncBrands(updated);
+      return updated;
+    });
+  };
+
+  const removeBrand = (id: string) => {
+    setBrandsWorkedWith(prev => {
+      const brandToRemove = prev.find(brand => brand.id === id);
+      if (brandToRemove?.logoPreview && brandToRemove.logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(brandToRemove.logoPreview);
+      }
+      const updated = prev.filter(brand => brand.id !== id);
+      syncBrands(updated);
+      return updated;
+    });
+    toast.info('Brand removed');
+  };
+
+  const updateBrand = useCallback((id: string, field: keyof BrandWorkedWith, value: string) => {
+    setBrandsWorkedWith(prev => {
+      const updated = prev.map(brand =>
+        brand.id === id ? { ...brand, [field]: value } : brand
+      );
+      syncBrands(updated);
+      return updated;
+    });
+  }, [syncBrands]);
+
+  const handleBrandLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, brandId: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateMediaFile(file);
+    if (!validation.isValid) {
+      toast.error(`${file.name}: ${validation.error}`);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file for the brand logo');
+      return;
+    }
+
+    setBrandsWorkedWith(prev => {
+      const updated = prev.map(brand =>
+        brand.id === brandId
+          ? {
+            ...brand,
+            logoFile: file,
+            logoPreview: URL.createObjectURL(file),
+            isUploading: true,
+            error: undefined
+          }
+          : brand
+      );
+      syncBrands(updated);
+      return updated;
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload/brand-logo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload brand logo');
+      }
+
+      const result = await response.json();
+
+      if (result.url) {
+        setBrandsWorkedWith(prev => {
+          const updated = prev.map(brand =>
+            brand.id === brandId
+              ? {
+                ...brand,
+                logo: result.url,
+                logoFile: undefined,
+                isUploading: false,
+                error: undefined
+              }
+              : brand
+          );
+          syncBrands(updated);
+          return updated;
+        });
+
+        // Clean up blob URL
+        const brand = brandsWorkedWith.find(b => b.id === brandId);
+        if (brand?.logoPreview && brand.logoPreview.startsWith('blob:')) {
+          URL.revokeObjectURL(brand.logoPreview);
+        }
+
+        toast.success('Brand logo uploaded successfully');
+      }
+    } catch (error) {
+      setBrandsWorkedWith(prev => {
+        const updated = prev.map(brand =>
+          brand.id === brandId
+            ? {
+              ...brand,
+              isUploading: false,
+              error: 'Upload failed'
+            }
+            : brand
+        );
+        syncBrands(updated);
+        return updated;
+      });
+      toast.error('Failed to upload brand logo');
+    }
+
+    if (brandLogoInputRef.current) brandLogoInputRef.current.value = '';
+  };
+
+  const triggerBrandLogoInput = (brandId: string) => {
+    // Store the brandId temporarily to use in the upload handler
+    (brandLogoInputRef.current as unknown as { brandId?: string }).brandId = brandId;
+    brandLogoInputRef.current?.click();
+  };
 
   useEffect(() => {
     return () => {
@@ -393,6 +568,121 @@ const PortfolioStep = ({ profileData, onUpdateData }: PortfolioStepProps) => {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Brands Worked With Section */}
+      <div>
+        <Label className="text-lg mb-4 block">Brands I&apos;ve Worked With</Label>
+        <p className="text-sm text-gray-600 mb-4">
+          Showcase the brands you&apos;ve collaborated with. Add their name, website, and logo to build credibility.
+        </p>
+
+        <div className="space-y-4 mb-6">
+          {brandsWorkedWith.map((brand, index) => (
+            <Card key={brand.id} className="p-4">
+              <div className="flex items-start gap-4">
+                {/* Brand Logo */}
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 relative group">
+                    {brand.logo || brand.logoPreview ? (
+                      <img
+                        src={brand.logo || brand.logoPreview}
+                        alt={`${brand.name} logo`}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <Building2 className="h-6 w-6 text-gray-400" />
+                    )}
+
+                    {brand.isUploading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      </div>
+                    )}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white bg-opacity-90"
+                      onClick={() => triggerBrandLogoInput(brand.id)}
+                      disabled={brand.isUploading}
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Brand Details */}
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <Label htmlFor={`brand-name-${brand.id}`} className="text-sm font-medium">
+                      Brand Name *
+                    </Label>
+                    <Input
+                      id={`brand-name-${brand.id}`}
+                      value={brand.name}
+                      onChange={(e) => updateBrand(brand.id, 'name', e.target.value)}
+                      placeholder="e.g., Nike, Coca-Cola, Apple"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor={`brand-url-${brand.id}`} className="text-sm font-medium">
+                      Brand Website (Optional)
+                    </Label>
+                    <Input
+                      id={`brand-url-${brand.id}`}
+                      value={brand.url || ''}
+                      onChange={(e) => updateBrand(brand.id, 'url', e.target.value)}
+                      placeholder="https://www.brandname.com"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Remove Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeBrand(brand.id)}
+                  className="flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {brand.error && (
+                <p className="text-xs text-red-600 mt-2">{brand.error}</p>
+              )}
+            </Card>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addBrand}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Brand
+          </Button>
+        </div>
+
+        <input
+          ref={brandLogoInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const brandId = (e.target as unknown as { brandId?: string }).brandId;
+            if (brandId) {
+              handleBrandLogoUpload(e, brandId);
+            }
+          }}
+          className="hidden"
+        />
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg">

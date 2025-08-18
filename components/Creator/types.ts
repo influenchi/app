@@ -7,20 +7,20 @@ export interface CreatorProfileData {
   bio: string;
   location: string;
   profileImage: File | null;
-  
+
   // Social Profiles
   instagram: string;
   tiktok: string;
   youtube: string;
   twitter: string;
   website: string;
-  
+
   // Niche & Interests
   primaryNiche: string;
   secondaryNiches: string[];
   travelStyle: string[];
   contentTypes: string[];
-  
+
   // Audience Info
   totalFollowers: string;
   primaryPlatform: string;
@@ -28,7 +28,14 @@ export interface CreatorProfileData {
   audienceGender: string;
   audienceLocation: string[];
   engagementRate: string;
-  
+
   // Portfolio
   portfolioImages: File[];
+
+  // Brands Worked With
+  brandsWorkedWith: Array<{
+    name: string;
+    url?: string;
+    logo?: string;
+  }>;
 }

@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
       engagement_rate: validatedData.engagementRate || null,
       portfolio_images: portfolioImages,
       work_images: portfolioImages,
+      brands_worked_with: validatedData.brandsWorkedWith || [],
       is_onboarding_complete: true,
       updated_at: new Date().toISOString()
     };

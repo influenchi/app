@@ -106,6 +106,9 @@ export function useCreatorOnboarding() {
         // Portfolio images (URLs only)
         formData.append('portfolioImages', JSON.stringify(portfolioImageUrls));
 
+        // Brands worked with
+        formData.append('brandsWorkedWith', JSON.stringify(data.brandsWorkedWith || []));
+
         response = await fetch('/api/creator/onboarding', {
           method: 'POST',
           credentials: 'include',
@@ -118,7 +121,8 @@ export function useCreatorOnboarding() {
           profileImage: undefined, // Remove File object
           profileImageUrl, // Use uploaded URL
           portfolioImages: portfolioImageUrls, // Use uploaded URLs
-          website: formattedWebsite
+          website: formattedWebsite,
+          brandsWorkedWith: data.brandsWorkedWith || []
         };
 
         response = await fetch('/api/creator/onboarding', {
